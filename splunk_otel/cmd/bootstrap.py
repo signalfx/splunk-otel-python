@@ -1,4 +1,3 @@
-
 import argparse
 import pkgutil
 import subprocess
@@ -7,6 +6,7 @@ from logging import getLogger
 
 from opentelemetry.instrumentation import bootstrap
 from opentelemetry.instrumentation.version import __version__ as otel_version
+
 from splunk_otel import symbols
 
 logger = getLogger(__file__)
@@ -14,6 +14,7 @@ logger = getLogger(__file__)
 
 # target library to desired instrumentor path/versioned package name
 instrumentations = bootstrap.instrumentations
+intrumentations["falcon"] = "opentelemetry-instrumentation-falcon>=0.13b0"
 
 # relevant instrumentors and tracers to uninstall and check for conflicts for target libraries
 libraries = bootstrap.libraries
@@ -31,9 +32,7 @@ def _syscall(func):
         except subprocess.SubprocessError as exp:
             cmd = getattr(exp, "cmd", None)
             if cmd:
-                msg = 'Error calling system command "{0}"'.format(
-                    " ".join(cmd)
-                )
+                msg = 'Error calling system command "{0}"'.format(" ".join(cmd))
             if package:
                 msg = '{0} for package "{1}"'.format(msg, package)
             raise RuntimeError(msg)
@@ -44,7 +43,14 @@ def _syscall(func):
 @_syscall
 def _sys_pip_freeze():
     return (
-        subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
+        subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "freeze",
+            ]
+        )
         .decode()
         .lower()
     )
@@ -70,7 +76,14 @@ def _sys_pip_install(package):
 @_syscall
 def _sys_pip_uninstall(package):
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "uninstall", "-y", package]
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "uninstall",
+            "-y",
+            package,
+        ]
     )
 
 
@@ -83,16 +96,15 @@ def _pip_check():
     To not be too restrictive, we'll only check for relevant packages.
     """
     check_pipe = subprocess.Popen(
-        [sys.executable, "-m", "pip", "check"], stdout=subprocess.PIPE
+        [sys.executable, "-m", "pip", "check"],
+        stdout=subprocess.PIPE,
     )
     pip_check = check_pipe.communicate()[0].decode()
     pip_check_lower = pip_check.lower()
     for package_tup in libraries.values():
         for package in package_tup:
             if package.lower() in pip_check_lower:
-                raise RuntimeError(
-                    "Dependency conflict found: {}".format(pip_check)
-                )
+                raise RuntimeError("Dependency conflict found: {}".format(pip_check))
 
 
 def _is_installed(library):
@@ -107,14 +119,17 @@ def _install_exporter(package):
     _sys_pip_install(package)
 
 
-def _run_install(instrumentation_packages, exporters): 
-    for pkg, inst in instrumentation_packages.items():
+def _run_install(instrumentation_packages, exporters):
+    for (
+        pkg,
+        inst,
+    ) in instrumentation_packages.items():
         _install_instrumentation(pkg, inst)
 
     for pkg, inst in exporters.items():
         _install_exporter(inst)
 
-    _pip_check() 
+    _pip_check()
 
 
 def _run_requirements(instrumentation_packages, exporters):
@@ -137,8 +152,6 @@ def _compile_package_list(exporters):
     return packages
 
 
-
-
 def run() -> None:
     action_install = "install"
     action_requirements = "requirements"
@@ -152,7 +165,10 @@ def run() -> None:
     parser.add_argument(
         "-a",
         "--action",
-        choices=[action_install, action_requirements],
+        choices=[
+            action_install,
+            action_requirements,
+        ],
         default=action_requirements,
         help="""
         install - uses pip to install the new requirements using to the
@@ -180,7 +196,5 @@ def run() -> None:
     }[args.action]
     cmd(
         _find_installed_libraries(),
-        _exporter_packages_from_names(
-            args.exporter or [symbols.exporter_zipkin]
-        ),
+        _exporter_packages_from_names(args.exporter or [symbols.exporter_zipkin]),
     )

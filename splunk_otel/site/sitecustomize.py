@@ -2,9 +2,7 @@ import os
 import sys
 from logging import getLogger
 
-
 from splunk_otel.tracing import start_tracing
-
 
 logger = getLogger(__file__)
 
@@ -23,5 +21,7 @@ if (
     @worker_process_init.connect(weak=False)
     def init_celery(*args, **kwargs):
         init()
+
+
 else:
     init()

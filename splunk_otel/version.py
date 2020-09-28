@@ -12,4 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '0.1.0'
+import pkg_resources
+__version__ = pkg_resources.get_distribution('splunk_otel').version
+# __version__ = "0.1.0"

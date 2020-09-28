@@ -3,12 +3,27 @@
 clean:
 	rm dist/*
 
-
 .PHONY: build
-build: clean
-	python setup.py sdist
+build:
+	poetry build
 
 
 .PHONY: publish
-publish: clean build 
-	twine upload dist/splunk-opentelemetry-*.tar.gz
+publish:
+	poetry publish
+
+
+.PHONY: fmt
+fmt: isort black
+
+.PHONY: black 
+black:
+	poetry run black splunk_otel
+
+.PHONY: isort 
+isort:
+	poetry run isort --profile black splunk_otel
+
+.PHONY: test
+test:
+	poetry run pytest tests/
