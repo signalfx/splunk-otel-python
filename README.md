@@ -19,7 +19,19 @@ splk-py-trace python main.py
 
 ## Development
 
-### Installing packages
+### Bootstraping 
+
+#### Install Poetry
+
+This project uses poetry to manage dependencies and the package. Follow the instructions here to install Poetry on your system: https://python-poetry.org/docs/#installation
+
+#### Install dependencies
+
+Once poetry is installed and available run the following command to install all package required for local development.
+
+```
+make dep
+```
 
 ### Testing in a local project
 
