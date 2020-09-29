@@ -32,9 +32,13 @@ mypy = "^0.782"
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.5.3", python = "^3.6"}
 pytest = "^6.1.0"
+dephell = {version = "^0.8.3", python = "^3.6"}
 
 [tool.black]
 line-length = 90
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
+[tool.dephell.main]
+from = {format = "poetry", path = "pyproject.toml"}
+to = {format = "setuppy", path = "setup.py"}

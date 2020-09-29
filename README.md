@@ -15,3 +15,21 @@ pip install splunk-opentelemetry'
 splk-py-trace-bootstrap -a=install
 splk-py-trace python main.py
 ```
+
+
+## Development
+
+### Installing packages
+
+### Testing in a local project
+
+In order to install and test the package in a local test project, we'll need to generate a setup.py file and then install an editable version of the package in the test project's environment. Assuming the test project environment lives at `/path/to/test/project/venv`, the following steps will install an editable version of package in the test project.
+
+```
+make develop
+cd dev
+. /path/to/test/project/venv/bin/activate
+python setup.py develop
+```
+
+This will install an editable version of the package in the test project. Any changes made to the library will automatically reflect in the test project without the need to install the package again.

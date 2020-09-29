@@ -13,5 +13,4 @@
 # limitations under the License.
 
 import pkg_resources
-__version__ = pkg_resources.get_distribution('splunk_otel').version
-# __version__ = "0.1.0"
+__version__ = pkg_resources.get_distribution('splunk-opentelemetry').version
