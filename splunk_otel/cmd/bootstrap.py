@@ -14,7 +14,7 @@ logger = getLogger(__file__)
 
 # target library to desired instrumentor path/versioned package name
 instrumentations = bootstrap.instrumentations
-intrumentations["falcon"] = "opentelemetry-instrumentation-falcon>=0.13b0"
+instrumentations["falcon"] = "opentelemetry-instrumentation-falcon>=0.13b0"
 
 # relevant instrumentors and tracers to uninstall and check for conflicts for target libraries
 libraries = bootstrap.libraries
@@ -169,7 +169,7 @@ def run() -> None:
             action_install,
             action_requirements,
         ],
-        default=action_requirements,
+        default=action_install,
         help="""
         install - uses pip to install the new requirements using to the
                   currently active site-package.

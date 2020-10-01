@@ -10,11 +10,84 @@ This Splunk distribution comes with the following defaults:
 
 ## Getting Started
 
+### 1. Install the package
+
+This will install splunk-opentelemetry and any other packages required to start tracing a Python application.
+
 ```
-pip install splunk-opentelemetry'
-splk-py-trace-bootstrap -a=install
-splk-py-trace python main.py
+pip install splunk-opentelemetry
 ```
+
+### 2. Detect and install instrumentations
+
+This will detect installed packages in your active Python environment and install the relevant instrumentation
+packages.
+
+```
+splk-py-trace-bootstrap
+```
+
+#### Optional: List requirements instead of installing them
+
+The `splk-py-trace-bootstrap` command can optionally print out the list of packages it would install if you chose.
+In order to do so, pass `-a=requirements` CLI argument to it. For example,
+
+```
+splk-py-trace-bootstrap -a requirements
+```
+
+Might out something like the following:
+
+```
+opentelemetry-instrumentation-falcon>=0.13b0
+opentelemetry-instrumentation-jinja2>=0.8b0
+opentelemetry-instrumentation-requests>=0.8b0
+opentelemetry-instrumentation-sqlite3>=0.11b0
+opentelemetry-exporter-zipkin>=0.13b0
+```
+
+You can pipe the output of this command to append the new packages to your requirements.txt file or to something like `poetry add`.
+
+### 3. Automatically trace your python application
+
+With all the packages required to trace and instrument your application installed, you can start your application using the `splk-py-trace`
+command to auto-instrument and auto-configure tracing. For example, if you usually start your Python application as `python main.py --port=8000`,
+you'd have to change it to the following command:
+
+```
+splk-py-trace python main.py --port=8000
+```
+
+#### Optional: Instrument and configure by adding code
+
+If you cannot use `splk-py-trace` command, you can also add a couple of lines of code to your Python application to acheive the same result.
+
+```python
+from splunk_otel.tracing import start_tracing
+
+start_tracing()
+
+# rest of your python application's entrypoint script
+```
+
+##### Manually configuring Celery workers
+
+Celery workers must call the `start_tracing()` function after worker process is initialized. If you are trying to trace a celery worker,
+you must use Celery's `celery.signals.worker_process_init` signal to start tracing. For example:
+
+```python
+from splunk_otel.tracing import start_tracing
+from celery.signals import worker_process_init
+
+@worker_process_init.connect(weak=False)
+def on_worker_process_init(*args, **kwargs):
+    start_tracing()
+
+# rest of your python application's entrypoint script
+```
+
+This is completely automated when using the `splk-py-trace` command to start Python applications and is only required when instrumenting
+by hand.
 
 
 ## Development
