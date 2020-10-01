@@ -36,7 +36,7 @@ In order to do so, pass `-a=requirements` CLI argument to it. For example,
 splk-py-trace-bootstrap -a requirements
 ```
 
-Might out something like the following:
+Will output something like the following:
 
 ```
 opentelemetry-instrumentation-falcon>=0.13b0
