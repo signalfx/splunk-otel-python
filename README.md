@@ -27,7 +27,7 @@ packages.
 splk-py-trace-bootstrap
 ```
 
-#### Optional: List requirements instead of installing them
+#### Alternative: List requirements instead of installing them
 
 The `splk-py-trace-bootstrap` command can optionally print out the list of packages it would install if you chose.
 In order to do so, pass `-a=requirements` CLI argument to it. For example,
@@ -40,9 +40,9 @@ Might out something like the following:
 
 ```
 opentelemetry-instrumentation-falcon>=0.13b0
-opentelemetry-instrumentation-jinja2>=0.8b0
-opentelemetry-instrumentation-requests>=0.8b0
-opentelemetry-instrumentation-sqlite3>=0.11b0
+opentelemetry-instrumentation-jinja2>=0.13b0
+opentelemetry-instrumentation-requests>=0.13b0
+opentelemetry-instrumentation-sqlite3>=0.13b0
 opentelemetry-exporter-zipkin>=0.13b0
 ```
 
@@ -58,7 +58,7 @@ you'd have to change it to the following command:
 splk-py-trace python main.py --port=8000
 ```
 
-#### Optional: Instrument and configure by adding code
+#### Alternative: Instrument and configure by adding code
 
 If you cannot use `splk-py-trace` command, you can also add a couple of lines of code to your Python application to acheive the same result.
 
