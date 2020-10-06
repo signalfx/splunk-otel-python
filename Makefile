@@ -1,19 +1,23 @@
-.PHONY: deps 
+.PHONY: deps
 deps:
 	poetry install
 
-.PHONY: clean 
+.PHONY: clean
 clean:
-	@rm -rf dist/*
-	@rm -rf dev/*
+	rm -rf dist/*
+	rm -rf dev/*
 
-.PHONY: develop 
+.PHONY: develop
 develop: clean
-	@mkdir -p dev
-	@ln -s $(PWD)/splunk_otel dev/
-	@poetry run dephell deps convert
-	@mv setup.py dev/
-	@echo "Prepared dev directory. Active the target virtual env and run _python setup.py develop_ from within the dev directory."
+	mkdir -p dev
+	ln -s $(PWD)/splunk_otel dev/
+	mv setup.py dev/
+	poetry run dephell deps convert
+	echo "Prepared dev directory. Active the target virtual env and run _python setup.py develop_ from within the dev directory."
+
+.PHONY: install-tools
+install-tools:
+	python -m pip install -U --upgrade-strategy only-if-needed poetry
 
 .PHONY: build
 build:
@@ -26,11 +30,11 @@ publish:
 .PHONY: fmt
 fmt: isort black
 
-.PHONY: black 
+.PHONY: black
 black:
 	poetry run black splunk_otel
 
-.PHONY: isort 
+.PHONY: isort
 isort:
 	poetry run isort --profile black splunk_otel
 
