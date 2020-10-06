@@ -11,13 +11,9 @@ clean:
 develop: clean
 	mkdir -p dev
 	ln -s $(PWD)/splunk_otel dev/
-	mv setup.py dev/
 	poetry run dephell deps convert
+	mv setup.py dev/
 	echo "Prepared dev directory. Active the target virtual env and run _python setup.py develop_ from within the dev directory."
-
-.PHONY: install-tools
-install-tools:
-	python -m pip install -U --upgrade-strategy only-if-needed poetry
 
 .PHONY: build
 build:

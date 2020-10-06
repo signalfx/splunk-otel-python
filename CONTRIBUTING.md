@@ -14,7 +14,7 @@ Once poetry is installed and available run the following command to install all
 package required for local development.
 
 ```
-make dep
+make deps
 ```
 
 ## Testing in a local project
