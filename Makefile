@@ -1,6 +1,6 @@
 DEV_VENV?=""
 
-.PHONY: deps 
+.PHONY: deps
 deps:
 	poetry install
 
