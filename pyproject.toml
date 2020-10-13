@@ -21,10 +21,10 @@ splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run'
 
 [tool.poetry.dependencies]
 python = "^3.5"
-opentelemetry-api = "^0.13b0"
-opentelemetry-sdk = "^0.13b0"
-opentelemetry-instrumentation = "^0.13b0"
-opentelemetry-exporter-zipkin = "^0.13b0"
+opentelemetry-api = "^0.14b0"
+opentelemetry-sdk = "^0.14b0"
+opentelemetry-instrumentation = "^0.14b0"
+opentelemetry-exporter-zipkin = "^0.14b0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.3"

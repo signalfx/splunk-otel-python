@@ -13,4 +13,5 @@
 # limitations under the License.
 
 import pkg_resources
-__version__ = pkg_resources.get_distribution('splunk-opentelemetry').version
+
+__version__ = pkg_resources.get_distribution("splunk-opentelemetry").version

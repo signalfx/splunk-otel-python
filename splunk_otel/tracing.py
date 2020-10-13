@@ -3,17 +3,17 @@ import sys
 from logging import getLogger
 
 from opentelemetry import trace
+from opentelemetry.exporter.zipkin import ZipkinSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
 from pkg_resources import iter_entry_points
 
-from splunk_otel.exporter.zipkin import ZipkinSpanExporter
-
 logger = getLogger(__file__)
 
 DEFAULT_SERVICE_NAME = "unnamed-python-service"
 DEFAULT_ENDPOINT = "http://localhost:9080/v1/trace"
+DEFAULT_MAX_ATTR_LENGTH = 1200
 
 
 def start_tracing(url=None, service_name=None):
@@ -43,7 +43,13 @@ def init_tracer(url=None, service_name=None):
     )
     trace.set_tracer_provider(provider)
 
-    exporter = ZipkinSpanExporter(url=url, service_name=service_name)
+    exporter = ZipkinSpanExporter(
+        url=url,
+        service_name=service_name,
+        max_tag_value_length=int(
+            os.environ.get("SPLK_MAX_ATTR_LENGTH", DEFAULT_MAX_ATTR_LENGTH)
+        ),
+    )
     provider.add_span_processor(BatchExportSpanProcessor(exporter))
 
 

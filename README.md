@@ -39,11 +39,11 @@ splk-py-trace-bootstrap -a requirements
 Will output something like the following:
 
 ```
-opentelemetry-instrumentation-falcon>=0.13b0
-opentelemetry-instrumentation-jinja2>=0.13b0
-opentelemetry-instrumentation-requests>=0.13b0
-opentelemetry-instrumentation-sqlite3>=0.13b0
-opentelemetry-exporter-zipkin>=0.13b0
+opentelemetry-instrumentation-falcon>=0.14b0
+opentelemetry-instrumentation-jinja2>=0.14b0
+opentelemetry-instrumentation-requests>=0.14b0
+opentelemetry-instrumentation-sqlite3>=0.14b0
+opentelemetry-exporter-zipkin>=0.14b0
 ```
 
 You can pipe the output of this command to append the new packages to your requirements.txt file or to something like `poetry add`.
