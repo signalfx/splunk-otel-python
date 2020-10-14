@@ -89,6 +89,18 @@ def on_worker_process_init(*args, **kwargs):
 This is completely automated when using the `splk-py-trace` command to start Python applications and is only required when instrumenting
 by hand.
 
+## Special Cases 
+
+### Django
+- Needs env var `DJANGO_SETTINGS_MODULE` to be defined (can be found in manage.py)
+
+### Celery
+- support automatically
+- when manual, use post worker init signal
+
+### Gunicorn
+- call `start_tracing()` in `post_fork()` hook in gunicorn settings.
+
 
 ## Development
 

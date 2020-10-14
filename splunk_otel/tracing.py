@@ -7,6 +7,8 @@ from opentelemetry.exporter.zipkin import ZipkinSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
+from opentelemetry import propagators
+from opentelemetry.sdk.trace.propagation.b3_format import B3Format
 from pkg_resources import iter_entry_points
 
 logger = getLogger(__file__)
@@ -14,6 +16,11 @@ logger = getLogger(__file__)
 DEFAULT_SERVICE_NAME = "unnamed-python-service"
 DEFAULT_ENDPOINT = "http://localhost:9080/v1/trace"
 DEFAULT_MAX_ATTR_LENGTH = 1200
+
+# auto-enable django instrumentation. remove after this is fixed upstream
+os.environ['OTEL_PYTHON_DJANGO_INSTRUMENT'] = 'True'
+
+propagators.set_global_textmap(B3Format())
 
 
 def start_tracing(url=None, service_name=None):
