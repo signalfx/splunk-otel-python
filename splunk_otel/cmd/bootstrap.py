@@ -14,7 +14,6 @@ logger = getLogger(__file__)
 
 # target library to desired instrumentor path/versioned package name
 instrumentations = bootstrap.instrumentations
-instrumentations["falcon"] = "opentelemetry-instrumentation-falcon>=0.13b0"
 
 # relevant instrumentors and tracers to uninstall and check for conflicts for target libraries
 libraries = bootstrap.libraries

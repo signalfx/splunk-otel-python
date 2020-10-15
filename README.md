@@ -88,11 +88,11 @@ splk-py-trace-bootstrap -a requirements
 Will output something like the following:
 
 ```
-opentelemetry-instrumentation-falcon>=0.13b0
-opentelemetry-instrumentation-jinja2>=0.13b0
-opentelemetry-instrumentation-requests>=0.13b0
-opentelemetry-instrumentation-sqlite3>=0.13b0
-opentelemetry-exporter-zipkin>=0.13b0
+opentelemetry-instrumentation-falcon>=0.14b0
+opentelemetry-instrumentation-jinja2>=0.14b0
+opentelemetry-instrumentation-requests>=0.14b0
+opentelemetry-instrumentation-sqlite3>=0.14b0
+opentelemetry-exporter-zipkin>=0.14b0
 ```
 
 You can pipe the output of this command to append the new packages to your
@@ -130,6 +130,16 @@ def on_worker_process_init(*args, **kwargs):
 
 This is completely automated when using the `splk-py-trace` command to start
 Python applications and is only required when instrumenting by hand.
+
+Special Cases:
+
+- Django
+  - Needs env var `DJANGO_SETTINGS_MODULE` to be defined (can be found in `manage.py`)
+- Celery
+  - Supported automatically
+  - When manual, use post worker init signal
+- Gunicorn
+  - Call `start_tracing()` in `post_fork()` hook in gunicorn settings.
 
 ## Manually instrument an application
 

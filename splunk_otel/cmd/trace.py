@@ -38,6 +38,18 @@ def run():
         "site",
     )
     py_path = os.environ.get("PYTHONPATH", "")
+
+    # This is being added to support applications that are being run from their
+    # own executable, like Django.
+    if not py_path:
+        py_path = []
+    else:
+        py_path = py_path.split(os.path.pathsep)
+    cwd_path = getcwd()
+    if cwd_path not in py_path:
+        py_path.insert(0, cwd_path)
+    py_path = os.path.pathsep.join(py_path)
+
     os.environ["PYTHONPATH"] = site_dir + os.pathsep + py_path if py_path else site_dir
 
     executable = which(args.command)
