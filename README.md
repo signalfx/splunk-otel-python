@@ -17,7 +17,7 @@ This Splunk distribution comes with the following defaults:
 
 ## Getting Started
 
-The instrumentation works with Python version 3.5. Supported
+The instrumentation works with Python version 3.5+. Supported
 libraries are listed
 [here](https://github.com/open-telemetry/opentelemetry-python/tree/master/instrumentation).
 
@@ -34,7 +34,7 @@ Then the runtime parameters should be updated to:
 ```
 $ pip install splunk-opentelemetry
 $ splk-py-trace-bootstrap
-$ OTEL_ZIPKIN_SERVICE_NAME=my-python-app \
+$ SPLK_ZIPKIN_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
 ```
 
@@ -45,48 +45,37 @@ set are:
 * Endpoint if not sending to a locally running Smart Agent with default
   configuration
 * Environment attribute (example:
-  `OTEL_RESOURCE_ATTRIBUTES=environment=production`) to specify what
+  `SPLK_RESOURCE_ATTRIBUTES=environment=production`) to specify what
   environment the span originated from.
 
-The agent instruments supported libraries and frameworks with bytecode
-manipulation and configures an OpenTelemetry-compatible tracer to capture
-and export trace spans. The agent also registers an OpenTelemetry `getTracer`
-so you can support existing custom instrumentation or add custom
-instrumentation to your application later.
+Instrumentation works by patching supported libraries at runtime with an
+OpenTelemetry-compatible tracer to capture and export trace spans. The agent
+also registers an OpenTelemetry `get_tracer` so you can support existing custom
+instrumentation or add custom instrumentation to your application later.
 
 To see the Python instrumentation in action with sample applications, see our
 [examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/splunk-otel-python).
 
-## Advanced Configuration
+## All configuration options
 
-### All configuration options
-
-#### Zipkin exporter
+### Zipkin exporter
 
 | Environment variable       | Default value                        | Notes                                                                |
 | -------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
-| OTEL_ZIPKIN_ENDPOINT       | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
-| OTEL_ZIPKIN_SERVICE_NAME   | `unknown`                            | The service name of this JVM instance.                               |
+| SPLK_ZIPKIN_ENDPOINT       | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
+| SPLK_ZIPKIN_SERVICE_NAME   | `unknown`                            | The service name of this JVM instance.                               |
 
-#### Trace configuration
+### Trace configuration
 
-| Environment variable                    | Default value  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                   |
-| --------------------------------------- | -------------- | ------------------------------------------------------------------------------------                                                                                                                                                                                                                                                                                                                      |
-| OTEL_CONFIG_MAX_ATTRS                   | unlimited      | Maximum number of attributes per span.                                                                                                                                                                                                                                                                                                                                                                    |
-| OTEL_CONFIG_MAX_ATTR_LENGTH             | unlimited      | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
-| OTEL_CONFIG_MAX_EVENTS                  | `256`          | Maximum number of events per span.                                                                                                                                                                                                                                                                                                                                                                        |
-| OTEL_CONFIG_MAX_LINKS                   | `256`          | Maximum number of links per span.                                                                                                                                                                                                                                                                                                                                                                         |
-| OTEL_CONFIG_MAX_EVENT_ATTRS             | unlimited      | Maximum number of attributes per event.                                                                                                                                                                                                                                                                                                                                                                   |
-| OTEL_CONFIG_MAX_LINK_ATTRS              | unlimited      | Maximum number of attributes per link.                                                                                                                                                                                                                                                                                                                                                                    |
-| OTEL_ENDPOINT_PEER_SERVICE_MAPPING      | unset          | Used to add a `peer.service` attribute by specifing a comma separated list of mapping from hostnames or IP addresses. <details><summary>Example</summary>If set to `1.2.3.4=cats-service,dogs-service.serverlessapis.com=dogs-api`, requests to `1.2.3.4` will have a `peer.service` attribute of `cats-service` and requests to `dogs-service.serverlessapis.com` will have one of `dogs-api`.</details> |
-| OTEL_RESOURCE_ATTRIBUTES                | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
-| OTEL_TRACE_ENABLED                      | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
-| OTEL_TRACE_METHODS                      | unset          | Same as adding `@WithSpan` annotation functionality for the target method string. <details><summary>Format</summary>`my.package.MyClass1[method1,method2];my.package.MyClass2[method3]`</details>                                                                                                                                                                                                            |
-| OTEL_TRACE_ANNOTATED_METHODS_EXCLUDE    | unset          | Suppress `@WithSpan` instrumentation for specific methods. <details><summary>Format</summary>`my.package.MyClass1[method1,method2];my.package.MyClass2[method3]`</details>                                                                                                                                                                                                                                |
+| Environment variable          | Default value  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------                                                                                                                                                                                                                                                                                                                      |
+| SPLK_CONFIG_MAX_ATTR_LENGTH   | unlimited      | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
+| SPLK_RESOURCE_ATTRIBUTES      | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
+| SPLK_TRACE_ENABLED            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
 
-### Advanced Getting Started
+## Advanced Getting Started
 
-#### Alternative: List requirements instead of installing them
+### Alternative: List requirements instead of installing them
 
 The `splk-py-trace-bootstrap` command can optionally print out the list of
 packages it would install if you chose. In order to do so, pass
@@ -109,7 +98,7 @@ opentelemetry-exporter-zipkin>=0.13b0
 You can pipe the output of this command to append the new packages to your
 requirements.txt file or to something like `poetry add`.
 
-### Alternative: Instrument and configure by adding code
+## Alternative: Instrument and configure by adding code
 
 If you cannot use `splk-py-trace` command, you can also add a couple of lines
 of code to your Python application to achieve the same result.
@@ -149,9 +138,14 @@ Documentation on how to manually instrument a Python application is available
 
 ## Troubleshooting
 
-To turn on internal debug logging:
+Enable debug logging like you would for any Python application.
 
-`-Dio.opentelemetry.javaagent.slf4j.simpleLogger.defaultLogLevel=debug`
+```python
+...
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+...
+```
 
 > :warning: Debug logging is extremely verbose and resource intensive. Enable
 > debug logging only when needed and disable when done.

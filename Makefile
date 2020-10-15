@@ -12,7 +12,6 @@ clean:
 
 .PHONY: develop
 develop: clean
-<<<<<<< HEAD
 	@mkdir -p dev
 	@ln -s $(PWD)/splunk_otel dev/
 	@poetry run dephell deps convert
@@ -24,13 +23,6 @@ ifeq ($(DEV_VENV),"")
 else
 	cd dev; pip uninstall splunk-opentelemetry; $(DEV_VENV)/bin/python setup.py develop
 endif
-=======
-	mkdir -p dev
-	ln -s $(PWD)/splunk_otel dev/
-	poetry run dephell deps convert
-	mv setup.py dev/
-	echo "Prepared dev directory. Active the target virtual env and run _python setup.py develop_ from within the dev directory."
->>>>>>> f9b8875... Fix stuff
 
 .PHONY: build
 build:
