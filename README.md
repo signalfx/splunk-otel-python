@@ -34,7 +34,7 @@ Then the runtime parameters should be updated to:
 ```
 $ pip install splunk-opentelemetry
 $ splk-py-trace-bootstrap
-$ SPLK_ZIPKIN_SERVICE_NAME=my-python-app \
+$ SPLK_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
 ```
 
@@ -45,7 +45,7 @@ set are:
 * Endpoint if not sending to a locally running Smart Agent with default
   configuration
 * Environment attribute (example:
-  `SPLK_RESOURCE_ATTRIBUTES=environment=production`) to specify what
+  `OTEL_RESOURCE_ATTRIBUTES=environment=production`) to specify what
   environment the span originated from.
 
 Instrumentation works by patching supported libraries at runtime with an
@@ -60,18 +60,18 @@ To see the Python instrumentation in action with sample applications, see our
 
 ### Zipkin exporter
 
-| Environment variable       | Default value                        | Notes                                                                |
-| -------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
-| SPLK_ZIPKIN_ENDPOINT       | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
-| SPLK_ZIPKIN_SERVICE_NAME   | `unknown`                            | The service name of this JVM instance.                               |
+| Environment variable          | Default value                        | Notes                                                                |
+| ----------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
+| OTEL_PYTHON_ZIPKIN_ENDPOINT   | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
+| SPLK_SERVICE_NAME             | `unknown`                            | The service name of this JVM instance.                               |
 
 ### Trace configuration
 
 | Environment variable          | Default value  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------------- | -------------- | ------------------------------------------------------------------------------------                                                                                                                                                                                                                                                                                                                      |
-| SPLK_CONFIG_MAX_ATTR_LENGTH   | unlimited      | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
-| SPLK_RESOURCE_ATTRIBUTES      | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
-| SPLK_TRACE_ENABLED            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
+| SPLK_MAX_ATTR_LENGTH          | unlimited      | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
+| OTEL_RESOURCE_ATTRIBUTES      | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
+| OTEL_TRACE_ENABLED            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
 
 ## Advanced Getting Started
 
@@ -151,10 +151,9 @@ Documentation on how to manually instrument a Python application is available
 Enable debug logging like you would for any Python application.
 
 ```python
-...
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-...
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 ```
 
 > :warning: Debug logging is extremely verbose and resource intensive. Enable
