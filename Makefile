@@ -1,16 +1,16 @@
 DEV_VENV?=""
 
-.PHONY: deps 
+.PHONY: deps
 deps:
 	poetry install
 
-.PHONY: clean 
+.PHONY: clean
 clean:
 	@rm -rf dist
 	@rm -rf dev
 	@rm -rf splunk_opentelemetry.egg-info
 
-.PHONY: develop 
+.PHONY: develop
 develop: clean
 	@mkdir -p dev
 	@ln -s $(PWD)/splunk_otel dev/
@@ -35,11 +35,11 @@ publish:
 .PHONY: fmt
 fmt: isort black
 
-.PHONY: black 
+.PHONY: black
 black:
 	poetry run black splunk_otel
 
-.PHONY: isort 
+.PHONY: isort
 isort:
 	poetry run isort --profile black splunk_otel
 
