@@ -113,8 +113,6 @@ start_tracing()
 
 ### Special Cases:
 
-TODO: Expand on the following special cases
-
 #### Celery
 Tracing Celery workers works out of the box when you use the `splk-py-trace` command to start your Python application.
 However, if you are instrumenting your celery workers with code, you'll need to make sure you setup tracing for each
