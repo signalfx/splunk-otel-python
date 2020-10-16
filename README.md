@@ -62,14 +62,14 @@ To see the Python instrumentation in action with sample applications, see our
 
 | Environment variable          | Default value                        | Notes                                                                |
 | ----------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
-| OTEL_PYTHON_ZIPKIN_ENDPOINT   | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
-| SPLK_SERVICE_NAME             | `unknown`                            | The service name of this JVM instance.                               |
+| OTEL_EXPORTER_ZIPKIN_ENDPOINT | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
+| SPLK_SERVICE_NAME             | `unnamed-python-service`             | The service name of this JVM instance.                               |
 
 ### Trace configuration
 
 | Environment variable          | Default value  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------------- | -------------- | ------------------------------------------------------------------------------------                                                                                                                                                                                                                                                                                                                      |
-| SPLK_MAX_ATTR_LENGTH          | unlimited      | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
+| SPLK_MAX_ATTR_LENGTH          | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
 | OTEL_RESOURCE_ATTRIBUTES      | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
 | OTEL_TRACE_ENABLED            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
 
@@ -132,6 +132,8 @@ This is completely automated when using the `splk-py-trace` command to start
 Python applications and is only required when instrumenting by hand.
 
 Special Cases:
+
+TODO: Expand on the following special cases
 
 - Django
   - Needs env var `DJANGO_SETTINGS_MODULE` to be defined (can be found in `manage.py`)
