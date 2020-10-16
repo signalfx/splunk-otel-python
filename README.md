@@ -111,11 +111,14 @@ start_tracing()
 # rest of your python application's entrypoint script
 ```
 
-### Manually configuring Celery workers
+### Special Cases:
 
-Celery workers must call the `start_tracing()` function after worker process is
-initialized. If you are trying to trace a celery worker, you must use Celery's
-`celery.signals.worker_process_init` signal to start tracing. For example:
+TODO: Expand on the following special cases
+
+#### Celery
+Tracing Celery workers works out of the box when you use the `splk-py-trace` command to start your Python application.
+However, if you are instrumenting your celery workers with code, you'll need to make sure you setup tracing for each
+worker by using Celery's `celery.signalfx.worker_process_init` signal. For example:
 
 ```python
 from splunk_otel.tracing import start_tracing
@@ -128,20 +131,31 @@ def on_worker_process_init(*args, **kwargs):
 # rest of your python application's entrypoint script
 ```
 
-This is completely automated when using the `splk-py-trace` command to start
-Python applications and is only required when instrumenting by hand.
+#### Django
+Automatically instrumenting Django requires `DJANGO_SETTINGS_MODULE` environment variable to be set.
+The value should be the same as set in your `manage.py` or `wsgi.py` modules. For example, if your manage.py
+file sets this environment variable to `mydjangoproject.settings` and you start your Django project as
+`./manage.py runserver`, then you can automatically instrument your Django project as follows:
 
-Special Cases:
+```
+export DJANGO_SETTINGS_MODULE=mydjangoproject.settings
+splk-py-trace ./manage.py runserver
+```
 
-TODO: Expand on the following special cases
+#### Gunicorn
+Like Celery, we'll also need to setup tracing per Gunicorn worker. This can be done by setting up tracing inside
+Gunicorn's `post_fork()` handler. For exampleL
 
-- Django
-  - Needs env var `DJANGO_SETTINGS_MODULE` to be defined (can be found in `manage.py`)
-- Celery
-  - Supported automatically
-  - When manual, use post worker init signal
-- Gunicorn
-  - Call `start_tracing()` in `post_fork()` hook in gunicorn settings.
+```python
+# gunicorn.config.py
+from splunk_otel.tracing import start_tracing
+
+def post_fork(server, worker):
+    start_tracing()
+```
+
+Then add `-c gunicorn.config.py` CLI flag to your gunicorn command.
+
 
 ## Manually instrument an application
 
