@@ -8,6 +8,8 @@ from logging import getLogger
 from os import environ, execl, getcwd
 from shutil import which
 
+from splunk_otel.version import format_version_info
+
 logger = getLogger(__file__)
 
 ap = ArgumentParser()
@@ -19,9 +21,16 @@ ap.add_argument(
     dest="token",
     help="Your SignalFx Access Token (SIGNALFX_ACCESS_TOKEN env var by default)",
 )
-ap.add_argument("command", help="Your Python application.")
 ap.add_argument(
-    "command_args",
+    "--version",
+    "-v",
+    required=False,
+    action="store_true",
+    dest="version",
+    help="Print version information",
+)
+ap.add_argument(
+    "command",
     help="Arguments for your application.",
     nargs=REMAINDER,
 )
@@ -52,5 +61,17 @@ def run():
 
     os.environ["PYTHONPATH"] = site_dir + os.pathsep + py_path if py_path else site_dir
 
-    executable = which(args.command)
-    execl(executable, args.command, *args.command_args)
+    if args.version:
+        print(format_version_info())
+        return
+
+    if not args.command:
+        ap.error(ap.format_help())
+
+    cmd, cmd_args = args.command[0], args.command[1:]
+    executable = which(cmd)
+    try:
+        execl(executable, cmd, *cmd_args)
+    except TypeError:
+        logger.error('failed to execute program: %s', ' '.join(args.command))
+        raise
