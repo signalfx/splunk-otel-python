@@ -53,7 +53,7 @@ def init_tracer(url=None, service_name=None):
         resource=Resource.create(
             attributes={
                 "service.name": service_name,
-                "splunk.distro.version": __version__,
+                "telemetry.auto.version": __version__,
             }
         )
     )

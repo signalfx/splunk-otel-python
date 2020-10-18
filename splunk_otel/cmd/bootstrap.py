@@ -8,6 +8,7 @@ from opentelemetry.instrumentation import bootstrap
 from opentelemetry.instrumentation.version import __version__ as otel_version
 
 from splunk_otel import symbols
+from splunk_otel.version import format_version_info
 
 logger = getLogger(__file__)
 
@@ -162,6 +163,14 @@ def run() -> None:
         """
     )
     parser.add_argument(
+        "--version",
+        "-v",
+        required=False,
+        action="store_true",
+        dest="version",
+        help="Print version information",
+    )
+    parser.add_argument(
         "-a",
         "--action",
         choices=[
@@ -188,6 +197,10 @@ def run() -> None:
         """,
     )
     args = parser.parse_args()
+
+    if args.version:
+        print(format_version_info())
+        return
 
     cmd = {
         action_install: _run_install,
