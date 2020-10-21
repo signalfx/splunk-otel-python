@@ -32,11 +32,12 @@ python main.py --port=8000
 Then the runtime parameters should be updated to:
 
 ```
+$ sudo apt-get -y update
 $ pip3 install splunk-opentelemetry
 $ export PATH="$HOME/.local/bin:$PATH"
 $ splk-py-trace-bootstrap
 $ SPLK_SERVICE_NAME=my-python-app \
-    splk-py-trace python main.py --port=8000
+    splk-py-trace python3 main.py --port=8000
 ```
 
 The service name is the only configuration option that typically needs to be
