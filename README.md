@@ -32,7 +32,8 @@ python main.py --port=8000
 Then the runtime parameters should be updated to:
 
 ```
-$ pip install splunk-opentelemetry
+$ pip3 install splunk-opentelemetry
+$ export PATH="$HOME/.local/bin:$PATH"
 $ splk-py-trace-bootstrap
 $ SPLK_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
