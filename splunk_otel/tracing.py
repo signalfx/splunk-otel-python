@@ -1,9 +1,11 @@
 import logging
 import os
 import sys
+from typing import Optional
+from urllib.parse import ParseResult, urlparse
 
 from opentelemetry import propagators, trace
-from opentelemetry.exporter.zipkin import ZipkinSpanExporter
+from opentelemetry.exporter.jaeger import JaegerSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
@@ -25,29 +27,35 @@ propagators.set_global_textmap(B3Format())
 
 
 def start_tracing(url: str = None, service_name: str = None):
-    enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
-    if not _is_truthy(enabled):
-        logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
-        return
+    try:
+        enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
+        if not _is_truthy(enabled):
+            logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
+            return
 
-    # auto-enable django instrumentation. remove after this is fixed upstream
-    os.environ["OTEL_PYTHON_DJANGO_INSTRUMENT"] = "True"
-    init_tracer(url, service_name)
-    auto_instrument()
+        # auto-enable django instrumentation. remove after this is fixed upstream
+        os.environ["OTEL_PYTHON_DJANGO_INSTRUMENT"] = "True"
+        init_tracer(url, service_name)
+        auto_instrument()
+    except Exception as exc:
+        sys.exit(2)
 
 
 def init_tracer(url=None, service_name=None):
     if not url:
         url = os.environ.get(
-            "OTEL_EXPORTER_ZIPKIN_ENDPOINT",
+            "SPLK_TRACE_EXPORTER_URL",
             DEFAULT_ENDPOINT,
         )
+    url = parse_jaeger_url(url)
 
     if not service_name:
         service_name = os.environ.get(
             "SPLK_SERVICE_NAME",
             DEFAULT_SERVICE_NAME,
         )
+
+    access_token = os.environ.get("SPLK_ACCESS_TOKEN", None)
 
     provider = TracerProvider(
         resource=Resource.create(
@@ -58,15 +66,53 @@ def init_tracer(url=None, service_name=None):
         )
     )
     trace.set_tracer_provider(provider)
-
-    exporter = ZipkinSpanExporter(
-        url=url,
-        service_name=service_name,
-        max_tag_value_length=int(
-            os.environ.get("SPLK_MAX_ATTR_LENGTH", DEFAULT_MAX_ATTR_LENGTH)
-        ),
-    )
+    exporter = new_exporter(url, service_name, access_token)
     provider.add_span_processor(BatchExportSpanProcessor(exporter))
+
+
+def parse_jaeger_url(url: str) -> ParseResult:
+    parsed = urlparse(url)
+    scheme = parsed.scheme or "https"
+    port = parsed.port or 443
+    hostname = parsed.hostname
+    path = parsed.path
+
+    if not all((url, scheme, port, hostname, path)):
+        raise ValueError(
+            'Invalid value "%s" for SPLK_TRACE_EXPORTER_URL. Must be a full URL including protocol and path.',
+            url,
+        )
+
+    return ParseResult(
+        scheme=scheme,
+        netloc="{0}:{1}".format(hostname, port),
+        path=path,
+        params=None,
+        query=None,
+        fragment=None,
+    )
+
+
+def new_exporter(
+    url: ParseResult, service_name: str, access_token: Optional[str] = None
+) -> JaegerSpanExporter:
+    exporter_options = {
+        "service_name": service_name,
+        "collector_protocol": url.scheme,
+        "collector_host_name": url.hostname,
+        "collector_port": url.port,
+        "collector_endpoint": url.path,
+    }
+
+    if access_token:
+        exporter_options.update(
+            {
+                "username": "auth",
+                "password": access_token,
+            }
+        )
+
+    return JaegerSpanExporter(**exporter_options)
 
 
 def auto_instrument():

@@ -73,5 +73,5 @@ def run():
     try:
         execl(executable, cmd, *cmd_args)
     except TypeError:
-        logger.error('failed to execute program: %s', ' '.join(args.command))
+        logger.error("failed to execute program: %s", " ".join(args.command))
         raise
