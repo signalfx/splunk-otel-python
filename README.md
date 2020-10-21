@@ -60,10 +60,11 @@ To see the Python instrumentation in action with sample applications, see our
 
 ### Zipkin exporter
 
-| Environment variable          | Default value                        | Notes                                                                |
-| ----------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
-| OTEL_EXPORTER_ZIPKIN_ENDPOINT | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported. |
-| SPLK_SERVICE_NAME             | `unnamed-python-service`             | The service name of this JVM instance.                               |
+| Environment variable          | Default value                        | Notes                                                                  |
+| ----------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| SPLK_TRACE_EXPORTER_URL             | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported.   |
+| SPLK_SERVICE_NAME             | `unnamed-python-service`             | The service name of this JVM instance.                                 |
+| SPLK_ACCESS_TOKEN             |                                      | The optional organization access token for trace submission requests.  |
 
 ### Trace configuration
 
@@ -98,7 +99,7 @@ opentelemetry-exporter-zipkin>=0.14b0
 You can pipe the output of this command to append the new packages to your
 requirements.txt file or to something like `poetry add`.
 
-## Alternative: Instrument and configure by adding code
+### Alternative: Instrument and configure by adding code
 
 If you cannot use `splk-py-trace` command, you can also add a couple of lines
 of code to your Python application to achieve the same result.
@@ -110,6 +111,32 @@ start_tracing()
 
 # rest of your python application's entrypoint script
 ```
+
+## Exporting to Smart Agent, Otel collector or SignalFx ingest
+
+This package exports spans in Jaeger Thrift format over HTTP and supports exporting to the SignalFx Smart Agent,
+OpenTelemetry collector and directly to SignalFx ingest API. You can use `SPLK_TRACE_EXPORTER_URL` environment variable
+to specify an export URL. The value must be a full URL including scheme and path.
+
+### Smart Agent
+
+This is the default option. You do not need to set any config options if you want to export to the Smart Agent and
+you are running the agent on the default port (`9080`). The exporter will default to `http://localhost:9080/v1/trace`
+when the environment variable is not specified.
+
+### OpenTelemetry Collector
+
+In order to do this, you'll need to enable Jaeger Thrift HTTP receiver on OpenTelemetry Collector and set 
+`SPLK_TRACE_EXPORTER_URL` to `http://localhost:14268/api/traces` assuming the collector is reachable via localhost.
+
+### SignalFx Ingest API
+
+In order to send traces directly to SignalFx ingest API, you need to:
+
+1. Set `SPLK_TRACE_EXPORTER_URL` to `https://ingest.<realm>.signalfx.com/v2/trace` where `realm` is your
+SignalFx realm e.g, `https://ingest.us0.signalfx.com/v2/trace`.
+2. Set `SPLK_ACCESS_TOKEN` to one of your SignalFx APM access tokens. 
+
 
 ### Special Cases:
 

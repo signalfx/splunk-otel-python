@@ -193,7 +193,7 @@ def run() -> None:
         help="""
         Installs one or more support telemetry exporters. Supports multiple
         values separated by commas.
-        Defaults to `zipkin`.
+        Defaults to `jaeger`.
         """,
     )
     args = parser.parse_args()
@@ -208,5 +208,5 @@ def run() -> None:
     }[args.action]
     cmd(
         _find_installed_libraries(),
-        _exporter_packages_from_names(args.exporter or [symbols.exporter_zipkin]),
+        _exporter_packages_from_names(args.exporter or [symbols.exporter_jaeger]),
     )

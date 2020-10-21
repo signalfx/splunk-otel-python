@@ -37,11 +37,11 @@ fmt: isort black
 
 .PHONY: black
 black:
-	poetry run black splunk_otel
+	poetry run black splunk_otel tests
 
 .PHONY: isort
 isort:
-	poetry run isort --profile black splunk_otel
+	poetry run isort --profile black splunk_otel tests
 
 .PHONY: test
 test:

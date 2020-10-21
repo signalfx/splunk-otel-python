@@ -1,7 +1,7 @@
 exporter_otlp = "otlp"
-exporter_zipkin = "zipkin"
+exporter_jaeger = "jaeger"
 
 trace_exporters = (
     exporter_otlp,
-    exporter_zipkin,
+    exporter_jaeger,
 )
