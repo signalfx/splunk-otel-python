@@ -4,6 +4,10 @@ The Splunk distribution of [OpenTelemetry Python](https://github.com/open-teleme
 provides multiple installable packages that automatically instruments your Python application to capture and report
 distributed traces to SignalFx APM.
 
+If you're currently using the SignalFx Tracing Library for Python and want to
+migrate to the Splunk Distribution of OpenTelemetry Python,
+see [Migrate from the SignalFx Tracing Library for Python](migration.md).
+
 This Splunk distribution comes with the following defaults:
 
 - [B3 context propagation](https://github.com/openzipkin/b3-propagation).
