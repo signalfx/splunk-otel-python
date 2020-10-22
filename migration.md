@@ -1,5 +1,10 @@
 # Migrating from signalfx-python-tracing
 
+## Python3.5+ only
+
+This library does not support Python 2 and in fact only supports Python3.5+. If you still need Python 2 support,
+you should continue using signalfx-python-tracing.
+
 ## Remove signalfx-python-tracing
 
 ### Uninstall signalfx-python-tracing
