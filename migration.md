@@ -7,15 +7,10 @@ instrumentation to send traces to Splunk APM. The Splunk Distribution of
 OpenTelemetry Python uses OpenTelemetry to instrument applications, which is
 an open-source API to gather telemetry data, and has a smaller footprint.
 
-Because the SignalFx Java Agent uses OpenTracing and the Splunk Distribution
-of OpenTelemetry Java Instrumentation uses OpenTelemetry, the semantic
+Because the SignalFx Tracing Library for Python uses OpenTracing and the Splunk Distribution
+of OpenTelemetry Python uses OpenTelemetry, the semantic
 conventions for span tag names change when you migrate. For more information,
 see [Migrate from OpenTracing to OpenTelemetry](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-opentelemetry-collector.html#apm-opentelemetry-migration).
-
-This Splunk Distribution of OpenTelemetry can't send traces directly to a
-Splunk APM ingest endpoint, so you have to deploy a SignalFx Smart Agent or
-OpenTelemetry Collector to export traces from an application to APM with this
-Splunk Distribution of OpenTelemetry.
 
 ## Requirements
 
@@ -107,6 +102,7 @@ for OpenTelemetry:
 Rename required environment variables:
     | Old Environment Variable           | New Environment Variable             |
     | ---------------------------------- | ------------------------------------ |
+    | SIGNALFX_ACCESS_TOKEN              | SPLK_ACCESS_TOKEN
     | SIGNALFX_SERVICE_NAME              | SPLK_SERVICE_NAME                    |
     | SIGNALFX_ENDPOINT_URL              | OTEL_EXPORTER_ZIPKIN_ENDPOINT        |
     | SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLK_MAX_ATTR_LENGTH                 |
@@ -116,7 +112,7 @@ Rename required environment variables:
 This Splunk Distribution of OpenTelemetry doesn't ship a Django app, and
 doesn't require you to add anything to your `INSTALLED_APPS`.
 
-Follow these settings to update your Django configuration:
+Follow these steps to update your Django configuration:
 
 1. Remove `signalfx_tracing` from `INSTALLED_APPS` in your project's
    `settings.py`.
