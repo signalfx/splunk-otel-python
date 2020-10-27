@@ -15,10 +15,11 @@ This Splunk distribution comes with the following defaults:
 
 > :construction: This project is currently in **BETA**.
 
-## Python3.5+ only
+## Requirements
 
-This library does not support Python 2 and in fact only supports Python3.5+. If you still need Python 2 support,
-you should continue using signalfx-python-tracing.
+This Splunk Distribution of OpenTelemetry requires Python 3.5 or later.
+If you're still using Python 2, continue using the SignalFx Tracing Library
+for Python.
 
 ## Getting Started
 
