@@ -33,8 +33,6 @@ def start_tracing(url: str = None, service_name: str = None):
             logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
             return
 
-        # auto-enable django instrumentation. remove after this is fixed upstream
-        os.environ["OTEL_PYTHON_DJANGO_INSTRUMENT"] = "True"
         init_tracer(url, service_name)
         auto_instrument()
     except Exception as exc:
