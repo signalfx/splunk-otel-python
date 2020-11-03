@@ -7,7 +7,7 @@ distributed traces to SignalFx APM.
 This Splunk distribution comes with the following defaults:
 
 - [B3 context propagation](https://github.com/openzipkin/b3-propagation).
-- [Zipkin exporter](https://zipkin.io/zipkin-api/#/default/post_spans)
+- [Jaeger exporter](https://opentelemetry-python.readthedocs.io/en/stable/exporter/jaeger/jaeger.html)
   configured to send spans to a locally running [SignalFx Smart
   Agent](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-smart-agent.html)
   (`http://localhost:9080/v1/trace`).
@@ -62,7 +62,7 @@ To see the Python instrumentation in action with sample applications, see our
 
 | Environment variable          | Default value                        | Notes                                                                  |
 | ----------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| SPLK_TRACE_EXPORTER_URL             | `http://localhost:9080/v1/trace`     | The Zipkin endpoint to connect to. Currently only HTTP is supported.   |
+| SPLK_TRACE_EXPORTER_URL       | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
 | SPLK_SERVICE_NAME             | `unnamed-python-service`             | The service name of this JVM instance.                                 |
 | SPLK_ACCESS_TOKEN             |                                      | The optional organization access token for trace submission requests.  |
 
@@ -89,11 +89,11 @@ splk-py-trace-bootstrap -a requirements
 Will output something like the following:
 
 ```
-opentelemetry-instrumentation-falcon>=0.14b0
-opentelemetry-instrumentation-jinja2>=0.14b0
-opentelemetry-instrumentation-requests>=0.14b0
-opentelemetry-instrumentation-sqlite3>=0.14b0
-opentelemetry-exporter-zipkin>=0.14b0
+opentelemetry-instrumentation-falcon>=0.15b0
+opentelemetry-instrumentation-jinja2>=0.15b0
+opentelemetry-instrumentation-requests>=0.15b0
+opentelemetry-instrumentation-sqlite3>=0.15b0
+opentelemetry-exporter-jaeger>=0.15b0
 ```
 
 You can pipe the output of this command to append the new packages to your

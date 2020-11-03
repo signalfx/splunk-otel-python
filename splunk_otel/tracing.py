@@ -46,7 +46,6 @@ def init_tracer(url=None, service_name=None):
             "SPLK_TRACE_EXPORTER_URL",
             DEFAULT_ENDPOINT,
         )
-    # url = parse_jaeger_url(url)
 
     if not service_name:
         service_name = os.environ.get(
