@@ -12,6 +12,14 @@ of OpenTelemetry Python uses OpenTelemetry, the semantic
 conventions for span tag names change when you migrate. For more information,
 see [Migrate from OpenTracing to OpenTelemetry](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-opentelemetry-collector.html#apm-opentelemetry-migration).
 
+## Known issues
+
+These are the known issues as a result of migrating from the SignalFx Tracing Library for Python to the Splunk Distribution of OpenTelemetry Python:
+
+- psycopg2 is disabled because it contains a bug that prevents the driver from functioning correctly.
+- You can't enable or disable specific instrumentations.
+- You can't inject trace context in logs.
+
 ## Requirements
 
 This Splunk Distribution of OpenTelemetry requires Python 3.5 or later.
