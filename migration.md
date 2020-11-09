@@ -17,8 +17,8 @@ see [Migrate from OpenTracing to OpenTelemetry](https://docs.signalfx.com/en/lat
 These are the known issues as a result of migrating from the SignalFx Tracing Library for Python to the Splunk Distribution of OpenTelemetry Python:
 
 - psycopg2 is disabled because it contains a bug that prevents the driver from functioning correctly.
-- You can't enable or disable specific instrumentations.
-- You can't inject trace context in logs.
+- You can't enable or disable specific instrumentations right now.
+- You can't inject trace context in logs right now.
 
 ## Requirements
 
@@ -108,11 +108,12 @@ Migrate settings from the SignalFx tracing library to the Splunk Distribution
 for OpenTelemetry:
 
 Rename required environment variables:
-    | Old Environment Variable           | New Environment Variable             |
+
+    | Old environment variable           | New environment variable             |
     | ---------------------------------- | ------------------------------------ |
-    | SIGNALFX_ACCESS_TOKEN              | SPLK_ACCESS_TOKEN
+    | SIGNALFX_ACCESS_TOKEN              | SPLK_ACCESS_TOKEN                    |
     | SIGNALFX_SERVICE_NAME              | SPLK_SERVICE_NAME                    |
-    | SIGNALFX_ENDPOINT_URL              | OTEL_EXPORTER_ZIPKIN_ENDPOINT        |
+    | SIGNALFX_ENDPOINT_URL              | SPLK_TRACE_EXPORTER_URL              |
     | SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLK_MAX_ATTR_LENGTH                 |
 
 ### Step 4. Update your Django configuration
