@@ -1,31 +1,35 @@
 # Splunk distribution of OpenTelemetry Python
 
-The Splunk distribution of [OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python)
-provides multiple installable packages that automatically instruments your Python application to capture and report
-distributed traces to SignalFx APM.
-
-If you're currently using the SignalFx Tracing Library for Python and want to
-migrate to the Splunk Distribution of OpenTelemetry Python,
-see [Migrate from the SignalFx Tracing Library for Python](migration.md).
+The Splunk distribution of [OpenTelemetry
+Python](https://github.com/open-telemetry/opentelemetry-python) provides
+multiple installable packages that automatically instruments your Python
+application to capture and report distributed traces to Splunk APM.
 
 This Splunk distribution comes with the following defaults:
 
 - [B3 context propagation](https://github.com/openzipkin/b3-propagation).
-- [Jaeger exporter](https://opentelemetry-python.readthedocs.io/en/stable/exporter/jaeger/jaeger.html)
+- [Jaeger thrift
+  exporter](https://opentelemetry-python.readthedocs.io/en/stable/exporter/jaeger/jaeger.html)
   configured to send spans to a locally running [SignalFx Smart
   Agent](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-smart-agent.html)
   (`http://localhost:9080/v1/trace`).
-- Unlimited default limits for [configuration options](#trace-configuration) to support full-fidelity traces.
+- Unlimited default limits for [configuration options](#trace-configuration) to
+  support full-fidelity traces.
+
+If you're currently using the SignalFx Tracing Library for Python and want to
+migrate to the Splunk Distribution of OpenTelemetry Python, see [Migrate from
+the SignalFx Tracing Library for Python](migration.md).
 
 > :construction: This project is currently in **BETA**.
 
 ## Getting Started
 
-The instrumentation works with Python version 3.5+. Supported
-libraries are listed
-[here](https://github.com/open-telemetry/opentelemetry-python/tree/master/instrumentation).
+The instrumentation works with Python version 3.5+. Supported libraries are
+listed
+[here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/master/instrumentation).
 
-To get started, install the `splunk-opentelemetry` package, run the bootstrap script and wrap your run command with `splk-py-trace`.
+To get started, install the `splunk-opentelemetry` package, run the bootstrap
+script and wrap your run command with `splk-py-trace`.
 
 For example, if the runtime parameters were:
 
@@ -46,9 +50,9 @@ The service name is the only configuration option that typically needs to be
 specified. A couple other configuration options that may need to be changed or
 set are:
 
-* Endpoint if not sending to a locally running Smart Agent with default
+- Endpoint if not sending to a locally running Smart Agent with default
   configuration
-* Environment attribute (example:
+- Environment attribute (example:
   `OTEL_RESOURCE_ATTRIBUTES=environment=production`) to specify what
   environment the span originated from.
 
@@ -118,36 +122,46 @@ start_tracing()
 
 ## Exporting to Smart Agent, Otel collector or SignalFx ingest
 
-This package exports spans in Jaeger Thrift format over HTTP and supports exporting to the SignalFx Smart Agent,
-OpenTelemetry collector and directly to SignalFx ingest API. You can use `SPLK_TRACE_EXPORTER_URL` environment variable
-to specify an export URL. The value must be a full URL including scheme and path.
+This package exports spans in Jaeger Thrift format over HTTP and supports
+exporting to the SignalFx Smart Agent, OpenTelemetry collector and directly to
+SignalFx ingest API. You can use `SPLK_TRACE_EXPORTER_URL` environment variable
+to specify an export URL. The value must be a full URL including scheme and
+path.
 
 ### Smart Agent
 
-This is the default option. You do not need to set any config options if you want to export to the Smart Agent and
-you are running the agent on the default port (`9080`). The exporter will default to `http://localhost:9080/v1/trace`
+This is the default option. You do not need to set any config options if you
+want to export to the Smart Agent and you are running the agent on the default
+port (`9080`). The exporter will default to `http://localhost:9080/v1/trace`
 when the environment variable is not specified.
 
 ### OpenTelemetry Collector
 
-In order to do this, you'll need to enable Jaeger Thrift HTTP receiver on OpenTelemetry Collector and set 
-`SPLK_TRACE_EXPORTER_URL` to `http://localhost:14268/api/traces` assuming the collector is reachable via localhost.
+In order to do this, you'll need to enable Jaeger Thrift HTTP receiver on
+OpenTelemetry Collector and set `SPLK_TRACE_EXPORTER_URL` to
+`http://localhost:14268/api/traces` assuming the collector is reachable via
+localhost.
 
 ### SignalFx Ingest API
 
 In order to send traces directly to SignalFx ingest API, you need to:
 
-1. Set `SPLK_TRACE_EXPORTER_URL` to `https://ingest.<realm>.signalfx.com/v2/trace` where `realm` is your
-SignalFx realm e.g, `https://ingest.us0.signalfx.com/v2/trace`.
-2. Set `SPLK_ACCESS_TOKEN` to one of your SignalFx APM access tokens. 
+1. Set `SPLK_TRACE_EXPORTER_URL` to
+   `https://ingest.<realm>.signalfx.com/v2/trace` where `realm` is your
+   SignalFx realm e.g, `https://ingest.us0.signalfx.com/v2/trace`.
+2. Set `SPLK_ACCESS_TOKEN` to one of your SignalFx APM access tokens.
 
 
-### Special Cases:
+### Special Cases
 
 #### Celery
-Tracing Celery workers works out of the box when you use the `splk-py-trace` command to start your Python application.
-However, if you are instrumenting your celery workers with code, you'll need to make sure you setup tracing for each
-worker by using Celery's `celery.signalfx.worker_process_init` signal. For example:
+
+Tracing Celery workers works out of the box when you use the `splk-py-trace`
+command to start your Python application. However, if you are instrumenting
+your celery workers with code, you'll need to make sure you setup tracing for
+each worker by using Celery's `celery.signalfx.worker_process_init` signal.
+
+For example:
 
 ```python
 from splunk_otel.tracing import start_tracing
@@ -161,10 +175,13 @@ def on_worker_process_init(*args, **kwargs):
 ```
 
 #### Django
-Automatically instrumenting Django requires `DJANGO_SETTINGS_MODULE` environment variable to be set.
-The value should be the same as set in your `manage.py` or `wsgi.py` modules. For example, if your manage.py
-file sets this environment variable to `mydjangoproject.settings` and you start your Django project as
-`./manage.py runserver`, then you can automatically instrument your Django project as follows:
+
+Automatically instrumenting Django requires `DJANGO_SETTINGS_MODULE`
+environment variable to be set. The value should be the same as set in your
+`manage.py` or `wsgi.py` modules. For example, if your manage.py file sets this
+environment variable to `mydjangoproject.settings` and you start your Django
+project as `./manage.py runserver`, then you can automatically instrument your
+Django project as follows:
 
 ```
 export DJANGO_SETTINGS_MODULE=mydjangoproject.settings
@@ -172,8 +189,11 @@ splk-py-trace ./manage.py runserver
 ```
 
 #### Gunicorn
-Like Celery, we'll also need to setup tracing per Gunicorn worker. This can be done by setting up tracing inside
-Gunicorn's `post_fork()` handler. For exampleL
+
+Like Celery, we'll also need to setup tracing per Gunicorn worker. This can be
+done by setting up tracing inside Gunicorn's `post_fork()` handler.
+
+For example:
 
 ```python
 # gunicorn.config.py
@@ -206,8 +226,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 # License and versioning
 
-The Splunk distribution of OpenTelemetry Python Instrumentation is a distribution
-of the [OpenTelemetry Python
-project](https://github.com/open-telemetry/opentelemetry-python).
-It is released under the terms of the Apache Software License version 2.0. See
-[the license file](./LICENSE) for more details.
+The Splunk distribution of OpenTelemetry Python Instrumentation is a
+distribution of the [OpenTelemetry Python
+project](https://github.com/open-telemetry/opentelemetry-python). It is
+released under the terms of the Apache Software License version 2.0. See [the
+license file](./LICENSE) for more details.
