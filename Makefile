@@ -2,7 +2,7 @@ DEV_VENV?=""
 
 .PHONY: deps
 deps:
-	poetry install
+	poetry install --no-root
 
 .PHONY: clean
 clean:
@@ -32,6 +32,10 @@ build:
 publish:
 	poetry publish
 
+.PHONY: lint 
+lint:
+	@echo "faking lint"
+
 .PHONY: fmt
 fmt: isort black
 
@@ -46,3 +50,10 @@ isort:
 .PHONY: test
 test:
 	poetry run pytest tests/
+
+.PHONY: test-with-cov
+test-with-cov:
+	poetry run coverage erase
+	poetry run pytest --cov splunk_otel --cov-append --cov-branch --cov-report='' tests/
+	poetry run coverage report --show-missing
+	poetry run coverage xml
