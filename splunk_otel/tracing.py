@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 from typing import Optional
-from urllib.parse import ParseResult, urlparse
 
 from opentelemetry import propagators, trace
 from opentelemetry.exporter.jaeger import JaegerSpanExporter
@@ -35,7 +34,7 @@ def start_tracing(url: str = None, service_name: str = None):
 
         init_tracer(url, service_name)
         auto_instrument()
-    except Exception as exc:
+    except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 

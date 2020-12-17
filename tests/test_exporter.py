@@ -11,7 +11,6 @@ from splunk_otel.tracing import new_exporter
 
 class TestJaegerExporter(unittest.TestCase):
     def setUp(self):
-
         self.url = "http://localhost:9080/v1/trace"
         self.service_name = "test-srv"
         context = trace_api.SpanContext(
@@ -39,9 +38,9 @@ class TestJaegerExporter(unittest.TestCase):
         self.assertIsNotNone(exporter.collector)
 
         agent_client_mock = mock.Mock(spec=jaeger_exporter.AgentClientUDP)
-        exporter._agent_client = agent_client_mock
+        exporter._agent_client = agent_client_mock  # pylint:disable=protected-access
         collector_mock = mock.Mock(spec=jaeger_exporter.Collector)
-        exporter._collector = collector_mock
+        exporter._collector = collector_mock  # pylint:disable=protected-access
 
         exporter.export((self._test_span,))
         self.assertEqual(agent_client_mock.emit.call_count, 0)

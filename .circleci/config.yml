@@ -1,0 +1,73 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: 'cimg/python:3.9'
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-build-{{ .Branch }}-{{ checksum "poetry.lock" }}
+      - run:
+          command: make deps
+      - save_cache:
+          key: deps-build-{{ .Branch }}-{{ checksum "poetry.lock" }}
+          paths:
+            - ".tox"
+            - "/home/circleci/.cache/pip"
+      - run:
+          command: make build 
+      - store_artifacts:
+          path: dist/
+          destination: built-packages
+
+  tox-env:
+    parameters:
+      py_version:
+        type: string
+      tox_env:
+        type: string
+    docker:
+      - image: 'cimg/python:<< parameters.py_version >>'
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-<< parameters.tox_env >>-{{ .Branch }}-{{ checksum "poetry.lock" }}
+      - run:
+          command: |
+            pip install tox
+      - run:
+          command: |
+            tox -e << parameters.tox_env >>
+      - save_cache:
+          key: deps-<< parameters.tox_env >>-{{ .Branch }}-{{ checksum "poetry.lock" }}
+          paths:
+            - ".tox"
+            - "/home/circleci/.cache/pip"
+      - store_test_results:
+          path: test_results
+
+workflows:
+  build_and_test:
+    jobs:
+      - build
+      - tox-env:
+          name: lint
+          py_version: '3.8'
+          tox_env: 'lint'
+      - tox-env:
+          name: python-3.6
+          py_version: '3.6'
+          tox_env: 'py36-test'
+      - tox-env:
+          name: python-3.7
+          py_version: '3.7'
+          tox_env: 'py37-test'
+      - tox-env:
+          name: python-3.8
+          py_version: '3.8'
+          tox_env: 'py38-test'
+      - tox-env:
+          name: python-3.9
+          py_version: '3.9'
+          tox_env: 'py39-test'

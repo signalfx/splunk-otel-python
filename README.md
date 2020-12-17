@@ -24,7 +24,7 @@ the SignalFx Tracing Library for Python](migration.md).
 
 ## Getting Started
 
-The instrumentation works with Python version 3.5+. Supported libraries are
+The instrumentation works with Python version 3.6+. Supported libraries are
 listed
 [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/master/instrumentation).
 

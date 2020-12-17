@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "splunk-opentelemetry"
-version = "0.5.0"
+version = "0.6.0-dev"
 description = "The Splunk distribution of OpenTelemetry Python Instrumentation provides a Python agent that automatically instruments your Python application to capture and report distributed traces to SignalFx APM."
 authors = ["Splunk <splunk-oss@splunk.com>"]
 license = "Apache-2.0"
@@ -36,6 +36,7 @@ pytest = "^6.1.0"
 dephell = {version = "^0.8.3", python = "^3.6"}
 coverage = "^5.3"
 pytest-cov = "^2.10.1"
+pylint = "^2.6.0"
 
 [tool.black]
 line-length = 90
