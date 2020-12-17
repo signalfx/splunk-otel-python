@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 from typing import Optional
-from urllib.parse import ParseResult, urlparse
 
 from opentelemetry import propagators, trace
 from opentelemetry.exporter.jaeger import JaegerSpanExporter
@@ -35,7 +34,7 @@ def start_tracing(url: str = None, service_name: str = None):
 
         init_tracer(url, service_name)
         auto_instrument()
-    except Exception as exc:
+    except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 
@@ -65,29 +64,6 @@ def init_tracer(url=None, service_name=None):
     trace.set_tracer_provider(provider)
     exporter = new_exporter(url, service_name, access_token)
     provider.add_span_processor(BatchExportSpanProcessor(exporter))
-
-
-def parse_jaeger_url(url: str) -> ParseResult:
-    parsed = urlparse(url)
-    scheme = parsed.scheme or "https"
-    port = parsed.port or 443
-    hostname = parsed.hostname
-    path = parsed.path
-
-    if not all((url, scheme, port, hostname, path)):
-        raise ValueError(
-            'Invalid value "%s" for SPLK_TRACE_EXPORTER_URL. Must be a full URL including protocol and path.',
-            url,
-        )
-
-    return ParseResult(
-        scheme=scheme,
-        netloc="{0}:{1}".format(hostname, port),
-        path=path,
-        params=None,
-        query=None,
-        fragment=None,
-    )
 
 
 def new_exporter(

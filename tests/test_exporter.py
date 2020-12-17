@@ -6,14 +6,12 @@ from opentelemetry import trace as trace_api
 from opentelemetry.exporter import jaeger as jaeger_exporter
 from opentelemetry.sdk import trace
 
-from splunk_otel.tracing import new_exporter, parse_jaeger_url
+from splunk_otel.tracing import new_exporter
 
 
 class TestJaegerExporter(unittest.TestCase):
     def setUp(self):
-
         self.url = "http://localhost:9080/v1/trace"
-        self.url_parsed = parse_jaeger_url(self.url)
         self.service_name = "test-srv"
         context = trace_api.SpanContext(
             trace_id=0x000000000000000000000000DEADBEEF,
@@ -36,20 +34,20 @@ class TestJaegerExporter(unittest.TestCase):
         self.connection_patcher.stop()
 
     def test_exporter_uses_collector_not_udp_agent(self):
-        exporter = new_exporter(self.url_parsed, self.service_name)
+        exporter = new_exporter(self.url, self.service_name)
         self.assertIsNotNone(exporter.collector)
 
         agent_client_mock = mock.Mock(spec=jaeger_exporter.AgentClientUDP)
-        exporter._agent_client = agent_client_mock
+        exporter._agent_client = agent_client_mock  # pylint:disable=protected-access
         collector_mock = mock.Mock(spec=jaeger_exporter.Collector)
-        exporter._collector = collector_mock
+        exporter._collector = collector_mock  # pylint:disable=protected-access
 
         exporter.export((self._test_span,))
         self.assertEqual(agent_client_mock.emit.call_count, 0)
         self.assertEqual(collector_mock.submit.call_count, 1)
 
     def test_http_export(self):
-        exporter = new_exporter(self.url_parsed, self.service_name)
+        exporter = new_exporter(self.url, self.service_name)
         exporter.export((self._test_span,))
 
         conn = self.connection_mock.return_value
@@ -62,7 +60,7 @@ class TestJaegerExporter(unittest.TestCase):
         self,
     ):
         access_token = "test-access-token"
-        exporter = new_exporter(self.url_parsed, self.service_name, access_token)
+        exporter = new_exporter(self.url, self.service_name, access_token)
         exporter.export((self._test_span,))
 
         conn = self.connection_mock.return_value

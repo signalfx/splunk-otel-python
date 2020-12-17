@@ -32,6 +32,21 @@ build:
 publish:
 	poetry publish
 
+.PHONY: isort-check
+isort-check:
+	poetry run isort --diff --check-only ./splunk_otel ./tests
+
+.PHONY: black-check
+black-check:
+	poetry run black --diff --check ./splunk_otel ./tests/
+
+.PHONY: pylint
+pylint:
+	poetry run pylint ./splunk_otel ./tests/
+
+.PHONY: lint
+lint: isort-check black-check pylint
+
 .PHONY: fmt
 fmt: isort black
 
@@ -46,3 +61,10 @@ isort:
 .PHONY: test
 test:
 	poetry run pytest tests/
+
+.PHONY: test-with-cov
+test-with-cov:
+	poetry run coverage erase
+	poetry run pytest --cov splunk_otel --cov-append --cov-branch --cov-report='' --junit-xml=test_results/results.xml tests/
+	poetry run coverage report --show-missing
+	poetry run coverage xml
