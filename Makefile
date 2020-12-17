@@ -2,7 +2,7 @@ DEV_VENV?=""
 
 .PHONY: deps
 deps:
-	poetry install --no-root
+	poetry install
 
 .PHONY: clean
 clean:
