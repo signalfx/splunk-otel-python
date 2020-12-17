@@ -67,29 +67,6 @@ def init_tracer(url=None, service_name=None):
     provider.add_span_processor(BatchExportSpanProcessor(exporter))
 
 
-def parse_jaeger_url(url: str) -> ParseResult:
-    parsed = urlparse(url)
-    scheme = parsed.scheme or "https"
-    port = parsed.port or 443
-    hostname = parsed.hostname
-    path = parsed.path
-
-    if not all((url, scheme, port, hostname, path)):
-        raise ValueError(
-            'Invalid value "%s" for SPLK_TRACE_EXPORTER_URL. Must be a full URL including protocol and path.',
-            url,
-        )
-
-    return ParseResult(
-        scheme=scheme,
-        netloc="{0}:{1}".format(hostname, port),
-        path=path,
-        params=None,
-        query=None,
-        fragment=None,
-    )
-
-
 def new_exporter(
     url: str, service_name: str, access_token: Optional[str] = None
 ) -> JaegerSpanExporter:
