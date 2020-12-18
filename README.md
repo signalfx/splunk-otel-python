@@ -1,5 +1,8 @@
 # Splunk distribution of OpenTelemetry Python
 
+[![CircleCI](https://circleci.com/gh/signalfx/splunk-otel-python.svg?style=svg)](https://circleci.com/gh/signalfx/splunk-otel-python)
+[![codecov](https://codecov.io/gh/signalfx/splunk-otel-python/branch/main/graph/badge.svg?token=XKXjEQKGaK)](https://codecov.io/gh/signalfx/splunk-otel-python)
+
 The Splunk distribution of [OpenTelemetry
 Python](https://github.com/open-telemetry/opentelemetry-python) provides
 multiple installable packages that automatically instruments your Python
