@@ -43,6 +43,9 @@ jobs:
         type: string
       tox_env:
         type: string
+      tests:
+        type: boolean
+        default: true 
     docker:
       - image: 'cimg/python:<< parameters.py_version >>'
     steps:
@@ -60,8 +63,15 @@ jobs:
           paths:
             - ".tox"
             - "/home/circleci/.cache/pip"
-      - store_test_results:
-          path: test_results
+      - when:
+          condition:
+            equal: [true, << parameters.tests >>]
+          steps:
+            - store_test_results:
+                path: test_results
+            - run:
+                name: upload coverage report
+                command: bash <(curl -s https://codecov.io/bash)
 
 workflows:
   test_build_release:
@@ -74,6 +84,7 @@ workflows:
           name: lint
           py_version: '3.8'
           tox_env: 'lint'
+          tests: false
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
