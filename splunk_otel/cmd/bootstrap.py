@@ -18,7 +18,7 @@ instrumentations = {}
 
 for lib, inst in bootstrap.instrumentations.items():
     inst_name, _ = inst.split(">=")
-    instrumentations[inst_name] = "{0}=={1}".format(inst_name, _VERSION)
+    instrumentations[lib] = "{0}=={1}".format(inst_name, _VERSION)
 
 
 # relevant instrumentors and tracers to uninstall and check for conflicts for target libraries
