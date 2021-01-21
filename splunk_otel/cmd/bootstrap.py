@@ -11,7 +11,7 @@ from splunk_otel.version import format_version_info
 
 logger = getLogger(__file__)
 
-_VERSION = "0.16b1"
+_VERSION = "0.17b0"
 
 # target library to desired instrumentor path/versioned package name
 instrumentations = {}

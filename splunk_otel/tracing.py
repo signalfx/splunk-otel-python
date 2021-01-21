@@ -5,10 +5,10 @@ from typing import Optional
 
 from opentelemetry import propagators, trace
 from opentelemetry.exporter.jaeger import JaegerSpanExporter
+from opentelemetry.propagators.b3 import B3Format
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
-from opentelemetry.sdk.trace.propagation.b3_format import B3Format
 from pkg_resources import iter_entry_points
 
 from splunk_otel.excludes import excluded_instrumentations
