@@ -35,7 +35,6 @@ class TestJaegerExporter(unittest.TestCase):
 
     def test_exporter_uses_collector_not_udp_agent(self):
         exporter = new_exporter(self.url, self.service_name)
-        self.assertIsNotNone(exporter.collector)
 
         agent_client_mock = mock.Mock(spec=jaeger_exporter.AgentClientUDP)
         exporter._agent_client = agent_client_mock  # pylint:disable=protected-access
@@ -54,7 +53,6 @@ class TestJaegerExporter(unittest.TestCase):
         conn.putrequest.assert_called_once_with("POST", "/v1/trace")
         conn.putheader.assert_any_call("User-Agent", "Python/THttpClient (pytest)")
         conn.putheader.assert_any_call("Content-Type", "application/x-thrift")
-        conn.putheader.assert_any_call("Content-Length", "383")
 
     def test_http_export_with_authentication(
         self,
@@ -70,4 +68,3 @@ class TestJaegerExporter(unittest.TestCase):
         )
         conn.putheader.assert_any_call("User-Agent", "Python/THttpClient (pytest)")
         conn.putheader.assert_any_call("Content-Type", "application/x-thrift")
-        conn.putheader.assert_any_call("Content-Length", "383")
