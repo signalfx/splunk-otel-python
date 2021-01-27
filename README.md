@@ -208,6 +208,54 @@ def post_fork(server, worker):
 
 Then add `-c gunicorn.config.py` CLI flag to your gunicorn command.
 
+#### UWSGI 
+
+When using UWSGI, tracing must be setup as a response to the `post_fork` signal. 
+
+For example:
+
+```python
+import uwsgidecorators
+from splunk_otel.tracing import start_tracing
+
+@uwsgidecorators.postfork
+def setup_tracing():
+    start_tracing()
+
+# running with uWSGI:
+# uwsgi --http :9090 --wsgi-file <your_app.py> --callable <your_wsgi_callable> --master --processes <num_processes> --threads <num_threads>
+```
+
+The above snippet should be placed in the main python script that uwsgi imports and loads.
+
+#### UWSGI and Flask
+
+Using USWGI with Flask requires one additional little step. Calling `start_tracing()` does not auto-instrument pre-existing flask app instances but only flask instances created after. When running flask with uwsgi, we need to create a new flask app instance before the post_fork signal is emitted. This means your flask app will not be auto-instrumented. However, you can still auto-instrument an existing flask app explicitly by importing and calling the flask instrumentor. 
+
+For example:
+```python
+# app.py
+import uwsgidecorators
+from splunk_otel.tracing import start_tracing
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from flask import Flask
+
+app = Flask(__name__)
+
+@uwsgidecorators.postfork
+def setup_tracing():
+    start_tracing()
+    # instrument our flask app instance eplicitly
+    FlaskInstrumentor().instrument_app(app)
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
+# running with uWSGI:
+# uwsgi --http :9090 --wsgi-file app.py --callable app --master --processes <num_processes> --threads <num_threads>
+```
+
 
 ## Manually instrument an application
 
