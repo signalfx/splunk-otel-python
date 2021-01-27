@@ -69,7 +69,7 @@ To see the Python instrumentation in action with sample applications, see our
 
 ## All configuration options
 
-### Zipkin exporter
+### Jaeger exporter
 
 | Environment variable          | Default value                        | Notes                                                                  |
 | ----------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
