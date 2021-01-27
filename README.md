@@ -222,8 +222,11 @@ from splunk_otel.tracing import start_tracing
 def setup_tracing():
     start_tracing()
 
-# running with uWSGI:
-# uwsgi --http :9090 --wsgi-file <your_app.py> --callable <your_wsgi_callable> --master --enable-threads
+```
+
+##### Running with uwsgi
+```
+uwsgi --http :9090 --wsgi-file <your_app.py> --callable <your_wsgi_callable> --master --enable-threads
 ```
 
 The above snippet should be placed in the main python script that uwsgi imports and loads.
@@ -251,9 +254,11 @@ def setup_tracing():
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
+```
 
-# running with uWSGI:
-# uwsgi --http :9090 --wsgi-file app.py --callable app --master --enable-threads
+##### Running with uWSGI:
+```
+uwsgi --http :9090 --wsgi-file app.py --callable app --master --enable-threads
 ```
 
 
