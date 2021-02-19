@@ -11,14 +11,15 @@ from splunk_otel.version import format_version_info
 
 logger = getLogger(__file__)
 
-_VERSION = "0.17b0"
+_INSTRUMENTATION_VERSION = "0.18b1"
+_VERSION = "1.0.0rc1"
 
 # target library to desired instrumentor path/versioned package name
 instrumentations = {}
 
 for lib, inst in bootstrap.instrumentations.items():
     inst_name, _ = inst.split(">=")
-    instrumentations[lib] = "{0}=={1}".format(inst_name, _VERSION)
+    instrumentations[lib] = "{0}=={1}".format(inst_name, _INSTRUMENTATION_VERSION)
 
 
 # relevant instrumentors and tracers to uninstall and check for conflicts for target libraries
