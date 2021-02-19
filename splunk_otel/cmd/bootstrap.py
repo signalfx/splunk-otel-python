@@ -5,20 +5,24 @@ import sys
 from logging import getLogger
 
 from opentelemetry.instrumentation import bootstrap
-from opentelemetry.instrumentation.version import __version__ as otel_version
 
 from splunk_otel import symbols
 from splunk_otel.version import format_version_info
 
 logger = getLogger(__file__)
 
+_VERSION = "0.17b0"
 
 # target library to desired instrumentor path/versioned package name
-instrumentations = bootstrap.instrumentations
+instrumentations = {}
+
+for lib, inst in bootstrap.instrumentations.items():
+    inst_name, _ = inst.split(">=")
+    instrumentations[lib] = "{0}=={1}".format(inst_name, _VERSION)
+
 
 # relevant instrumentors and tracers to uninstall and check for conflicts for target libraries
 libraries = bootstrap.libraries
-
 
 _install_instrumentation = bootstrap._install_package
 
@@ -141,8 +145,7 @@ def _run_requirements(instrumentation_packages, exporters):
 
 def _exporter_packages_from_names(exporters):
     return {
-        exp: "opentelemetry-exporter-{0}>={1}".format(exp, otel_version)
-        for exp in exporters
+        exp: "opentelemetry-exporter-{0}=={1}".format(exp, _VERSION) for exp in exporters
     }
 
 

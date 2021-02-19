@@ -1,1 +1,1 @@
-excluded_instrumentations = ("psycopg2",)
+excluded_instrumentations = tuple()

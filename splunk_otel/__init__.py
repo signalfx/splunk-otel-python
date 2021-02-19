@@ -12,5 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""The Splunk distribution of OpenTelemetry Python provides multiple
+installable packages that automatically instruments your Python
+application to capture and report distributed traces to Splunk APM.
+
+https://github.com/signalfx/splunk-otel-python
+"""
 
 from .version import __version__

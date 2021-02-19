@@ -1,118 +1,127 @@
-# Migrating from signalfx-python-tracing
+# Migrate from the SignalFx Tracing Library for Python
 
-## Python3.5+ only
+The Splunk Distribution of OpenTelemetry Python replaces the SignalFx Tracing
+Library for Python. If you’re using the SignalFx Tracing Library, migrate to
+the Splunk Distribution of OpenTelemetry Python to use OpenTelemetry’s
+instrumentation to send traces to Splunk APM. The Splunk Distribution of
+OpenTelemetry Python uses OpenTelemetry to instrument applications, which is
+an open-source API to gather telemetry data, and has a smaller footprint.
 
-This library does not support Python 2 and in fact only supports Python3.5+. If you still need Python 2 support,
-you should continue using signalfx-python-tracing.
-
-## Remove signalfx-python-tracing
-
-### Uninstall signalfx-python-tracing
-First step is to uninstall `signalfx-python-tracing` and any libraries it might have pulled in as dependencies. You should remove the
-package from your requirements.txt or pyproject.toml file. `signalfx-python-tracing` depends on a number of other packages that should
-also be removed. Your package manager should be able to handle this automatically but here is a list of dependencies in case you need
-to uninstall them manually:
-
-```
-opentracing
-jaeger-python-client
-```
-
-### Uninstall instrumentation packages 
-You should also remove any instrumentation packages automatically installed by the `sfx-py-trace-bootstrap` command. Below is a list of
-all possible packages the boostrap command may have installed. You can safely remove them from your environment.
-
-
-```
-celery-opentracing
-django-opentracing
-elasticsearch-opentracing
-Flask-OpenTracing
-sfx-jaeger-client
-dbapi-opentracing
-pymongo-opentracing
-dbapi-opentracing
-redis-opentracing
-requests-opentracing
-signalfx-tracing
-tornado-opentracing
-``` 
-
-In addition to these, you should remove any other opentracing instrumentations you might be using.
-
-
-## Install splunk-opentelemetry
-
-Now that we've removed the OpenTracing based SignalFx Python library (signalfx-python-tracing), it is time to install the next-gen
-OpenTelemetry based Python library called `splunk-opentelemetry`.
-
-### Install splunk-opentelemtry
-
-#### Using pip
-```
-pip install splunk-opentelemetry
-
-```
-You should also add `splunk-opentelemetry` to your requirements.txt file if you are using one.
-
-#### Using poetry
-```
-poetry add splunk-opentelemetry
-```
-
-### Installing dependencies
-
-Just like signalfx-python-tracing, splunk-openetelemetry also ships with a bootstrap command that automatically installs any
-instrumentation packages your project could benefit from. The following command will detect and auto-install any instrumentations
-for any packages it finds in your Python environment.
-
-```
-splk-py-trace-bootstrap
-```
-
-You can integrate this command in your build/deployment process so instrumentations are installed every time your project is deployed
-or you can run this once during development and add all the installed packages as dependencies. The command also supports printing out
-the list of instrumentation packages instead of automatically installing them. For example,
-
-```
-splk-py-trace-bootstrap -a=requirements
-
-opentelemetry-instrumentation-falcon>=0.13b0
-opentelemetry-instrumentation-requests>=0.8b0
-opentelemetry-instrumentation-sqlite3>=0.11b0
-opentelemetry-exporter-zipkin>=0.14b0
-```
-
-## Migrate configuration
-
-### General Config
-
-You must rename the following config environment variables
-
-| Old Environment Variable           | New Environment Variable             |
-| ---------------------------------- | ------------------------------------ |
-| SIGNALFX_SERVICE_NAME              | SPLK_SERVICE_NAME                    |
-| SIGNALFX_ENDPOINT_URL              | OTEL_EXPORTER_ZIPKIN_ENDPOINT        |
-| SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLK_MAX_ATTR_LENGTH                 |
-
-
-### Django
-
-#### Remove `signalfx_tracing` from INSTALLED_APPS
-
-splunk-opentelemtry no longer ships a Django app and does not require you to add anything to your `INSTALLED_APPS` or any other
-setting from settings.py
-
-#### Set `DJANGO_SETTINGS_MODULE` environment variable
-
-splunk-opentelemetry requires `DJANGO_SETTINGS_MODULE` environment to be set before it can auto-instrument a Django project. This
-should be the same as the value set in your manage.py or wsgi.py app and should be a valid Python import path.
+Because the SignalFx Tracing Library for Python uses OpenTracing and the Splunk Distribution
+of OpenTelemetry Python uses OpenTelemetry, the semantic
+conventions for span tag names change when you migrate. For more information,
+see [Migrate from OpenTracing to OpenTelemetry](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-opentelemetry-collector.html#apm-opentelemetry-migration).
 
 ## Known issues
 
-There are some known issues when migrating from signalfx-python-tracing to splunk-opentelemetry. These will be fixed in upcoming releases.
+These are the known issues as a result of migrating from the SignalFx Tracing Library for Python to the Splunk Distribution of OpenTelemetry Python:
 
-- OpenTelemetry's psycopg2 has a bug that prevents the driver from functioning correctly. Thus it has been disabled temporarily in this package.
-- Does not yet support sending spans directly to the SignalFx backend and requires the SignalFx Smart Agent or OpenTelemetry collector.
-- Does not yet support enabling or disabled specific instrumentations.
-- Does not yet support tracing and log correlation. 
+- You can't inject trace context in logs right now.
+
+## Requirements
+
+This Splunk Distribution of OpenTelemetry requires Python 3.5 or later.
+If you're still using Python 2, continue using the SignalFx Tracing Library
+for Python.
+
+## Steps
+
+To migrate from the SignalFx Tracing Library for Python to the Splunk
+Distribution of OpenTelemetry Python, remove the tracing library package,
+uninstall any instrumentation packages the tracing library deployed, deploy
+the Splunk Distribution of OpenTelemetry Python and its dependencies, and
+migrate your existing configuration from the SignalFx tracing library.
+
+Follow these streps to migrate to the Splunk Distribution of OpenTelemetry
+Python.
+
+### Step 1. Remove the SignalFx Tracing Library for Python
+
+Follow these steps to remove the tracing library:
+
+1. Uninstall `signalfx-tracing`:
+   ```
+   $ pip uninstall signalfx-tracing
+   ```
+2. Remove `signalfx-tracing` from your `requirements.txt` or `pyproject.toml`
+   file.
+3. If the package manager didn't remove every dependency for
+   `signalfx-tracing`, remove them now:
+   ```
+   $ pip uninstall opentracing
+   $ pip uninstall jaeger-client
+   ```
+4. Remove every instrumentation package the `sfx-py-trace-bootstrap` command
+   installed. Here's a list of all the packages the tracing library could have
+   installed:
+   ```
+    celery-opentracing
+    django-opentracing
+    elasticsearch-opentracing
+    Flask-OpenTracing
+    sfx-jaeger-client
+    dbapi-opentracing
+    pymongo-opentracing
+    dbapi-opentracing
+    redis-opentracing
+    requests-opentracing
+    signalfx-tracing
+    tornado-opentracing
+    ```
+5. Remove any OpenTracing instrumentation packages you installed. 
+
+### Step 2. Install the Splunk Distribution for OpenTelemetry Python
+
+Follow these steps to deploy the Splunk Distribution for OpenTelemetry Python:
+
+1. Install `splunk-opentelemetry`:
+   ```
+   $ pip install splunk-opentelemetry
+   ```
+   You can also install the package with poetry:
+   ```
+   $ poetry add splunk-opentelemetry
+   ```
+2. If you're using a `requirements.txt` or `pyproject.toml` file, add
+   `splunk-opentelemetry` to it.
+3. Install each dependency for `splunk-opentelemetry` with the bootstrap
+   command:
+   ```
+   splk-py-trace-bootstrap
+   ```
+   This command detects and installs instrumentation for every supported
+   package it finds in your Python environment. To see which packages the
+   command will install before running it, use this command:
+   ```
+   splk-py-trace-bootstrap -a=requirements
+   ```
+   You can integrate the bootstrap in your build/deployment process so
+   instrumentation is configured every time you deploy the project. You can
+   also run the bootstrap once during development and add all the
+   instrumentation packages instead of automatically installing them.
+
+### Step 3. Configure settings for the Splunk Distribution for OpenTelemetry
+
+Migrate settings from the SignalFx tracing library to the Splunk Distribution
+for OpenTelemetry:
+
+Rename required environment variables:
+
+    | Old environment variable           | New environment variable             |
+    | ---------------------------------- | ------------------------------------ |
+    | SIGNALFX_ACCESS_TOKEN              | SPLK_ACCESS_TOKEN                    |
+    | SIGNALFX_SERVICE_NAME              | SPLK_SERVICE_NAME                    |
+    | SIGNALFX_ENDPOINT_URL              | SPLK_TRACE_EXPORTER_URL              |
+    | SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLK_MAX_ATTR_LENGTH                 |
+
+### Step 4. Update your Django configuration
+
+This Splunk Distribution of OpenTelemetry doesn't ship a Django app, and
+doesn't require you to add anything to your `INSTALLED_APPS`.
+
+Follow these steps to update your Django configuration:
+
+1. Remove `signalfx_tracing` from `INSTALLED_APPS` in your project's
+   `settings.py`.
+2. Set the `DJANGO_SETTINGS_MODULE` environment variable to the same value for
+   the setting that's in `manage.py` or `wsgi.py`.

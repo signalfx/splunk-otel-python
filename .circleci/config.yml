@@ -1,0 +1,131 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: 'cimg/python:3.9'
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-build-{{ checksum "poetry.lock" }}
+      - run:
+          command: make deps
+      - save_cache:
+          key: deps-build-{{ checksum "poetry.lock" }}
+          paths:
+            - ".tox"
+            - "/home/circleci/.cache/pip"
+      - run:
+          command: make build 
+      - store_artifacts:
+          path: dist/
+          destination: built-packages
+      - persist_to_workspace:
+          root: ~/
+          paths: project/
+
+  release:
+    docker:
+      - image: 'cimg/python:3.9'
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Authenticate pypi
+          command: |
+            poetry config http-basic.pypi __token__ $PYPI_PASSWORD
+      - run:
+          command: make publish
+
+  tox-env:
+    parameters:
+      py_version:
+        type: string
+      tox_env:
+        type: string
+      tests:
+        type: boolean
+        default: true 
+    docker:
+      - image: 'cimg/python:<< parameters.py_version >>'
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-<< parameters.tox_env >>-{{ checksum "poetry.lock" }}
+      - run:
+          command: |
+            pip install tox
+      - run:
+          command: |
+            tox -e << parameters.tox_env >>
+      - save_cache:
+          key: deps-<< parameters.tox_env >>-{{ checksum "poetry.lock" }}
+          paths:
+            - ".tox"
+            - "/home/circleci/.cache/pip"
+      - when:
+          condition:
+            equal: [true, << parameters.tests >>]
+          steps:
+            - store_test_results:
+                path: test_results
+            - run:
+                name: upload coverage report
+                command: bash <(curl -s https://codecov.io/bash)
+
+workflows:
+  test_build_release:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
+          name: lint
+          py_version: '3.8'
+          tox_env: 'lint'
+          tests: false
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
+          name: python-3.6
+          py_version: '3.6'
+          tox_env: 'py36-test'
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
+          name: python-3.7
+          py_version: '3.7'
+          tox_env: 'py37-test'
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
+          name: python-3.8
+          py_version: '3.8'
+          tox_env: 'py38-test'
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
+          name: python-3.9
+          py_version: '3.9'
+          tox_env: 'py39-test'
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - release:
+          requires:
+            - build 
+            - lint
+            - python-3.6 
+            - python-3.7 
+            - python-3.8 
+            - python-3.9 
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
