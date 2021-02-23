@@ -25,6 +25,12 @@ the SignalFx Tracing Library for Python](migration.md).
 
 > :construction: This project is currently in **BETA**.
 
+## Requirements
+
+This Splunk Distribution of OpenTelemetry requires Python 3.5 or later.
+If you're still using Python 2, continue using the SignalFx Tracing Library
+for Python.
+
 ## Getting Started
 
 The instrumentation works with Python version 3.6+. Supported libraries are
@@ -48,6 +54,21 @@ $ splk-py-trace-bootstrap
 $ SPLK_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
 ```
+
+Notes:
+- Depending on the default python version on your system, you might want to use `pip3` and `python3` instead. 
+- To be able to run `splk-py-trace` and `splk-py-trace-bootstrap`, the directory pip installs scripts to will
+  have to be on your system's PATH environment variable. Generally, this works out of the box when using
+  virtual environments, installing packages system-wide or in container images. In some cases, pip may install
+  packages into your user local environment. In that case you'll need to add your Python user base's bin directory
+  to your system path. You can find out your Python user base as follows by running `python -m site --user-base`.
+
+  For example, if `python -m site --user-base` reports that `/Users/splunk/.local` as the Python user base, then
+  you can add the directory to your path on Unix like system as follows:
+
+  ```
+  export PATH="/Users/splunk/.local/bin:$PATH"
+  ```
 
 The service name is the only configuration option that typically needs to be
 specified. A couple other configuration options that may need to be changed or
