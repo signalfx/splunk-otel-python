@@ -109,10 +109,10 @@ Rename required environment variables:
 
     | Old environment variable           | New environment variable             |
     | ---------------------------------- | ------------------------------------ |
-    | SIGNALFX_ACCESS_TOKEN              | SPLK_ACCESS_TOKEN                    |
-    | SIGNALFX_SERVICE_NAME              | SPLK_SERVICE_NAME                    |
-    | SIGNALFX_ENDPOINT_URL              | SPLK_TRACE_EXPORTER_URL              |
-    | SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLK_MAX_ATTR_LENGTH                 |
+    | SIGNALFX_ACCESS_TOKEN              | SPLUNK_ACCESS_TOKEN                    |
+    | SIGNALFX_SERVICE_NAME              | SPLUNK_SERVICE_NAME                    |
+    | SIGNALFX_ENDPOINT_URL              | SPLUNK_TRACE_EXPORTER_URL              |
+    | SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLUNK_MAX_ATTR_LENGTH                 |
 
 ### Step 4. Update your Django configuration
 

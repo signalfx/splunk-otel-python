@@ -41,17 +41,17 @@ def start_tracing(url: str = None, service_name: str = None):
 def init_tracer(url=None, service_name=None):
     if not url:
         url = os.environ.get(
-            "SPLK_TRACE_EXPORTER_URL",
+            "SPLUNK_TRACE_EXPORTER_URL",
             DEFAULT_ENDPOINT,
         )
 
     if not service_name:
         service_name = os.environ.get(
-            "SPLK_SERVICE_NAME",
+            "SPLUNK_SERVICE_NAME",
             DEFAULT_SERVICE_NAME,
         )
 
-    access_token = os.environ.get("SPLK_ACCESS_TOKEN", None)
+    access_token = os.environ.get("SPLUNK_ACCESS_TOKEN", None)
 
     provider = TracerProvider(
         resource=Resource.create(
