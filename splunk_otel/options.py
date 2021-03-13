@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pkg_resources
+import logging
+from os import environ
+from typing import Optional
 
-pkg = pkg_resources.get_distribution("splunk-opentelemetry")
-
-__version__ = pkg.version
+logger = logging.getLogger("options")
 
 
-def format_version_info():
-    lines = []
-    lines.append("splunk-opentelemetry=={0}".format(pkg.version))
-    lines.append("\n\nAlso uses the following OpenTelemetry libraries:\n")
-    for dep in pkg.requires():
-        if "opentelemetry" in dep.name:
-            lines.append("\t{0}".format(str(dep)))
-
-    return "\n".join(lines)
+def from_env(name: str, default: Optional[str] = None) -> Optional[str]:
+    old_key = "SPLK_{0}".format(name)
+    new_key = "SPLUNK_{0}".format(name)
+    if old_key in environ:
+        logger.warning(
+            "%s is deprecated and will be removed soon. Please use %s instead",
+            old_key,
+            new_key,
+        )
+        return environ[old_key]
+    return environ.get(new_key, default)

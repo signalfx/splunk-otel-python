@@ -1,3 +1,17 @@
+# Copyright 2021 Splunk Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import os
 import sys
@@ -12,6 +26,7 @@ from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.excludes import excluded_instrumentations
+from splunk_otel.options import from_env
 from splunk_otel.version import __version__
 
 logger = logging.getLogger(__file__)
@@ -40,18 +55,12 @@ def start_tracing(url: str = None, service_name: str = None):
 
 def init_tracer(url=None, service_name=None):
     if not url:
-        url = os.environ.get(
-            "SPLUNK_TRACE_EXPORTER_URL",
-            DEFAULT_ENDPOINT,
-        )
+        url = from_env("TRACE_EXPORTER_URL", DEFAULT_ENDPOINT)
 
     if not service_name:
-        service_name = os.environ.get(
-            "SPLUNK_SERVICE_NAME",
-            DEFAULT_SERVICE_NAME,
-        )
+        service_name = from_env("SERVICE_NAME", DEFAULT_ENDPOINT)
 
-    access_token = os.environ.get("SPLUNK_ACCESS_TOKEN", None)
+    access_token = from_env("ACCESS_TOKEN", None)
 
     provider = TracerProvider(
         resource=Resource.create(
