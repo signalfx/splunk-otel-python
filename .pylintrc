@@ -28,7 +28,11 @@ limit-inference-results=100
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-load-plugins=
+load-plugins=pylintfileheader
+
+# fileheader
+file-header-path=COPYRIGHT.txt
+file-header-ignore-empty-files=y
 
 # Pickle collected data for later comparisons.
 persistent=yes

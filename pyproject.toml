@@ -38,6 +38,7 @@ dephell = {version = "^0.8.3", python = "^3.6"}
 coverage = "^5.3"
 pytest-cov = "^2.10.1"
 pylint = "^2.6.0"
+pylintfileheader = "^0.3.0"
 
 [tool.black]
 line-length = 90
