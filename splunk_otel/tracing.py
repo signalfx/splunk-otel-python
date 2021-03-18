@@ -55,7 +55,16 @@ def start_tracing(url: str = None, service_name: str = None):
 
 def init_tracer(url=None, service_name=None):
     if not url:
-        url = from_env("TRACE_EXPORTER_URL", DEFAULT_ENDPOINT)
+        url = os.environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT", None)
+        if not url:
+            url = from_env("TRACE_EXPORTER_URL")
+            if url:
+                logger.warning(
+                    "%s is deprecated and will be removed soon. Please use %s instead",
+                    "SPLUNK_TRACE_EXPORTER_URL",
+                    "OTEL_EXPORTER_JAEGER_ENDPOINT",
+                )
+        url = url or DEFAULT_ENDPOINT
 
     if not service_name:
         service_name = from_env("SERVICE_NAME", DEFAULT_ENDPOINT)

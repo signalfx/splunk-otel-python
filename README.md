@@ -90,21 +90,14 @@ To see the Python instrumentation in action with sample applications, see our
 
 ## All configuration options
 
-### Jaeger exporter
-
-| Environment variable          | Default value                        | Notes                                                                  |
-| ----------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| SPLUNK_TRACE_EXPORTER_URL       | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
-| SPLUNK_SERVICE_NAME             | `unnamed-python-service`             | The service name of this JVM instance.                                 |
-| SPLUNK_ACCESS_TOKEN             |                                      | The optional organization access token for trace submission requests.  |
-
-### Trace configuration
-
-| Environment variable          | Default value  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----------------------------- | -------------- | ------------------------------------------------------------------------------------                                                                                                                                                                                                                                                                                                                      |
-| SPLUNK_MAX_ATTR_LENGTH          | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
-| OTEL_RESOURCE_ATTRIBUTES      | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
-| OTEL_TRACE_ENABLED            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
+| Environment variable          | Config Option                        | Default value                        | Notes                                                                  |
+| ----------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
+| OTEL_EXPORTER_JAEGER_ENDPOINT | url                                | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
+| SPLUNK_SERVICE_NAME           | service_name                       | `unnamed-python-service`             | The service name of this JVM instance.                                 |
+| SPLUNK_ACCESS_TOKEN          |  |      | The optional organization access token for trace submission requests.  |
+| SPLUNK_MAX_ATTR_LENGTH          |           | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
+| OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
+| OTEL_TRACE_ENABLED            |            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
 
 ## Advanced Getting Started
 
@@ -140,6 +133,9 @@ of code to your Python application to achieve the same result.
 from splunk_otel.tracing import start_tracing
 
 start_tracing()
+
+# also accepts config options
+# start_tracing(url='http://localhost:9080/v1/trace, service_name='unnamed-python-service')
 
 # rest of your python application's entrypoint script
 ```
