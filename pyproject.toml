@@ -15,7 +15,6 @@ include = [
     'LICENSE'
 ]
 
-
 [tool.poetry.scripts]
 splk-py-trace = 'splunk_otel.cmd.trace:run'
 splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run'
@@ -29,15 +28,14 @@ opentelemetry-propagator-b3 = "1.0.0rc1"
 opentelemetry-instrumentation = "^0.18b0"
 
 [tool.poetry.dev-dependencies]
-flake8 = "^3.8.3"
-mypy = "^0.782"
+flake8 = "^3.9.0"
+mypy = "^0.812"
 black = {version = "^20.8b1", python = "^3.6"}
-isort = {version = "^5.5.3", python = "^3.6"}
-pytest = "^6.1.0"
-dephell = {version = "^0.8.3", python = "^3.6"}
-coverage = "^5.3"
-pytest-cov = "^2.10.1"
-pylint = "^2.6.0"
+isort = {version = "^5.7.0", python = "^3.6"}
+pytest = "^6.2.0"
+coverage = "^5.5"
+pytest-cov = "^2.11.1"
+pylint = "^2.7.2"
 pylintfileheader = "^0.3.0"
 
 [tool.black]
