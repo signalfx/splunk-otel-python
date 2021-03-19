@@ -40,31 +40,31 @@ DEFAULT_MAX_ATTR_LENGTH = 1200
 propagators.set_global_textmap(B3Format())
 
 
-def start_tracing(url: str = None, service_name: str = None):
+def start_tracing(endpoint: str = None, service_name: str = None):
     try:
         enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
         if not _is_truthy(enabled):
             logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
             return
 
-        init_tracer(url, service_name)
+        init_tracer(endpoint, service_name)
         auto_instrument()
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 
-def init_tracer(url=None, service_name=None):
-    if not url:
-        url = os.environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT", None)
-        if not url:
-            url = from_env("TRACE_EXPORTER_URL")
-            if url:
+def init_tracer(endpoint=None, service_name=None):
+    if not endpoint:
+        endpoint = os.environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT", None)
+        if not endpoint:
+            endpoint = from_env("TRACE_EXPORTER_URL")
+            if endpoint:
                 logger.warning(
                     "%s is deprecated and will be removed soon. Please use %s instead",
                     "SPLUNK_TRACE_EXPORTER_URL",
                     "OTEL_EXPORTER_JAEGER_ENDPOINT",
                 )
-        url = url or DEFAULT_ENDPOINT
+        endpoint = endpoint or DEFAULT_ENDPOINT
 
     if not service_name:
         service_name = from_env("SERVICE_NAME", DEFAULT_ENDPOINT)
@@ -80,16 +80,16 @@ def init_tracer(url=None, service_name=None):
         )
     )
     trace.set_tracer_provider(provider)
-    exporter = new_exporter(url, service_name, access_token)
+    exporter = new_exporter(endpoint, service_name, access_token)
     provider.add_span_processor(BatchExportSpanProcessor(exporter))
 
 
 def new_exporter(
-    url: str, service_name: str, access_token: Optional[str] = None
+    endpoint: str, service_name: str, access_token: Optional[str] = None
 ) -> JaegerSpanExporter:
     exporter_options = {
         "service_name": service_name,
-        "collector_endpoint": url,
+        "collector_endpoint": endpoint,
     }
 
     if access_token:
