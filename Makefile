@@ -11,17 +11,12 @@ clean:
 	@rm -rf splunk_opentelemetry.egg-info
 
 .PHONY: develop
-develop: clean
-	@mkdir -p dev
-	@ln -s $(PWD)/splunk_otel dev/
-	@poetry run dephell deps convert
-	@mv setup.py dev/
-	@echo $(DEV_VENV)
+develop:
 ifeq ($(DEV_VENV),"")
-	@echo "Prepared dev directory. Activate the target virtual env and run _python setup.py develop_ from within the dev directory."
-	@echo "Example:\n\n\tcd dev\n\t~/path/to/venv/bin/python setup.py develop\n"
+	@echo "Usage: make develop DEV_ENV=~/path/to/dev/project/venv"
 else
-	cd dev; pip uninstall splunk-opentelemetry; $(DEV_VENV)/bin/python setup.py develop
+	$(DEV_VENV)/bin/pip uninstall splunk-opentelemetry --yes
+	. $(DEV_VENV)/bin/activate && poetry install --no-dev
 endif
 
 .PHONY: build
@@ -44,8 +39,12 @@ black-check:
 pylint:
 	poetry run pylint ./splunk_otel ./tests/
 
+.PHONY: flake8 
+flake8:
+	poetry run flake8 ./splunk_otel ./tests/
+
 .PHONY: lint
-lint: isort-check black-check pylint
+lint: isort-check black-check flake8 pylint
 
 .PHONY: fmt
 fmt: isort black
