@@ -11,4 +11,4 @@ install:
 
 .PHONY: run 
 run:
-	SPLUNK_TRACE_EXPORTER_URL='http://localhost:14268/api/traces' ./venv/bin/splk-py-trace python main.py	
+	OTEL_EXPORTER_JAEGER_ENDPOINT='http://localhost:14268/api/traces' ./venv/bin/splk-py-trace python main.py	

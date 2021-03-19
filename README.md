@@ -92,8 +92,8 @@ To see the Python instrumentation in action with sample applications, see our
 
 | Environment variable          | Config Option                        | Default value                        | Notes                                                                  |
 | ----------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
-| OTEL_EXPORTER_JAEGER_ENDPOINT | url                                | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
-| SPLUNK_SERVICE_NAME           | service_name                       | `unnamed-python-service`             | The service name of this JVM instance.                                 |
+| OTEL_EXPORTER_JAEGER_ENDPOINT | endpoint                             | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
+| SPLUNK_SERVICE_NAME           | service_name                       | `unnamed-python-service`             | The service name of this Python application.                                 |
 | SPLUNK_ACCESS_TOKEN          |  |      | The optional organization access token for trace submission requests.  |
 | SPLUNK_MAX_ATTR_LENGTH          |           | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
 | OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
@@ -135,7 +135,7 @@ from splunk_otel.tracing import start_tracing
 start_tracing()
 
 # also accepts config options
-# start_tracing(url='http://localhost:9080/v1/trace, service_name='unnamed-python-service')
+# start_tracing(endpoint='http://localhost:9080/v1/trace, service_name='unnamed-python-service')
 
 # rest of your python application's entrypoint script
 ```
@@ -144,8 +144,8 @@ start_tracing()
 
 This package exports spans in Jaeger Thrift format over HTTP and supports
 exporting to the SignalFx Smart Agent, OpenTelemetry collector and directly to
-SignalFx ingest API. You can use `SPLUNK_TRACE_EXPORTER_URL` environment variable
-to specify an export URL. The value must be a full URL including scheme and
+SignalFx ingest API. You can use `OTEL_EXPORTER_JAEGER_ENDPOINT` environment variable
+to specify an export endpoint. The value must be a full URL including scheme and
 path.
 
 ### Smart Agent
@@ -158,7 +158,7 @@ when the environment variable is not specified.
 ### OpenTelemetry Collector
 
 In order to do this, you'll need to enable Jaeger Thrift HTTP receiver on
-OpenTelemetry Collector and set `SPLUNK_TRACE_EXPORTER_URL` to
+OpenTelemetry Collector and set `OTEL_EXPORTER_JAEGER_ENDPOINT` to
 `http://localhost:14268/api/traces` assuming the collector is reachable via
 localhost.
 
@@ -166,7 +166,7 @@ localhost.
 
 In order to send traces directly to SignalFx ingest API, you need to:
 
-1. Set `SPLUNK_TRACE_EXPORTER_URL` to
+1. Set `OTEL_EXPORTER_JAEGER_ENDPOINT` to
    `https://ingest.<realm>.signalfx.com/v2/trace` where `realm` is your
    SignalFx realm e.g, `https://ingest.us0.signalfx.com/v2/trace`.
 2. Set `SPLUNK_ACCESS_TOKEN` to one of your SignalFx APM access tokens.
