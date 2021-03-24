@@ -16,7 +16,7 @@ import logging
 import os
 from unittest import TestCase, mock
 
-from splunk_otel.options import from_env
+from splunk_otel.options import splunk_env_var
 
 
 class TestOptions(TestCase):
@@ -24,13 +24,13 @@ class TestOptions(TestCase):
         os.environ, {"SPLK_OLD_VAR": "OLD_VALUE", "SPLUNK_NEW_VAR": "NEW_VALUE"}
     )
     def test_from_env(self):
-        self.assertIsNone(from_env("TEST_VAR1"))
-        self.assertEqual(from_env("TEST_VAR1", "default value"), "default value")
+        self.assertIsNone(splunk_env_var("TEST_VAR1"))
+        self.assertEqual(splunk_env_var("TEST_VAR1", "default value"), "default value")
 
         with self.assertLogs(level=logging.WARNING) as warning:
-            self.assertEqual(from_env("OLD_VAR"), "OLD_VALUE")
+            self.assertEqual(splunk_env_var("OLD_VAR"), "OLD_VALUE")
             self.assertIn(
                 "SPLK_OLD_VAR is deprecated and will be removed soon. Please use SPLUNK_OLD_VAR instead",
                 warning.output[0],
             )
-        self.assertEqual(from_env("NEW_VAR"), "NEW_VALUE")
+        self.assertEqual(splunk_env_var("NEW_VAR"), "NEW_VALUE")

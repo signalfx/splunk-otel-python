@@ -26,61 +26,40 @@ from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.excludes import excluded_instrumentations
-from splunk_otel.options import from_env
+from splunk_otel.options import Options
 from splunk_otel.version import __version__
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
-DEFAULT_SERVICE_NAME = "unnamed-python-service"
-DEFAULT_ENDPOINT = "http://localhost:9080/v1/trace"
-DEFAULT_MAX_ATTR_LENGTH = 1200
-
-
 propagators.set_global_textmap(B3Format())
 
 
-def start_tracing(endpoint: str = None, service_name: str = None):
-    try:
-        enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
-        if not _is_truthy(enabled):
-            logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
-            return
+def start_tracing(*args, **kwargs):
+    enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
+    if not _is_truthy(enabled):
+        logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
+        return
 
-        init_tracer(endpoint, service_name)
+    options = Options(*args, **kwargs)
+    try:
+        init_tracer(options)
         auto_instrument()
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 
-def init_tracer(endpoint=None, service_name=None):
-    if not endpoint:
-        endpoint = os.environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT", None)
-        if not endpoint:
-            endpoint = from_env("TRACE_EXPORTER_URL")
-            if endpoint:
-                logger.warning(
-                    "%s is deprecated and will be removed soon. Please use %s instead",
-                    "SPLUNK_TRACE_EXPORTER_URL",
-                    "OTEL_EXPORTER_JAEGER_ENDPOINT",
-                )
-        endpoint = endpoint or DEFAULT_ENDPOINT
-
-    if not service_name:
-        service_name = from_env("SERVICE_NAME", DEFAULT_ENDPOINT)
-
-    access_token = from_env("ACCESS_TOKEN", None)
-
+def init_tracer(options: Options):
     provider = TracerProvider(
         resource=Resource.create(
             attributes={
-                "service.name": service_name,
+                "service.name": options.service_name,
                 "telemetry.auto.version": __version__,
             }
         )
     )
     trace.set_tracer_provider(provider)
-    exporter = new_exporter(endpoint, service_name, access_token)
+    exporter = new_exporter(options.endpoint, options.service_name, options.access_token)
     provider.add_span_processor(BatchExportSpanProcessor(exporter))
 
 
