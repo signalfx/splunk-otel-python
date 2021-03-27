@@ -56,10 +56,15 @@ class Options:
 
         if not access_token:
             access_token = splunk_env_var("ACCESS_TOKEN", None)
-        self.access_token = service_name
+        self.access_token = access_token
 
         if not max_attr_length:
-            max_attr_length = splunk_env_var("MAX_ATTR_LENGTH", DEFAULT_MAX_ATTR_LENGTH)
+            try:
+                max_attr_length = int(
+                    splunk_env_var("MAX_ATTR_LENGTH", DEFAULT_MAX_ATTR_LENGTH)
+                )
+            except (TypeError, ValueError):
+                logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
         self.max_attr_length = max_attr_length
 
 
