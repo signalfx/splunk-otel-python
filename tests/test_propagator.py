@@ -14,7 +14,7 @@
 
 import unittest
 
-from opentelemetry.propagators import get_global_textmap
+from opentelemetry.propagate import get_global_textmap
 from opentelemetry.propagators.b3 import B3Format
 
 from splunk_otel import tracing  # pylint:disable=C0415,W0611

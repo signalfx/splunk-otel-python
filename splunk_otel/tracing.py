@@ -15,14 +15,13 @@
 import logging
 import os
 import sys
-from typing import Optional
 
-from opentelemetry import propagators, trace
-from opentelemetry.exporter.jaeger import JaegerSpanExporter
+from opentelemetry import propagate, trace
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.propagators.b3 import B3Format
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.excludes import excluded_instrumentations
@@ -32,7 +31,7 @@ from splunk_otel.version import __version__
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
-propagators.set_global_textmap(B3Format())
+propagate.set_global_textmap(B3Format())
 
 
 def start_tracing(*args, **kwargs):
@@ -59,27 +58,25 @@ def init_tracer(options: Options):
         )
     )
     trace.set_tracer_provider(provider)
-    exporter = new_exporter(options.endpoint, options.service_name, options.access_token)
-    provider.add_span_processor(BatchExportSpanProcessor(exporter))
+    exporter = new_exporter(options)
+    provider.add_span_processor(BatchSpanProcessor(exporter))
 
 
-def new_exporter(
-    endpoint: str, service_name: str, access_token: Optional[str] = None
-) -> JaegerSpanExporter:
+def new_exporter(options: Options) -> JaegerExporter:
     exporter_options = {
-        "service_name": service_name,
-        "collector_endpoint": endpoint,
+        "collector_endpoint": options.endpoint,
+        "max_tag_value_length": options.max_attr_length,
     }
 
-    if access_token:
+    if options.access_token:
         exporter_options.update(
             {
                 "username": "auth",
-                "password": access_token,
+                "password": options.access_token,
             }
         )
 
-    return JaegerSpanExporter(**exporter_options)
+    return JaegerExporter(**exporter_options)
 
 
 def auto_instrument():
