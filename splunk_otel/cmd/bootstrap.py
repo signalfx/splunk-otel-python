@@ -17,6 +17,7 @@ import pkgutil
 import subprocess
 import sys
 from logging import getLogger
+from typing import Any, Callable, Collection, Dict, Optional
 
 from opentelemetry.instrumentation.bootstrap import instrumentations
 from opentelemetry.instrumentation.bootstrap import run as otel_run

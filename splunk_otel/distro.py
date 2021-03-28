@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Dict
+
 from opentelemetry.instrumentation.distro import BaseDistro
 
 from splunk_otel.options import Options
-
-from .tracing import _configure_tracing
+from splunk_otel.tracing import _configure_tracing
 
 
 class SplunkDistro(BaseDistro):
-    def _configure(self, **kwargs):
+    def _configure(self, **kwargs: Dict[str, Any]) -> None:
         _configure_tracing(Options())

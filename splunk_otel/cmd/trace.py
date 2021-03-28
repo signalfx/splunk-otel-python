@@ -22,6 +22,7 @@ from argparse import REMAINDER, ArgumentParser
 from logging import getLogger
 from os import environ, execl, getcwd
 from shutil import which
+from typing import List, Union
 
 from opentelemetry.instrumentation.auto_instrumentation import run as otel_run
 
@@ -61,7 +62,7 @@ ap.add_argument(
 )
 
 
-def run():
+def run() -> None:
     args = ap.parse_args()
     if args.version:
         print(format_version_info())

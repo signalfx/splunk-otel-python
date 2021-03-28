@@ -27,18 +27,18 @@ DEFAULT_MAX_ATTR_LENGTH = 1200
 class Options:
     endpoint: str
     service_name: str
-    access_token: str
+    access_token: Optional[str]
     max_attr_length: int
 
     def __init__(
         self,
-        service_name: str = None,
-        endpoint: str = None,
-        access_token: str = None,
-        max_attr_length: int = None,
+        service_name: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        access_token: Optional[str] = None,
+        max_attr_length: Optional[int] = None,
     ):
         if not endpoint:
-            endpoint = environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT", None)
+            endpoint = environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT")
             if not endpoint:
                 endpoint = splunk_env_var("TRACE_EXPORTER_URL")
                 if endpoint:
@@ -51,21 +51,21 @@ class Options:
         self.endpoint = endpoint
 
         if not service_name:
-            service_name = splunk_env_var("SERVICE_NAME", DEFAULT_ENDPOINT)
+            service_name = splunk_env_var("SERVICE_NAME") or DEFAULT_SERVICE_NAME
         self.service_name = service_name
 
         if not access_token:
-            access_token = splunk_env_var("ACCESS_TOKEN", None)
-        self.access_token = access_token
+            access_token = splunk_env_var("ACCESS_TOKEN")
+        self.access_token = access_token or None
 
         if not max_attr_length:
-            try:
-                max_attr_length = int(
-                    splunk_env_var("MAX_ATTR_LENGTH", DEFAULT_MAX_ATTR_LENGTH)
-                )
-            except (TypeError, ValueError):
-                logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
-        self.max_attr_length = max_attr_length
+            value = splunk_env_var("MAX_ATTR_LENGTH")
+            if value:
+                try:
+                    max_attr_length = int(value)
+                except (TypeError, ValueError):
+                    logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
+        self.max_attr_length = max_attr_length or DEFAULT_MAX_ATTR_LENGTH
 
 
 def splunk_env_var(name: str, default: Optional[str] = None) -> Optional[str]:

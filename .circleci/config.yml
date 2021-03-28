@@ -89,6 +89,14 @@ workflows:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
       - tox-env:
+          name: mypy 
+          py_version: '3.8'
+          tox_env: 'mypy'
+          tests: false
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
           name: python-3.6
           py_version: '3.6'
           tox_env: 'py36-test'
