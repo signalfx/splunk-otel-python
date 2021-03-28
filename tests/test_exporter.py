@@ -21,7 +21,7 @@ from opentelemetry.exporter.jaeger import thrift as jaeger_exporter
 from opentelemetry.sdk import trace
 
 from splunk_otel.options import Options
-from splunk_otel.tracing import new_exporter
+from splunk_otel.tracing import _new_jaeger_exporter
 
 
 class TestJaegerExporter(unittest.TestCase):
@@ -49,7 +49,7 @@ class TestJaegerExporter(unittest.TestCase):
         self.connection_patcher.stop()
 
     def test_exporter_uses_collector_not_udp_agent(self):
-        exporter = new_exporter(
+        exporter = _new_jaeger_exporter(
             Options(endpoint=self.endpoint, service_name=self.service_name)
         )
         agent_client_mock = mock.Mock(spec=jaeger_exporter.AgentClientUDP)
@@ -62,7 +62,7 @@ class TestJaegerExporter(unittest.TestCase):
         self.assertEqual(collector_mock.submit.call_count, 1)
 
     def test_http_export(self):
-        exporter = new_exporter(
+        exporter = _new_jaeger_exporter(
             Options(endpoint=self.endpoint, service_name=self.service_name)
         )
         exporter.export((self._test_span,))
@@ -76,7 +76,7 @@ class TestJaegerExporter(unittest.TestCase):
         self,
     ):
         access_token = "test-access-token"
-        exporter = new_exporter(
+        exporter = _new_jaeger_exporter(
             Options(
                 endpoint=self.endpoint,
                 service_name=self.service_name,

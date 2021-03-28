@@ -12,4 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-excluded_instrumentations = tuple()
+from opentelemetry.instrumentation.distro import BaseDistro
+
+from splunk_otel.options import Options
+
+from .tracing import _configure_tracing
+
+
+class SplunkDistro(BaseDistro):
+    def _configure(self, **kwargs):
+        _configure_tracing(Options())
