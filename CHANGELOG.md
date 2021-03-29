@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Added
+
+- Added support for `--access-token` and `--service-name` to `splk-py-trace` command.
+  [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
+
+### Changed
+
+- Updated splk-py-trace and splk-py-trace-bootstrap commands.
+  Both commands now delegate to opentelemetry-instrument and opentelemetry-bootstrap commands.
+  [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
+- `start_tracing()` was moved from `splunk_otel.tracing` to `splunk_otel`.
+  [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
+
+### Removed
+
+- Removed support for `--exporters` CLI flag from `splk-py-trace-bootstrap` command.
+  [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
+
 ## 0.10.0 (03-27-2021)
 
 ### Changed

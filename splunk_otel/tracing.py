@@ -16,6 +16,7 @@ import logging
 import os
 import sys
 
+from opentelemetry import environment_variables as otel_env_vars
 from opentelemetry import propagate, trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.propagators.b3 import B3Format
@@ -24,7 +25,6 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
-from splunk_otel.excludes import excluded_instrumentations
 from splunk_otel.options import Options
 from splunk_otel.version import __version__
 
@@ -42,13 +42,13 @@ def start_tracing(*args, **kwargs):
 
     options = Options(*args, **kwargs)
     try:
-        init_tracer(options)
-        auto_instrument()
+        _configure_tracing(options)
+        _load_instrumentors()
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 
-def init_tracer(options: Options):
+def _configure_tracing(options: Options):
     provider = TracerProvider(
         resource=Resource.create(
             attributes={
@@ -58,11 +58,11 @@ def init_tracer(options: Options):
         )
     )
     trace.set_tracer_provider(provider)
-    exporter = new_exporter(options)
+    exporter = _new_jaeger_exporter(options)
     provider.add_span_processor(BatchSpanProcessor(exporter))
 
 
-def new_exporter(options: Options) -> JaegerExporter:
+def _new_jaeger_exporter(options: Options) -> JaegerExporter:
     exporter_options = {
         "collector_endpoint": options.endpoint,
         "max_tag_value_length": options.max_attr_length,
@@ -79,26 +79,25 @@ def new_exporter(options: Options) -> JaegerExporter:
     return JaegerExporter(**exporter_options)
 
 
-def auto_instrument():
-    for entry_point in iter_entry_points("opentelemetry_instrumentor"):
-        if entry_point.name in excluded_instrumentations:
-            logger.info(
-                "%s instrumentation has been temporarily disabled by Splunk",
-                entry_point.name,
-            )
-            continue
+def _load_instrumentors():
+    package_to_exclude = os.environ.get(
+        otel_env_vars.OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, []
+    )
+    if isinstance(package_to_exclude, str):
+        package_to_exclude = package_to_exclude.split(",")
+        # to handle users entering "requests , flask" or "requests, flask" with spaces
+        package_to_exclude = [x.strip() for x in package_to_exclude]
 
+    for entry_point in iter_entry_points("opentelemetry_instrumentor"):
         try:
+            if entry_point.name in package_to_exclude:
+                logger.debug("Instrumentation skipped for library %s", entry_point.name)
+                continue
             entry_point.load()().instrument()  # type: ignore
-            logger.debug(
-                "Instrumented %s",
-                entry_point.name,
-            )
-        except Exception:  # pylint: disable=broad-except
-            logger.exception(
-                "Instrumenting of %s failed",
-                entry_point.name,
-            )
+            logger.debug("Instrumented %s", entry_point.name)
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("Instrumenting of %s failed", entry_point.name)
+            raise exc
 
 
 def _is_truthy(value: any) -> bool:
