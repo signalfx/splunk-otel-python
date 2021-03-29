@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.11.0 (03-29-2021)
+
 ### Added
 
 - Added support for `--access-token` and `--service-name` to `splk-py-trace` command.
