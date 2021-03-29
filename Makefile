@@ -46,6 +46,10 @@ flake8:
 .PHONY: lint
 lint: isort-check black-check flake8 pylint
 
+.PHONY: mypy
+mypy:
+	poetry run mypy --namespace-packages --show-error-codes splunk_otel/
+
 .PHONY: fmt
 fmt: isort black
 

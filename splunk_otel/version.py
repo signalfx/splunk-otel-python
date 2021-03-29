@@ -19,12 +19,12 @@ pkg = pkg_resources.get_distribution("splunk-opentelemetry")
 __version__ = pkg.version
 
 
-def format_version_info():
+def format_version_info() -> str:
     lines = []
     lines.append("splunk-opentelemetry=={0}".format(pkg.version))
     lines.append("\n\nAlso uses the following OpenTelemetry libraries:\n")
     for dep in pkg.requires():
-        if "opentelemetry" in dep.name:
+        if "opentelemetry" in getattr(dep, "name", ""):
             lines.append("\t{0}".format(str(dep)))
 
     return "\n".join(lines)

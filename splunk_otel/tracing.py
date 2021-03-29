@@ -15,9 +15,11 @@
 import logging
 import os
 import sys
+from functools import partial
+from typing import Any, Optional
 
 from opentelemetry import environment_variables as otel_env_vars
-from opentelemetry import propagate, trace
+from opentelemetry import propagate, trace  # type: ignore
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.propagators.b3 import B3Format
 from opentelemetry.sdk.resources import Resource
@@ -34,13 +36,18 @@ logger.setLevel(logging.INFO)
 propagate.set_global_textmap(B3Format())
 
 
-def start_tracing(*args, **kwargs):
+def start_tracing(
+    service_name: Optional[str] = None,
+    endpoint: Optional[str] = None,
+    access_token: Optional[str] = None,
+    max_attr_length: Optional[int] = None,
+) -> None:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return
 
-    options = Options(*args, **kwargs)
+    options = Options(service_name, endpoint, access_token, max_attr_length)
     try:
         _configure_tracing(options)
         _load_instrumentors()
@@ -48,7 +55,7 @@ def start_tracing(*args, **kwargs):
         sys.exit(2)
 
 
-def _configure_tracing(options: Options):
+def _configure_tracing(options: Options) -> None:
     provider = TracerProvider(
         resource=Resource.create(
             attributes={
@@ -63,44 +70,36 @@ def _configure_tracing(options: Options):
 
 
 def _new_jaeger_exporter(options: Options) -> JaegerExporter:
-    exporter_options = {
-        "collector_endpoint": options.endpoint,
-        "max_tag_value_length": options.max_attr_length,
-    }
+    exporter_factory = partial(
+        JaegerExporter,
+        collector_endpoint=options.endpoint,
+        max_tag_value_length=options.max_attr_length,
+    )
 
     if options.access_token:
-        exporter_options.update(
-            {
-                "username": "auth",
-                "password": options.access_token,
-            }
-        )
-
-    return JaegerExporter(**exporter_options)
+        return exporter_factory(username="auth", password=options.access_token)
+    return exporter_factory()
 
 
-def _load_instrumentors():
+def _load_instrumentors() -> None:
     package_to_exclude = os.environ.get(
-        otel_env_vars.OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, []
-    )
-    if isinstance(package_to_exclude, str):
-        package_to_exclude = package_to_exclude.split(",")
-        # to handle users entering "requests , flask" or "requests, flask" with spaces
-        package_to_exclude = [x.strip() for x in package_to_exclude]
+        otel_env_vars.OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, ""
+    ).split(",")
+    package_to_exclude = [p.strip() for p in package_to_exclude]
 
     for entry_point in iter_entry_points("opentelemetry_instrumentor"):
         try:
             if entry_point.name in package_to_exclude:
                 logger.debug("Instrumentation skipped for library %s", entry_point.name)
                 continue
-            entry_point.load()().instrument()  # type: ignore
+            entry_point.load()().instrument()
             logger.debug("Instrumented %s", entry_point.name)
         except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Instrumenting of %s failed", entry_point.name)
             raise exc
 
 
-def _is_truthy(value: any) -> bool:
+def _is_truthy(value: Any) -> bool:
     if isinstance(value, str):
-        value = value.lower()
+        value = value.lower().strip()
     return value in [True, 1, "true", "yes"]
