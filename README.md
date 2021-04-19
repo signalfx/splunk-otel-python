@@ -23,7 +23,7 @@ If you're currently using the SignalFx Tracing Library for Python and want to
 migrate to the Splunk Distribution of OpenTelemetry Python, see [Migrate from
 the SignalFx Tracing Library for Python](migration.md).
 
-> :construction: This project is currently in **BETA**.
+> :construction: This project is currently in **BETA**. It is **officially supported** by Splunk. However, breaking changes **MAY** be introduced.
 
 ## Requirements
 
