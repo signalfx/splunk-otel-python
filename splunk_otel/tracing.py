@@ -19,8 +19,9 @@ from functools import partial
 from typing import Any, Optional
 
 from opentelemetry import environment_variables as otel_env_vars
-from opentelemetry import propagate, trace  # type: ignore
+from opentelemetry import propagate, trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.propagators.b3 import B3Format
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -28,12 +29,11 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.options import Options
+from splunk_otel.propagators import ServerTimingResponsePropagator
 from splunk_otel.version import __version__
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
-
-propagate.set_global_textmap(B3Format())
 
 
 def start_tracing(
@@ -64,6 +64,10 @@ def _configure_tracing(options: Options) -> None:
             }
         )
     )
+    propagate.set_global_textmap(B3Format())
+    if options.response_propagation:
+        set_global_response_propagator(ServerTimingResponsePropagator())  # type: ignore
+
     trace.set_tracer_provider(provider)
     exporter = _new_jaeger_exporter(options)
     provider.add_span_processor(BatchSpanProcessor(exporter))

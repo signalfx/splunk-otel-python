@@ -29,7 +29,7 @@ publish:
 
 .PHONY: isort-check
 isort-check:
-	poetry run isort --diff --check-only ./splunk_otel ./tests
+	poetry run isort --profile black --diff --check-only ./splunk_otel ./tests
 
 .PHONY: black-check
 black-check:
@@ -59,7 +59,7 @@ black:
 
 .PHONY: isort
 isort:
-	poetry run isort --profile black splunk_otel tests
+	poetry run isort --profile black ./splunk_otel ./tests
 
 .PHONY: test
 test:
