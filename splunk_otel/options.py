@@ -29,6 +29,7 @@ class Options:
     service_name: str
     access_token: Optional[str]
     max_attr_length: int
+    response_propagation: bool
 
     def __init__(
         self,
@@ -36,6 +37,7 @@ class Options:
         endpoint: Optional[str] = None,
         access_token: Optional[str] = None,
         max_attr_length: Optional[int] = None,
+        trace_response_header_enabled: bool = True,
     ):
         if not endpoint:
             endpoint = environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT")
@@ -66,6 +68,16 @@ class Options:
                 except (TypeError, ValueError):
                     logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
         self.max_attr_length = max_attr_length or DEFAULT_MAX_ATTR_LENGTH
+
+        response_header_env = splunk_env_var("TRACE_RESPONSE_HEADER_ENABLED", "")
+        if response_header_env and response_header_env.strip().lower() in (
+            "false",
+            "no",
+            "f",
+            "0",
+        ):
+            trace_response_header_enabled = False
+        self.response_propagation = trace_response_header_enabled
 
 
 def splunk_env_var(name: str, default: Optional[str] = None) -> Optional[str]:

@@ -14,7 +14,7 @@
 
 from typing import Any, Dict
 
-from opentelemetry.instrumentation.distro import BaseDistro
+from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 
 from splunk_otel.options import Options
 from splunk_otel.tracing import _configure_tracing

@@ -27,21 +27,6 @@ from splunk_otel.version import format_version_info
 
 logger = getLogger(__file__)
 
-# Force specific version of instrumentations until
-# we pin the deps in Otel Python directly
-_INSTRUMENTATION_VERSION = "==0.19b0"
-_version_symbols = "~><"
-for package, instrumentation in instrumentations.items():
-    for symbol in _version_symbols:
-        if symbol in instrumentation:
-            instrumentation = instrumentation.split(symbol)[0]
-            break
-
-    instrumentations[package] = "{0}{1}".format(
-        instrumentation,
-        _INSTRUMENTATION_VERSION,
-    )
-
 
 def run() -> None:
     action_install = "install"

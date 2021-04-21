@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Added support trace response headers.
+  [#44](https://github.com/signalfx/splunk-otel-python/pull/44)
+
 ## 0.11.0 (03-29-2021)
 
 ### Added
