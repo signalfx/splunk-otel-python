@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.12.0 (04-21-2021)
+
 ### Added
 
 - Added support trace response headers.
