@@ -125,6 +125,8 @@ workflows:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
       - release:
+          context:
+            - signalfx-pypi-password
           requires:
             - build 
             - lint
