@@ -71,7 +71,7 @@ jobs:
                 path: test_results
             - run:
                 name: upload coverage report
-                command: bash <(curl -s https://codecov.io/bash)
+                command: bash scripts/codecov.sh
 
 workflows:
   test_build_release:
