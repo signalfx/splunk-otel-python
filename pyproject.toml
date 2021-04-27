@@ -38,7 +38,7 @@ isort = {version = "^5.8.0", python = "^3.6"}
 pytest = "^6.2.3"
 coverage = "^5.5"
 pytest-cov = "^2.11.1"
-pylint = "^2.8.1"
+pylint = "^2.8.2"
 pylintfileheader = "^0.3.0"
 
 [tool.black]
