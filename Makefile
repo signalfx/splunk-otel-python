@@ -25,7 +25,7 @@ build:
 
 .PHONY: publish
 publish:
-	poetry publish
+	poetry publish --build
 
 .PHONY: isort-check
 isort-check:

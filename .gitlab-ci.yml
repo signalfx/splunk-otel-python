@@ -1,0 +1,72 @@
+default:
+  image: 'cimg/python:3.9'
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
+stages:
+  - test
+  - release 
+
+.tox:
+  image: 'cimg/python:$PY_VERSION'
+  cache:
+    key: v1-tox-cache
+    paths:
+      - .tox
+  script:
+    - pip install tox
+    - tox -e $TOX_ENV
+
+build:
+  script:
+    - make deps
+    - make build
+
+lint:
+  extends: .tox
+  variables:
+    PY_VERSION: "3.8"
+    TOX_ENV: lint
+
+test-py36:
+  extends: .tox
+  variables:
+    PY_VERSION: "3.6"
+    TOX_ENV: py36-test
+
+test-py37:
+  extends: .tox
+  variables:
+    PY_VERSION: "3.7"
+    TOX_ENV: py37-test
+
+test-py38:
+  extends: .tox
+  variables:
+    PY_VERSION: "3.8"
+    TOX_ENV: py38-test
+
+test-py39:
+  extends: .tox
+  variables:
+    PY_VERSION: "3.9"
+    TOX_ENV: py39-test
+
+release:
+  stage: release
+  artifacts:
+    paths:
+      - dist/
+  only:
+    - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+  except:
+    - branches
+  script:
+    - poetry config http-basic.pypi __token__ $PYPI_PASSWORD
+    - make publish
+    - shasum -a 256 dist/* > dist/checksums.txt
