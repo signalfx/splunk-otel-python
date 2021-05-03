@@ -24,19 +24,6 @@ jobs:
           root: ~/
           paths: project/
 
-  release:
-    docker:
-      - image: 'cimg/python:3.9'
-    steps:
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Authenticate pypi
-          command: |
-            poetry config http-basic.pypi __token__ $PYPI_PASSWORD
-      - run:
-          command: make publish
-
   tox-env:
     parameters:
       py_version:
@@ -74,7 +61,7 @@ jobs:
                 command: bash scripts/codecov.sh
 
 workflows:
-  test_build_release:
+  test_build:
     jobs:
       - build:
           filters:
@@ -122,20 +109,5 @@ workflows:
           py_version: '3.9'
           tox_env: 'py39-test'
           filters:
-            tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
-      - release:
-          context:
-            - signalfx-pypi-password
-          requires:
-            - build 
-            - lint
-            - python-3.6 
-            - python-3.7 
-            - python-3.8 
-            - python-3.9 
-          filters:
-            branches:
-              ignore: /.*/
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
