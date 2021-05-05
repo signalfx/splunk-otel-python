@@ -77,7 +77,7 @@ set are:
 - Endpoint if not sending to a locally running Smart Agent with default
   configuration
 - Environment attribute (example:
-  `OTEL_RESOURCE_ATTRIBUTES=environment=production`) to specify what
+  `OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production`) to specify what
   environment the span originated from.
 
 Instrumentation works by patching supported libraries at runtime with an
