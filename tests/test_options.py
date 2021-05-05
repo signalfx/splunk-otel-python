@@ -16,7 +16,7 @@ import logging
 import os
 from unittest import TestCase, mock
 
-from splunk_otel.options import splunk_env_var
+from splunk_otel.options import Options, splunk_env_var
 
 
 class TestOptions(TestCase):
@@ -34,3 +34,30 @@ class TestOptions(TestCase):
                 warning.output[0],
             )
         self.assertEqual(splunk_env_var("NEW_VAR"), "NEW_VALUE")
+
+    def test_default_service_name(self):
+        options = Options()
+        self.assertIsInstance(options.resource_attributes, dict)
+        self.assertEqual(
+            options.resource_attributes["service.name"], "unnamed-python-service"
+        )
+
+    def test_service_name_from_kwargs(self):
+        options = Options(
+            resource_attributes={"service.name": "test service name from kwargs"}
+        )
+        self.assertIsInstance(options.resource_attributes, dict)
+        self.assertEqual(
+            options.resource_attributes["service.name"], "test service name from kwargs"
+        )
+
+    @mock.patch.dict(
+        os.environ,
+        {"OTEL_RESOURCE_ATTRIBUTES": "service.name=test service name from env"},
+    )
+    def test_service_name_from_env(self):
+        options = Options()
+        self.assertIsInstance(options.resource_attributes, dict)
+        self.assertEqual(
+            options.resource_attributes["service.name"], "test service name from env"
+        )

@@ -16,7 +16,7 @@ import logging
 import os
 import sys
 from functools import partial
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Union
 
 from opentelemetry import environment_variables as otel_env_vars
 from opentelemetry import propagate, trace
@@ -30,24 +30,23 @@ from pkg_resources import iter_entry_points
 
 from splunk_otel.options import Options
 from splunk_otel.propagators import ServerTimingResponsePropagator
-from splunk_otel.version import __version__
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
 
 def start_tracing(
-    service_name: Optional[str] = None,
     endpoint: Optional[str] = None,
     access_token: Optional[str] = None,
     max_attr_length: Optional[int] = None,
+    resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
 ) -> None:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return
 
-    options = Options(service_name, endpoint, access_token, max_attr_length)
+    options = Options(endpoint, access_token, max_attr_length, resource_attributes)
     try:
         _configure_tracing(options)
         _load_instrumentors()
@@ -57,12 +56,7 @@ def start_tracing(
 
 def _configure_tracing(options: Options) -> None:
     provider = TracerProvider(
-        resource=Resource.create(
-            attributes={
-                "service.name": options.service_name,
-                "telemetry.auto.version": __version__,
-            }
-        )
+        resource=Resource.create(attributes=options.resource_attributes)
     )
     propagate.set_global_textmap(B3Format())
     if options.response_propagation:

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- Added `resource_attributes` config option to the `splunk_otel.start_tracing()` function.
+  [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
+
+### Removed 
+
+- Removed `service_name` config option from the `splunk_otel.start_tracing()` function.
+  Please pass `resource_attributes={'service.name': 'my-service-name'}` to the function instead.
+  [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
+
+- Removed support for `SPLUNK_SERVICE_NAME` environment variable.
+  Please use `OTEL_RESOURCE_ATTRIBTES=service.name=<my-service-name>` instead.
+  [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
+
 ## 0.12.0 (04-21-2021)
 
 ### Added

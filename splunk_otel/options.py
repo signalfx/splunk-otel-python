@@ -14,7 +14,11 @@
 
 import logging
 from os import environ
-from typing import Optional
+from typing import Dict, Optional, Union
+
+from opentelemetry.sdk.environment_variables import OTEL_RESOURCE_ATTRIBUTES
+
+from splunk_otel.version import __version__
 
 logger = logging.getLogger("options")
 
@@ -23,20 +27,26 @@ DEFAULT_SERVICE_NAME = "unnamed-python-service"
 DEFAULT_ENDPOINT = "http://localhost:9080/v1/trace"
 DEFAULT_MAX_ATTR_LENGTH = 1200
 
+_SERVICE_NAME_ATTR = "service.name"
+_TELEMETRY_VERSION_ATTR = "telemetry.auto.version"
+_NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
+set your service name using the OTEL_RESOURCE_ATTRIBUTES environment variable.
+E.g. `OTEL_RESOURCE_ATTRIBUTES="service.name=<YOUR_SERVICE_NAME_HERE>"`"""
+
 
 class Options:
     endpoint: str
-    service_name: str
     access_token: Optional[str]
     max_attr_length: int
+    resource_attributes: Dict[str, Union[str, bool, int, float]]
     response_propagation: bool
 
     def __init__(
         self,
-        service_name: Optional[str] = None,
         endpoint: Optional[str] = None,
         access_token: Optional[str] = None,
         max_attr_length: Optional[int] = None,
+        resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
         trace_response_header_enabled: bool = True,
     ):
         if not endpoint:
@@ -52,10 +62,6 @@ class Options:
             endpoint = endpoint or DEFAULT_ENDPOINT
         self.endpoint = endpoint
 
-        if not service_name:
-            service_name = splunk_env_var("SERVICE_NAME") or DEFAULT_SERVICE_NAME
-        self.service_name = service_name
-
         if not access_token:
             access_token = splunk_env_var("ACCESS_TOKEN")
         self.access_token = access_token or None
@@ -68,6 +74,21 @@ class Options:
                 except (TypeError, ValueError):
                     logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
         self.max_attr_length = max_attr_length or DEFAULT_MAX_ATTR_LENGTH
+
+        if not resource_attributes:
+            resource_attributes = {}
+            env_value = environ.get(OTEL_RESOURCE_ATTRIBUTES, "").strip()
+            if env_value:
+                resource_attributes = {
+                    key.strip(): value.strip()
+                    for key, value in (pair.split("=") for pair in env_value.split(","))
+                }
+        self.resource_attributes = resource_attributes or {}
+
+        self.resource_attributes.update({_TELEMETRY_VERSION_ATTR: __version__})
+        if _SERVICE_NAME_ATTR not in self.resource_attributes:
+            logger.warning(_NO_SERVICE_NAME_WARNING)
+            self.resource_attributes[_SERVICE_NAME_ATTR] = DEFAULT_SERVICE_NAME
 
         response_header_env = splunk_env_var("TRACE_RESPONSE_HEADER_ENABLED", "")
         if response_header_env and response_header_env.strip().lower() in (
