@@ -86,7 +86,7 @@ also registers an OpenTelemetry `get_tracer` so you can support existing custom
 instrumentation or add custom instrumentation to your application later.
 
 To see the Python instrumentation in action with sample applications, see our
-[examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/splunk-otel-python).
+[examples](https://github.com/signalfx/tracing-examples/tree/main/opentelemetry-tracing/opentelemetry-python-tracing).
 
 ## All configuration options
 
