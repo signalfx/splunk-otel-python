@@ -50,7 +50,10 @@ class TestJaegerExporter(unittest.TestCase):
 
     def test_exporter_uses_collector_not_udp_agent(self):
         exporter = _new_jaeger_exporter(
-            Options(endpoint=self.endpoint, service_name=self.service_name)
+            Options(
+                endpoint=self.endpoint,
+                resource_attributes={"service.name": self.service_name},
+            )
         )
         agent_client_mock = mock.Mock(spec=jaeger_exporter.AgentClientUDP)
         exporter._agent_client = agent_client_mock  # pylint:disable=protected-access
@@ -63,7 +66,10 @@ class TestJaegerExporter(unittest.TestCase):
 
     def test_http_export(self):
         exporter = _new_jaeger_exporter(
-            Options(endpoint=self.endpoint, service_name=self.service_name)
+            Options(
+                endpoint=self.endpoint,
+                resource_attributes={"service.name": self.service_name},
+            )
         )
         exporter.export((self._test_span,))
 
@@ -79,8 +85,8 @@ class TestJaegerExporter(unittest.TestCase):
         exporter = _new_jaeger_exporter(
             Options(
                 endpoint=self.endpoint,
-                service_name=self.service_name,
                 access_token=access_token,
+                resource_attributes={"service.name": self.service_name},
             )
         )
         exporter.export((self._test_span,))

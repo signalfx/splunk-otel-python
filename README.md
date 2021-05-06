@@ -51,7 +51,7 @@ Then the runtime parameters should be updated to:
 ```
 $ pip install splunk-opentelemetry
 $ splk-py-trace-bootstrap
-$ SPLUNK_SERVICE_NAME=my-python-app \
+$ OTEL_RESOURCE_ATTRIBUTES=service.name=my-python-app \
     splk-py-trace python main.py --port=8000
 ```
 
@@ -93,11 +93,10 @@ To see the Python instrumentation in action with sample applications, see our
 | Environment variable          | Config Option                        | Default value                        | Notes                                                                  |
 | ----------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
 | OTEL_EXPORTER_JAEGER_ENDPOINT | endpoint                             | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
-| SPLUNK_SERVICE_NAME           | service_name                       | `unnamed-python-service`             | The service name of this Python application.                                 |
 | SPLUNK_ACCESS_TOKEN          | access_token |      | The optional organization access token for trace submission requests.  |
 | SPLUNK_MAX_ATTR_LENGTH       | max_attr_length | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
 | SPLUNK_TRACE_RESPONSE_HEADER_ENABLED | trace_response_header_enabled | True | Enables adding server trace information to HTTP response headers. |
-| OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`key1=val1,key2=val2`</details>
+| OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`service.name=my-python-service,service.version=3.1,deployment.environment=production`</details>
 | OTEL_TRACE_ENABLED            |            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
 
 ## Advanced Getting Started
@@ -135,8 +134,17 @@ from splunk_otel.tracing import start_tracing
 
 start_tracing()
 
-# also accepts config options
-# start_tracing(endpoint='http://localhost:9080/v1/trace, service_name='unnamed-python-service')
+# Also accepts config options:
+# start_tracing(
+#   endpoint='http://localhost:9080/v1/trace,
+#   access_token='',
+#   max_attr_length=1200,
+#   trace_response_header_enabled=True,
+#   resource_attributes={
+#    'service.name': 'my-python-service',
+#    'service.version': '3.1',
+#    'deployment.environment': 'production',
+#  })
 
 # rest of your python application's entrypoint script
 ```
