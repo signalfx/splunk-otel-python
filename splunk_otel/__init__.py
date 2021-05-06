@@ -19,5 +19,10 @@ application to capture and report distributed traces to Splunk APM.
 https://github.com/signalfx/splunk-otel-python
 """
 
-from .tracing import start_tracing
-from .version import __version__
+from .defaults import _set_otel_defaults
+
+_set_otel_defaults()
+
+# pylint: disable=wrong-import-position
+from .tracing import start_tracing  # noqa: E402
+from .version import __version__  # noqa: E402
