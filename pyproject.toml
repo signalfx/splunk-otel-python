@@ -35,7 +35,7 @@ flake8 = "^3.9.1"
 mypy = "^0.812"
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.8.0", python = "^3.6"}
-pytest = "^6.2.3"
+pytest = "^6.2.4"
 coverage = "^5.5"
 pytest-cov = "^2.11.1"
 pylint = "^2.8.2"
