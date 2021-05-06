@@ -10,7 +10,7 @@ application to capture and report distributed traces to Splunk APM.
 
 This Splunk distribution comes with the following defaults:
 
-- [B3 context propagation](https://github.com/openzipkin/b3-propagation).
+- [W3C tracecontext](https://www.w3.org/TR/trace-context/) and [W3C baggage](https://www.w3.org/TR/baggage/) context propagation.
 - [Jaeger thrift
   exporter](https://opentelemetry-python.readthedocs.io/en/stable/exporter/jaeger/jaeger.html)
   configured to send spans to a locally running [SignalFx Smart
@@ -97,6 +97,7 @@ To see the Python instrumentation in action with sample applications, see our
 | SPLUNK_MAX_ATTR_LENGTH       | max_attr_length | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
 | SPLUNK_TRACE_RESPONSE_HEADER_ENABLED | trace_response_header_enabled | True | Enables adding server trace information to HTTP response headers. |
 | OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`service.name=my-python-service,service.version=3.1,deployment.environment=production`</details>
+| OTEL_PROPAGATORS              |            | tracecontext,baggage   | Comma-separated list of propagator names to be used. See[Configuring Propagators](#configuring-propagators) for more details.
 | OTEL_TRACE_ENABLED            |            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
 
 ## Advanced Getting Started
@@ -118,7 +119,6 @@ opentelemetry-instrumentation-falcon>=0.15b0
 opentelemetry-instrumentation-jinja2>=0.15b0
 opentelemetry-instrumentation-requests>=0.15b0
 opentelemetry-instrumentation-sqlite3>=0.15b0
-opentelemetry-exporter-jaeger>=0.15b0
 ```
 
 You can pipe the output of this command to append the new packages to your
@@ -180,10 +180,42 @@ In order to send traces directly to SignalFx ingest API, you need to:
    SignalFx realm e.g, `https://ingest.us0.signalfx.com/v2/trace`.
 2. Set `SPLUNK_ACCESS_TOKEN` to one of your SignalFx APM access tokens.
 
+## Configuring Propagators <a name="configuring-propagators"></a>
 
-### Special Cases
+This package uses W3C trace context and W3C baggage propagators by default. You can override
+this by setting the `OTEL_PROPAGATORS` environment variable to a comma separated list of one
+more propagators. The SDK will use Python's entry points mechanism to load the specified
+propagator implementation(s) and use it.
 
-#### Celery
+For example, to only use W3C trace context without baggage, you can set the environment variable
+`OTEL_PROPAGATORS` environment variable to `tracecontext`.
+
+You can specify any propagator name as long as the propagator implementation can be found via
+entry points by that name.
+
+### Configuring B3 propagator
+
+B3 propagator is not installed by default. In order to use the B3 propagator, you'll need to install
+the `opentelemetry-propagator-b3` package. You can do this by installing the package directly as:
+
+```
+pip install opentelemetry-propagator-b3
+```
+
+or by install `splunk-opentelemetry` with the `b3` option as:
+
+```
+pip install splunk-opentelemetry[b3]
+```
+
+Once the package is installed, you can specify either `b3` for [B3 single header](https://github.com/openzipkin/b3-propagation#single-header)
+or `b3multi` for [B3 multi header](https://github.com/openzipkin/b3-propagation#multiple-headers)
+implementation. For example, to configure your service to use B3 multi header and W3C baggage,
+set the environment `OTEL_PROPAGATORS=b3multi,baggage`.
+
+## Special Cases
+
+### Celery
 
 Tracing Celery workers works out of the box when you use the `splk-py-trace`
 command to start your Python application. However, if you are instrumenting
@@ -203,7 +235,7 @@ def on_worker_process_init(*args, **kwargs):
 # rest of your python application's entrypoint script
 ```
 
-#### Django
+### Django
 
 Automatically instrumenting Django requires `DJANGO_SETTINGS_MODULE`
 environment variable to be set. The value should be the same as set in your
@@ -217,7 +249,7 @@ export DJANGO_SETTINGS_MODULE=mydjangoproject.settings
 splk-py-trace ./manage.py runserver
 ```
 
-#### Gunicorn
+### Gunicorn
 
 Like Celery, we'll also need to setup tracing per Gunicorn worker. This can be
 done by setting up tracing inside Gunicorn's `post_fork()` handler.
@@ -234,7 +266,7 @@ def post_fork(server, worker):
 
 Then add `-c gunicorn.config.py` CLI flag to your gunicorn command.
 
-#### UWSGI 
+### UWSGI 
 
 When using UWSGI, tracing must be setup as a response to the `post_fork` signal. 
 

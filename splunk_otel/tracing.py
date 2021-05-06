@@ -19,10 +19,9 @@ from functools import partial
 from typing import Any, Dict, Optional, Union
 
 from opentelemetry import environment_variables as otel_env_vars
-from opentelemetry import propagate, trace
+from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
-from opentelemetry.propagators.b3 import B3Format
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -58,7 +57,6 @@ def _configure_tracing(options: Options) -> None:
     provider = TracerProvider(
         resource=Resource.create(attributes=options.resource_attributes)
     )
-    propagate.set_global_textmap(B3Format())
     if options.response_propagation:
         set_global_response_propagator(ServerTimingResponsePropagator())  # type: ignore
 

@@ -15,9 +15,11 @@
 import unittest
 
 from opentelemetry import trace
+from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.instrumentation.propagators import get_global_response_propagator
 from opentelemetry.propagate import get_global_textmap
-from opentelemetry.propagators.b3 import B3Format
+from opentelemetry.propagators.composite import CompositeHTTPPropagator
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from splunk_otel.options import Options
 from splunk_otel.propagators import ServerTimingResponsePropagator
@@ -27,8 +29,12 @@ from splunk_otel.tracing import _configure_tracing
 class TestPropagator(unittest.TestCase):
     def test_sets_b3_is_global_propagator(self):
         _configure_tracing(Options())
-        propagtor = get_global_textmap()
-        self.assertIsInstance(propagtor, B3Format)
+        propagator = get_global_textmap()
+        self.assertIsInstance(propagator, CompositeHTTPPropagator)
+        propagators = propagator._propagators  # pylint: disable=protected-access
+        self.assertEqual(len(propagators), 2)
+        self.assertIsInstance(propagators[0], TraceContextTextMapPropagator)
+        self.assertIsInstance(propagators[1], W3CBaggagePropagator)
 
     def test_server_timing_is_global_response_propagator(self):
         _configure_tracing(Options())

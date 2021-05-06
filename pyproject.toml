@@ -26,9 +26,12 @@ splunk_distro = "splunk_otel.distro:SplunkDistro"
 python = "^3.6"
 opentelemetry-api = "^1.1.0"
 opentelemetry-sdk = "^1.1.0"
-opentelemetry-propagator-b3 = "^1.1.0"
 opentelemetry-exporter-jaeger-thrift = "^1.1.0"
 opentelemetry-instrumentation = "0.20b0"
+opentelemetry-propagator-b3 = {version = "^1.1.0", optional = true} 
+
+[tool.poetry.extras]
+b3 = ["opentelemetry-propagator-b3"]
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.9.1"
