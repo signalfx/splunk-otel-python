@@ -1,7 +1,17 @@
+
 # Splunk distribution of OpenTelemetry Python
 
-[![CircleCI](https://circleci.com/gh/signalfx/splunk-otel-python.svg?style=svg)](https://circleci.com/gh/signalfx/splunk-otel-python)
-[![codecov](https://codecov.io/gh/signalfx/splunk-otel-python/branch/main/graph/badge.svg?token=XKXjEQKGaK)](https://codecov.io/gh/signalfx/splunk-otel-python)
+[![OpenTelemetry Python Version](https://img.shields.io/badge/otel-1.1.0-blueviolet?style=for-the-badge)](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.1.0)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/signalfx/splunk-otel-python?style=for-the-badge)](https://github.com/signalfx/splunk-otel-python/releases)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/splunk-opentelemetry?style=for-the-badge)](https://pypi.org/project/splunk-opentelemetry/)
+[![CircleCI](https://img.shields.io/circleci/build/github/signalfx/splunk-otel-python/main?style=for-the-badge)](https://circleci.com/gh/signalfx/splunk-otel-python)
+[![Codecov](https://img.shields.io/codecov/c/github/signalfx/splunk-otel-python?style=for-the-badge&token=XKXjEQKGaK)](https://codecov.io/gh/signalfx/splunk-otel-python)
+
+-------
+
+The documentation below refers to the in development version of this package. Docs for the latest version ([v0.12.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.12.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.12.0/README.md).
+
+-------
 
 The Splunk distribution of [OpenTelemetry
 Python](https://github.com/open-telemetry/opentelemetry-python) provides
