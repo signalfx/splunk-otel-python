@@ -15,12 +15,10 @@
 import logging
 import os
 import sys
-from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Collection, Dict, Optional, Union
 
 from opentelemetry import environment_variables as otel_env_vars
 from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -28,24 +26,31 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.options import Options
-from splunk_otel.propagators import ServerTimingResponsePropagator
+from splunk_otel.types import ExporterFactory
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
 
 def start_tracing(
-    endpoint: Optional[str] = None,
+    exporters: Optional[Collection[ExporterFactory]] = None,
     access_token: Optional[str] = None,
     max_attr_length: Optional[int] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
+    trace_response_header_enabled: Optional[bool] = None,
 ) -> None:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return
 
-    options = Options(endpoint, access_token, max_attr_length, resource_attributes)
+    options = Options(
+        exporters,
+        access_token,
+        max_attr_length,
+        resource_attributes,
+        trace_response_header_enabled,
+    )
     try:
         _configure_tracing(options)
         _load_instrumentors()
@@ -57,24 +62,11 @@ def _configure_tracing(options: Options) -> None:
     provider = TracerProvider(
         resource=Resource.create(attributes=options.resource_attributes)
     )
-    if options.response_propagation:
-        set_global_response_propagator(ServerTimingResponsePropagator())  # type: ignore
+    set_global_response_propagator(options.response_propagator)  # type: ignore
 
     trace.set_tracer_provider(provider)
-    exporter = _new_jaeger_exporter(options)
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-
-
-def _new_jaeger_exporter(options: Options) -> JaegerExporter:
-    exporter_factory = partial(
-        JaegerExporter,
-        collector_endpoint=options.endpoint,
-        max_tag_value_length=options.max_attr_length,
-    )
-
-    if options.access_token:
-        return exporter_factory(username="auth", password=options.access_token)
-    return exporter_factory()
+    for exporter_factory in options.exporter_factories:
+        provider.add_span_processor(BatchSpanProcessor(exporter_factory()))
 
 
 def _load_instrumentors() -> None:
