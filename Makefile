@@ -2,7 +2,7 @@ DEV_VENV?=""
 
 .PHONY: deps
 deps:
-	poetry install
+	poetry install --extras all
 
 .PHONY: clean
 clean:

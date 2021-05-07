@@ -12,10 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-exporter_otlp = "otlp"
-exporter_jaeger = "jaeger"
+_DEFAULT_SERVICE_NAME = "unnamed-python-service"
+_DEFAULT_EXPORTERS = "otlp"
+_DEFAULT_JAEGER_ENDPOINT = "http://localhost:9080/v1/trace"
+_DEFAULT_MAX_ATTR_LENGTH = 1200
 
-trace_exporters = (
-    exporter_otlp,
-    exporter_jaeger,
-)
+_EXPORTER_OTLP = "otlp"
+_EXPORTER_OTLP_GRPC = "otlp_proto_grpc_span"
+_EXPORTER_JAEGER_THRIFT = "jaeger_thrift"
+_EXPORTER_JAEGER_SPLUNK = "jaeger-thrift-splunk"
+_DEFAULT_OTEL_SERVICE_NAME = "unknown_service"
+
+_SERVICE_NAME_ATTR = "service.name"
+_TELEMETRY_VERSION_ATTR = "telemetry.auto.version"
+_NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
+set your service name using the OTEL_SERVICE_NAME environment variable.
+E.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
+
+_KNOWN_EXPORTER_PACKAGES = {
+    _EXPORTER_OTLP: "opentelemetry-exporter-otlp-proto-grpc",
+    _EXPORTER_OTLP_GRPC: "opentelemetry-exporter-otlp-proto-grpc",
+    _EXPORTER_JAEGER_THRIFT: "opentelemetry-exporter-jaeger-thrift",
+    _EXPORTER_JAEGER_SPLUNK: "opentelemetry-exporter-jaeger-thrift",
+}

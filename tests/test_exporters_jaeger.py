@@ -13,15 +13,15 @@
 # limitations under the License.
 
 import http.client
+import os
 import unittest
-from unittest import mock
+from unittest.mock import Mock, patch
 
 from opentelemetry import trace as trace_api
 from opentelemetry.exporter.jaeger import thrift as jaeger_exporter
 from opentelemetry.sdk import trace
 
 from splunk_otel.options import Options
-from splunk_otel.tracing import _new_jaeger_exporter
 
 
 class TestJaegerExporter(unittest.TestCase):
@@ -38,57 +38,56 @@ class TestJaegerExporter(unittest.TestCase):
         self._test_span.start()
         self._test_span.end()
 
-        self.connection_patcher = mock.patch("http.client.HTTPConnection")
+        self.connection_patcher = patch("http.client.HTTPConnection")
         self.connection_mock = self.connection_patcher.start()
         conn = self.connection_mock.return_value
-        response = http.client.HTTPResponse(mock.Mock())
+        response = http.client.HTTPResponse(Mock())
         response.status = 200
         conn.getresponse.return_value = response
 
     def tearDown(self):
         self.connection_patcher.stop()
 
+    @patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
     def test_exporter_uses_collector_not_udp_agent(self):
-        exporter = _new_jaeger_exporter(
-            Options(
-                endpoint=self.endpoint,
-                resource_attributes={"service.name": self.service_name},
-            )
-        )
-        agent_client_mock = mock.Mock(spec=jaeger_exporter.AgentClientUDP)
+        options = Options()
+        exporter = options.span_exporter_factories[0](options)
+        agent_client_mock = Mock(spec=jaeger_exporter.AgentClientUDP)
         exporter._agent_client = agent_client_mock  # pylint:disable=protected-access
-        collector_mock = mock.Mock(spec=jaeger_exporter.Collector)
+        collector_mock = Mock(spec=jaeger_exporter.Collector)
         exporter._collector = collector_mock  # pylint:disable=protected-access
 
         exporter.export((self._test_span,))
         self.assertEqual(agent_client_mock.emit.call_count, 0)
         self.assertEqual(collector_mock.submit.call_count, 1)
 
+    @patch.dict(
+        os.environ,
+        {
+            "OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk",
+        },
+    )
     def test_http_export(self):
-        exporter = _new_jaeger_exporter(
-            Options(
-                endpoint=self.endpoint,
-                resource_attributes={"service.name": self.service_name},
-            )
-        )
+        options = Options()
+        exporter = options.span_exporter_factories[0](options)
         exporter.export((self._test_span,))
 
         conn = self.connection_mock.return_value
         conn.putrequest.assert_called_once_with("POST", "/v1/trace")
-        conn.putheader.assert_any_call("User-Agent", "Python/THttpClient (pytest)")
         conn.putheader.assert_any_call("Content-Type", "application/x-thrift")
 
+    @patch.dict(
+        os.environ,
+        {
+            "OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk",
+            "SPLUNK_ACCESS_TOKEN": "test-access-token",
+        },
+    )
     def test_http_export_with_authentication(
         self,
     ):
-        access_token = "test-access-token"
-        exporter = _new_jaeger_exporter(
-            Options(
-                endpoint=self.endpoint,
-                access_token=access_token,
-                resource_attributes={"service.name": self.service_name},
-            )
-        )
+        options = Options()
+        exporter = options.span_exporter_factories[0](options)
         exporter.export((self._test_span,))
 
         conn = self.connection_mock.return_value
@@ -96,5 +95,4 @@ class TestJaegerExporter(unittest.TestCase):
         conn.putheader.assert_any_call(
             "Authorization", "Basic YXV0aDp0ZXN0LWFjY2Vzcy10b2tlbg=="
         )
-        conn.putheader.assert_any_call("User-Agent", "Python/THttpClient (pytest)")
         conn.putheader.assert_any_call("Content-Type", "application/x-thrift")

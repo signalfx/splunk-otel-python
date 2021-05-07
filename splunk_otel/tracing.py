@@ -15,19 +15,16 @@
 import logging
 import os
 import sys
-from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Collection, Dict, Optional, Union
 
 from opentelemetry import environment_variables as otel_env_vars
 from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
-from splunk_otel.options import Options
-from splunk_otel.propagators import ServerTimingResponsePropagator
+from splunk_otel.options import Options, _SpanExporterFactory
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
@@ -35,10 +32,11 @@ logger.setLevel(logging.INFO)
 
 def start_tracing(
     service_name: Optional[str] = None,
-    endpoint: Optional[str] = None,
+    exporters: Optional[Collection[_SpanExporterFactory]] = None,
     access_token: Optional[str] = None,
     max_attr_length: Optional[int] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
+    trace_response_header_enabled: Optional[bool] = None,
 ) -> None:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
@@ -46,7 +44,12 @@ def start_tracing(
         return
 
     options = Options(
-        service_name, endpoint, access_token, max_attr_length, resource_attributes
+        service_name,
+        exporters,
+        access_token,
+        max_attr_length,
+        resource_attributes,
+        trace_response_header_enabled,
     )
     try:
         _configure_tracing(options)
@@ -57,24 +60,10 @@ def start_tracing(
 
 def _configure_tracing(options: Options) -> None:
     provider = TracerProvider(resource=options.resource)
-    if options.response_propagation:
-        set_global_response_propagator(ServerTimingResponsePropagator())  # type: ignore
-
+    set_global_response_propagator(options.response_propagator)  # type: ignore
     trace.set_tracer_provider(provider)
-    exporter = _new_jaeger_exporter(options)
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-
-
-def _new_jaeger_exporter(options: Options) -> JaegerExporter:
-    exporter_factory = partial(
-        JaegerExporter,
-        collector_endpoint=options.endpoint,
-        max_tag_value_length=options.max_attr_length,
-    )
-
-    if options.access_token:
-        return exporter_factory(username="auth", password=options.access_token)
-    return exporter_factory()
+    for factory in options.span_exporter_factories:
+        provider.add_span_processor(BatchSpanProcessor(factory(options)))
 
 
 def _load_instrumentors() -> None:

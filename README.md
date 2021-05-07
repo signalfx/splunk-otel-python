@@ -21,11 +21,9 @@ application to capture and report distributed traces to Splunk APM.
 This Splunk distribution comes with the following defaults:
 
 - [W3C tracecontext](https://www.w3.org/TR/trace-context/) and [W3C baggage](https://www.w3.org/TR/baggage/) context propagation.
-- [Jaeger thrift
-  exporter](https://opentelemetry-python.readthedocs.io/en/stable/exporter/jaeger/jaeger.html)
-  configured to send spans to a locally running [SignalFx Smart
-  Agent](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-smart-agent.html)
-  (`http://localhost:9080/v1/trace`).
+- [OTLP gRPC exporter](https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html)
+  configured to send spans to a locally running [OpenTelemetry Collector](https://docs.signalfx.com/en/latest/apm/apm-getting-started/apm-opentelemetry-collector.html)
+  (`http://localhost:4317`).
 - Unlimited default limits for [configuration options](#trace-configuration) to
   support full-fidelity traces.
 
@@ -37,7 +35,7 @@ the SignalFx Tracing Library for Python](migration.md).
 
 ## Requirements
 
-This Splunk Distribution of OpenTelemetry requires Python 3.5 or later.
+This Splunk Distribution of OpenTelemetry requires Python 3.6 or later.
 If you're still using Python 2, continue using the SignalFx Tracing Library
 for Python.
 
@@ -59,7 +57,7 @@ python main.py --port=8000
 Then the runtime parameters should be updated to:
 
 ```
-$ pip install splunk-opentelemetry
+$ pip install splunk-opentelemetry[all]
 $ splk-py-trace-bootstrap
 $ OTEL_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
@@ -103,17 +101,86 @@ To see the Python instrumentation in action with sample applications, see our
 | Environment variable          | Config Option                        | Default value                        | Notes                                                                  |
 | ----------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
 | OTEL_SERVICE_NAME             | service_name                         | `unnamed-python-service`     | The service name of this Python application.   |
-| OTEL_EXPORTER_JAEGER_ENDPOINT | endpoint                             | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
+| OTEL_TRACES_EXPORTER | exporter_factories | `otlp`     | The exporter(s) that should be used to export tracing data. |
+| OTEL_EXPORTER_OTLP_ENDPOINT |  | `http://localhost:4317`     | The OTLP gRPC endpoint to connect to. Used when `OTEL_TRACES_EXPORTER` is set to `otlp` |
+| OTEL_EXPORTER_JAEGER_ENDPOINT |  | `http://localhost:9080/v1/trace`     | The Jaeger Thrift endpoint to connect to. Used when `OTEL_TRACES_EXPORTER` is set to `jaeger-thrift-splunk` |
 | SPLUNK_ACCESS_TOKEN          | access_token |      | The optional organization access token for trace submission requests.  |
-| SPLUNK_MAX_ATTR_LENGTH       | max_attr_length | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
+| SPLUNK_MAX_ATTR_LENGTH       | max_attr_length | `1200`            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
 | SPLUNK_TRACE_RESPONSE_HEADER_ENABLED | trace_response_header_enabled | True | Enables adding server trace information to HTTP response headers. |
 | OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`service.name=my-python-service,service.version=3.1,deployment.environment=production`</details>
-| OTEL_PROPAGATORS              |            | tracecontext,baggage   | Comma-separated list of propagator names to be used. See[Configuring Propagators](#configuring-propagators) for more details.
-| OTEL_TRACE_ENABLED            |            | `true`         | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                                                                                                                                                                                                                |
+| OTEL_PROPAGATORS              |            | `tracecontext,baggage`   | Comma-separated list of propagator names to be used. See[Configuring Propagators](#configuring-propagators) for more details.
+| OTEL_TRACE_ENABLED            |            | `true`         | Globally enables tracer creation and auto-instrumentation. |
 
 ## Advanced Getting Started
 
-### Alternative: List requirements instead of installing them
+### Using a different exporter
+
+The `splunk-opentelemetry` Python package does not install any exporters by default. You can install it with the OTLP or Jaeger Thrift exporter by
+using the `otlp` or `jaeger` extra options. For example, installing `splunk-opentelemetry[otlp]` will also pull in the OTLP gRPC exporter. Similarly,
+installing `splunk-opentelemetry[jaeger]` will install the Jaeger Thrift exporter. You can also install both exporters by mentioning them
+both like `splunk-opentelemetry[jaeger,otlp]`
+
+The distributions uses OTLP by default so we recommend installing `splunk-opentelemetry[otlp]` unless you want to use another exporter.
+
+Once you install the exporter package you want to use, you can tell the distribution to use a different exporter by setting the `OTEL_TRACES_EXPORTER`
+environment variables.
+
+For example, to use the Jaeger exporter, set it as follows:
+
+```
+OTEL_TRACES_EXPORTER=jaeger-thrift-splunk
+```
+
+#### Using multiple exporters
+
+The environment variable accepts multiple comma-separated values. If multiple exporters are specified, all of them will be used. This can be used to export
+to multiple destinations or to debug with the console exporter while still exporting to another destination. For example, the following configuration will
+export all spans using both the OTLP exporter and the Console exporter.
+
+```
+OTEL_TRACES_EXPORTER=otlp,console_span
+```
+
+#### Accepted values for OTEL_TRACES_EXPORTER
+
+This package uses Python's entry points mechanism to look up the requested exporters. As a result, you can install any thrid party or custom exporter package and
+as long as it specifies a `opentelemetry_exporter` entry point to the exporter implementation, you can specify it as a value in `OTEL_TRACES_EXPORTER`.
+
+Known values and the Python packages they ship in are listed below
+
+
+| Exporter name | Python package | Additional comments |
+| ------------- | --------------- | --------------------- | 
+| otlp | opentelemetry-exporter-otlp-proto-grpc | Can be installed with `pip install splunk-opentelemetry[otlp]` | 
+| jaeger-thrift-splunk | opentelemetry-exporter-jaeger-thrift  | Can be installed with `pip install splunk-opentelemetry[jaeger]` | 
+| console_span | opentelemetry-sdk | Always installed with `splunk-opentelemetry` | 
+
+### Instrument and configure with code
+
+If you cannot use `splk-py-trace` command, you can also add a couple of lines
+of code to your Python application to achieve the same result.
+
+```python
+from splunk_otel.tracing import start_tracing
+
+start_tracing()
+
+# Also accepts optional config options:
+# start_tracing(
+#   service_name='my-python-service',
+#   exporter_factories=[OTLPSpanExporter]
+#   access_token='',
+#   max_attr_length=1200,
+#   trace_response_header_enabled=True,
+#   resource_attributes={
+#    'service.version': '3.1',
+#    'deployment.environment': 'production',
+#  })
+
+# rest of your python application's entrypoint script
+```
+
+### Bootstrap: List requirements instead of installing them
 
 The `splk-py-trace-bootstrap` command can optionally print out the list of
 packages it would install if you chose. In order to do so, pass
@@ -135,61 +202,50 @@ opentelemetry-instrumentation-sqlite3>=0.15b0
 You can pipe the output of this command to append the new packages to your
 requirements.txt file or to something like `poetry add`.
 
-### Alternative: Instrument and configure by adding code
 
-If you cannot use `splk-py-trace` command, you can also add a couple of lines
-of code to your Python application to achieve the same result.
+## Exporting telemetry data
 
-```python
-from splunk_otel.tracing import start_tracing
+This package can export spans in the OTLP format over gRPRC or Jaeger Thrift format over HTTP.
+This allows you to export data to wide range of destinations such as OpenTelemetry Collector,
+SignalFx Smart Agent or even Splunk APM ingest. 
 
-start_tracing()
+### To OpenTelemetry Collector
 
-# Also accepts config options:
-# start_tracing(
-#   endpoint='http://localhost:9080/v1/trace,
-#   access_token='',
-#   max_attr_length=1200,
-#   trace_response_header_enabled=True,
-#   resource_attributes={
-#    'service.name': 'my-python-service',
-#    'service.version': '3.1',
-#    'deployment.environment': 'production',
-#  })
+This is the default option. You do not need to set any config options if you want to exporter
+to the OpenTelemetry collector, the collector has OTLP gRPC receiver enabled with default settings
+and can be reached by `localhost` as by default everything by be exported to `http://localhost:4317`
+in OTLP over gRPC.
 
-# rest of your python application's entrypoint script
-```
+If your collector cannot be reached at `http://localhost:4317`, you'll need to set the `OTEL_EXPORTER_OTLP_ENDPOINT`
+to `http://<otel-collector-address>:<port>`. Replace `<otel-collector-address>` and `<port>` with the address and
+port of your OpenTelemetry Collector deployment.
 
-## Exporting to Smart Agent, Otel collector or SignalFx ingest
+Note: You'll make sure that the OTLP gRPC exporter is installed. This can be done by running `pip install splunk-opentelemetry[all]`
+or `splunk-opentelemetry[otlp]`.
 
-This package exports spans in Jaeger Thrift format over HTTP and supports
-exporting to the SignalFx Smart Agent, OpenTelemetry collector and directly to
-SignalFx ingest API. You can use `OTEL_EXPORTER_JAEGER_ENDPOINT` environment variable
-to specify an export endpoint. The value must be a full URL including scheme and
-path.
+### To SignalFx Smart Agent
 
-### Smart Agent
+1. Set `OTEL_TRACES_EXPORTER` environment variable to `jaeger-thrift-splunk`.
+   If you are running the SignalFx Smart Agent locally (reachable via `localhost`) and it is listening 
+on the default port (`9080`), you do not need to perform any additional steps. Otherwise, follow the next step. 
+2. Set the `OTEL_EXPORTER_JAEGER_ENDPOINT` environment variable to `http://<address>:<port>/v1/trace`. Replace `<address>` and `<port>`
+with the address and port of your Smart Agent deployment.
 
-This is the default option. You do not need to set any config options if you
-want to export to the Smart Agent and you are running the agent on the default
-port (`9080`). The exporter will default to `http://localhost:9080/v1/trace`
-when the environment variable is not specified.
+Note: You'll make sure that the Jaeger Thrift exporter is installed. This can be done by running `pip install splunk-opentelemetry[all]`
+or `splunk-opentelemetry[jaeger]`.
 
-### OpenTelemetry Collector
-
-In order to do this, you'll need to enable Jaeger Thrift HTTP receiver on
-OpenTelemetry Collector and set `OTEL_EXPORTER_JAEGER_ENDPOINT` to
-`http://localhost:14268/api/traces` assuming the collector is reachable via
-localhost.
-
-### SignalFx Ingest API
+### To Splunk Observability Cloud
 
 In order to send traces directly to SignalFx ingest API, you need to:
 
-1. Set `OTEL_EXPORTER_JAEGER_ENDPOINT` to
+1. Set `OTEL_TRACES_EXPORTER` to `jaeger-thrift-splunk`.
+2. Set `OTEL_EXPORTER_JAEGER_ENDPOINT` to
    `https://ingest.<realm>.signalfx.com/v2/trace` where `realm` is your
    SignalFx realm e.g, `https://ingest.us0.signalfx.com/v2/trace`.
-2. Set `SPLUNK_ACCESS_TOKEN` to one of your SignalFx APM access tokens.
+3. Set `SPLUNK_ACCESS_TOKEN` to one of your Splunk APM access tokens.
+
+Note: You'll make sure that the Jaeger Thrift exporter is installed. This can be done by running `pip install splunk-opentelemetry[all]`
+or `splunk-opentelemetry[jaeger]`.
 
 ## Configuring Propagators <a name="configuring-propagators"></a>
 
@@ -206,23 +262,35 @@ entry points by that name.
 
 ### Configuring B3 propagator
 
-B3 propagator is not installed by default. In order to use the B3 propagator, you'll need to install
-the `opentelemetry-propagator-b3` package. You can do this by installing the package directly as:
+
+If you'd like to use `b3` instead of or in addition to the default propagators, you can set `OTEL_PROPAGATORS` to `b3`
+for [B3 single header](https://github.com/openzipkin/b3-propagation#single-header) or `b3multi` for
+[B3 multi header](https://github.com/openzipkin/b3-propagation#multiple-headers) implementation. For example, to configure
+your service to use B3 multi header and W3C baggage, set the environment variable as
 
 ```
-pip install opentelemetry-propagator-b3
+OTEL_PROPAGATORS=b3multi,baggage
 ```
 
-or by install `splunk-opentelemetry` with the `b3` option as:
+You can specify any combination of supported propagators. Choices are `tracecontext`, `baggae`, `b3` and `b3multi`. Note that
+`b3` and `b3multi` are only available when the `opentelemetry-propagator-b3` package is installed. This is installed automatically
+by installing `splunk-opentelemetry[all]` or `splunk-opentelemetry[b3]`.
+
+### Installing only a subset of dependencies
+
+Installing `splunk-opentelemetry[all]` automatically pulls in all of the optional dependencies. These include the OTLP gRPC exporter, the Jaeger Thrift exporter
+and the B3 propagator. If you'd like to install only the packages you need, you can use any combination of `oltp`, `jaeger` and `b3`. For example, in order
+to install only `otlp` exporter, you can run
 
 ```
-pip install splunk-opentelemetry[b3]
+pip install splunk-opentelemetry[otlp]
 ```
 
-Once the package is installed, you can specify either `b3` for [B3 single header](https://github.com/openzipkin/b3-propagation#single-header)
-or `b3multi` for [B3 multi header](https://github.com/openzipkin/b3-propagation#multiple-headers)
-implementation. For example, to configure your service to use B3 multi header and W3C baggage,
-set the environment `OTEL_PROPAGATORS=b3multi,baggage`.
+To install the Jaeger Thrift exporter and the B3 propagator, you can run
+
+```
+pip install splunk-opentelemetry[jaeger,b3]
+```
 
 ## Special Cases
 
@@ -231,7 +299,7 @@ set the environment `OTEL_PROPAGATORS=b3multi,baggage`.
 Tracing Celery workers works out of the box when you use the `splk-py-trace`
 command to start your Python application. However, if you are instrumenting
 your celery workers with code, you'll need to make sure you setup tracing for
-each worker by using Celery's `celery.signalfx.worker_process_init` signal.
+each worker by using Celery's `celery.signals.worker_process_init` signal.
 
 For example:
 
