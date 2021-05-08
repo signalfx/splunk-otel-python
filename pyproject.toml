@@ -26,12 +26,15 @@ splunk_distro = "splunk_otel.distro:SplunkDistro"
 python = "^3.6"
 opentelemetry-api = "^1.1.0"
 opentelemetry-sdk = "^1.1.0"
-opentelemetry-exporter-jaeger-thrift = "^1.1.0"
 opentelemetry-instrumentation = "0.20b0"
+opentelemetry-exporter-jaeger-thrift = {version = "^1.1.0", optional = true}
+opentelemetry-exporter-otlp-proto-grpc = {version = "^1.1.0", optional = true}
 opentelemetry-propagator-b3 = {version = "^1.1.0", optional = true} 
 
 [tool.poetry.extras]
 b3 = ["opentelemetry-propagator-b3"]
+otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
+jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.9.1"
@@ -43,6 +46,8 @@ coverage = "^5.5"
 pytest-cov = "^2.11.1"
 pylint = "^2.8.2"
 pylintfileheader = "^0.3.0"
+opentelemetry-exporter-jaeger-thrift = "^1.1.0"
+opentelemetry-exporter-otlp-proto-grpc = "^1.1.0"
 
 [tool.black]
 line-length = 90
