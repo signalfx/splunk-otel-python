@@ -34,7 +34,7 @@ opentelemetry-propagator-b3 = {version = "^1.1.0", optional = true}
 b3 = ["opentelemetry-propagator-b3"]
 
 [tool.poetry.dev-dependencies]
-flake8 = "^3.9.1"
+flake8 = "^3.9.2"
 mypy = "^0.812"
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.8.0", python = "^3.6"}
