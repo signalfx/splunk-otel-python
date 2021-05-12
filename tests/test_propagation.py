@@ -18,7 +18,7 @@ from opentelemetry import trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.instrumentation.propagators import get_global_response_propagator
 from opentelemetry.propagate import get_global_textmap
-from opentelemetry.propagators.composite import CompositeHTTPPropagator
+from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from splunk_otel.options import Options
@@ -30,7 +30,7 @@ class TestPropagator(unittest.TestCase):
     def test_sets_b3_is_global_propagator(self):
         _configure_tracing(Options())
         propagator = get_global_textmap()
-        self.assertIsInstance(propagator, CompositeHTTPPropagator)
+        self.assertIsInstance(propagator, CompositePropagator)
         propagators = propagator._propagators  # pylint: disable=protected-access
         self.assertEqual(len(propagators), 2)
         self.assertIsInstance(propagators[0], TraceContextTextMapPropagator)

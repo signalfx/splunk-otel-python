@@ -6,15 +6,11 @@
 
 - Added `resource_attributes` config option to the `splunk_otel.start_tracing()` function.
   [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
+- Added support for `OTEL_SERVICE_NAME`.
+  [#64](https://github.com/signalfx/splunk-otel-python/pull/64)
 
 ### Removed 
 
-- Removed `service_name` config option from the `splunk_otel.start_tracing()` function.
-  Please pass `resource_attributes={'service.name': 'my-service-name'}` to the function instead.
-  [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
-- Removed support for `SPLUNK_SERVICE_NAME` environment variable.
-  Please use `OTEL_RESOURCE_ATTRIBTES=service.name=<my-service-name>` instead.
-  [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
 - Removed `opentelemetry-propagator-b3` as a depedency. It can be installed direclty or by using
   the new `b3` extras options e.g, `pip install splunk-opentelemetry[b3]`.
   [#58](https://github.com/signalfx/splunk-otel-python/pull/58)
@@ -23,6 +19,12 @@
 
 - Changed default trace propagators to W3C trace context and W3C baggage.
   [#58](https://github.com/signalfx/splunk-otel-python/pull/58)
+
+### Deprecated 
+
+- Deprecated support for `SPLUNK_SERVICE_NAME` environment variable.
+  Please use `OTEL_SERVICE_NAME=<my-service-name>` instead.
+  [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
 
 ## 0.12.0 (04-21-2021)
 
