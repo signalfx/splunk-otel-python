@@ -11,6 +11,8 @@
 
 ### Removed 
 
+- Removed support for `SPLK_` prefixed env var. 
+  [#65](https://github.com/signalfx/splunk-otel-python/pull/65)
 - Removed `opentelemetry-propagator-b3` as a depedency. It can be installed direclty or by using
   the new `b3` extras options e.g, `pip install splunk-opentelemetry[b3]`.
   [#58](https://github.com/signalfx/splunk-otel-python/pull/58)
