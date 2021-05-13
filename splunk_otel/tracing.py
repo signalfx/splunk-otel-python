@@ -22,7 +22,6 @@ from opentelemetry import environment_variables as otel_env_vars
 from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
-from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
@@ -35,6 +34,7 @@ logger.setLevel(logging.INFO)
 
 
 def start_tracing(
+    service_name: Optional[str] = None,
     endpoint: Optional[str] = None,
     access_token: Optional[str] = None,
     max_attr_length: Optional[int] = None,
@@ -45,7 +45,9 @@ def start_tracing(
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return
 
-    options = Options(endpoint, access_token, max_attr_length, resource_attributes)
+    options = Options(
+        service_name, endpoint, access_token, max_attr_length, resource_attributes
+    )
     try:
         _configure_tracing(options)
         _load_instrumentors()
@@ -54,9 +56,7 @@ def start_tracing(
 
 
 def _configure_tracing(options: Options) -> None:
-    provider = TracerProvider(
-        resource=Resource.create(attributes=options.resource_attributes)
-    )
+    provider = TracerProvider(resource=options.resource)
     if options.response_propagation:
         set_global_response_propagator(ServerTimingResponsePropagator())  # type: ignore
 

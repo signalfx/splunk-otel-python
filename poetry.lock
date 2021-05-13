@@ -40,17 +40,17 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "attrs"
-version = "20.3.0"
+version = "21.2.0"
 description = "Classes Without Boilerplate"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
-dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface", "furo", "sphinx", "pre-commit"]
-docs = ["furo", "sphinx", "zope.interface"]
-tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface"]
-tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
+dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "furo", "sphinx", "sphinx-notfound-page", "pre-commit"]
+docs = ["furo", "sphinx", "zope.interface", "sphinx-notfound-page"]
+tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface"]
+tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins"]
 
 [[package]]
 name = "black"
@@ -77,11 +77,14 @@ d = ["aiohttp (>=3.3.2)", "aiohttp-cors"]
 
 [[package]]
 name = "click"
-version = "7.1.2"
+version = "8.0.0"
 description = "Composable command line interface toolkit"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.6"
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "colorama"
@@ -120,6 +123,20 @@ description = "A backport of the dataclasses module for Python 3.6"
 category = "dev"
 optional = false
 python-versions = ">=3.6, <3.7"
+
+[[package]]
+name = "deprecated"
+version = "1.2.12"
+description = "Python @deprecated decorator to deprecate old python classes, functions or methods."
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[package.dependencies]
+wrapt = ">=1.10,<2"
+
+[package.extras]
+dev = ["tox", "bump2version (<1)", "sphinx (<2)", "importlib-metadata (<3)", "importlib-resources (<4)", "configparser (<5)", "sphinxcontrib-websupport (<2)", "zipp (<2)", "PyTest (<5)", "PyTest-Cov (<2.6)", "pytest", "pytest-cov"]
 
 [[package]]
 name = "flake8"
@@ -225,7 +242,7 @@ python-versions = "*"
 
 [[package]]
 name = "opentelemetry-api"
-version = "1.1.0"
+version = "1.2.0"
 description = "OpenTelemetry Python API"
 category = "main"
 optional = false
@@ -233,58 +250,60 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 aiocontextvars = {version = "*", markers = "python_version < \"3.7\""}
+Deprecated = ">=1.2.6"
 
 [[package]]
 name = "opentelemetry-exporter-jaeger-thrift"
-version = "1.1.0"
+version = "1.2.0"
 description = "Jaeger Thrift Exporter for OpenTelemetry"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-opentelemetry-api = "1.1.0"
-opentelemetry-sdk = "1.1.0"
+opentelemetry-api = "1.2.0"
+opentelemetry-sdk = "1.2.0"
 thrift = ">=0.10.0"
 
 [[package]]
 name = "opentelemetry-instrumentation"
-version = "0.20b0"
+version = "0.21b0"
 description = "Instrumentation Tools & Auto Instrumentation for OpenTelemetry Python"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-opentelemetry-api = "1.1.0"
+opentelemetry-api = "1.2.0"
 wrapt = ">=1.0.0,<2.0.0"
 
 [[package]]
 name = "opentelemetry-propagator-b3"
-version = "1.1.0"
+version = "1.2.0"
 description = "OpenTelemetry B3 Propagator"
 category = "main"
 optional = true
 python-versions = ">=3.6"
 
 [package.dependencies]
-opentelemetry-api = "1.1.0"
+deprecated = ">=1.2.6"
+opentelemetry-api = "1.2.0"
 
 [[package]]
 name = "opentelemetry-sdk"
-version = "1.1.0"
+version = "1.2.0"
 description = "OpenTelemetry Python SDK"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-opentelemetry-api = "1.1.0"
-opentelemetry-semantic-conventions = "0.20b0"
+opentelemetry-api = "1.2.0"
+opentelemetry-semantic-conventions = "0.21b0"
 
 [[package]]
 name = "opentelemetry-semantic-conventions"
-version = "0.20b0"
+version = "0.21b0"
 description = "OpenTelemetry Semantic Conventions"
 category = "main"
 optional = false
@@ -425,7 +444,7 @@ python-versions = "*"
 
 [[package]]
 name = "six"
-version = "1.15.0"
+version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
 category = "main"
 optional = false
@@ -465,7 +484,7 @@ python-versions = "*"
 
 [[package]]
 name = "typing-extensions"
-version = "3.7.4.3"
+version = "3.10.0.0"
 description = "Backported and Experimental Type Hints for Python 3.5+"
 category = "dev"
 optional = false
@@ -497,7 +516,7 @@ b3 = ["opentelemetry-propagator-b3"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "360b1cba41e1e1f8b7d2df53c46bf76c7e59378950cfb561ac3f0a7098294bc4"
+content-hash = "ea7622ddd21fe79a7d7e73755b1cb9dae542e39fcaa0155e21f22c92feb68a7a"
 
 [metadata.files]
 aiocontextvars = [
@@ -517,15 +536,15 @@ atomicwrites = [
     {file = "atomicwrites-1.4.0.tar.gz", hash = "sha256:ae70396ad1a434f9c7046fd2dd196fc04b12f9e91ffb859164193be8b6168a7a"},
 ]
 attrs = [
-    {file = "attrs-20.3.0-py2.py3-none-any.whl", hash = "sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6"},
-    {file = "attrs-20.3.0.tar.gz", hash = "sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700"},
+    {file = "attrs-21.2.0-py2.py3-none-any.whl", hash = "sha256:149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1"},
+    {file = "attrs-21.2.0.tar.gz", hash = "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"},
 ]
 black = [
     {file = "black-20.8b1.tar.gz", hash = "sha256:1c02557aa099101b9d21496f8a914e9ed2222ef70336404eeeac8edba836fbea"},
 ]
 click = [
-    {file = "click-7.1.2-py2.py3-none-any.whl", hash = "sha256:dacca89f4bfadd5de3d7489b7c8a566eee0d3676333fbb50030263894c38c0dc"},
-    {file = "click-7.1.2.tar.gz", hash = "sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a"},
+    {file = "click-8.0.0-py3-none-any.whl", hash = "sha256:e90e62ced43dc8105fb9a26d62f0d9340b5c8db053a814e25d95c19873ae87db"},
+    {file = "click-8.0.0.tar.gz", hash = "sha256:7d8c289ee437bcb0316820ccee14aefcb056e58d31830ecab8e47eda6540e136"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
@@ -591,6 +610,10 @@ coverage = [
 dataclasses = [
     {file = "dataclasses-0.8-py3-none-any.whl", hash = "sha256:0201d89fa866f68c8ebd9d08ee6ff50c0b255f8ec63a71c16fda7af82bb887bf"},
     {file = "dataclasses-0.8.tar.gz", hash = "sha256:8479067f342acf957dc82ec415d355ab5edb7e7646b90dc6e2fd1d96ad084c97"},
+]
+deprecated = [
+    {file = "Deprecated-1.2.12-py2.py3-none-any.whl", hash = "sha256:08452d69b6b5bc66e8330adde0a4f8642e969b9e1702904d137eeb29c8ffc771"},
+    {file = "Deprecated-1.2.12.tar.gz", hash = "sha256:6d2de2de7931a968874481ef30208fd4e08da39177d61d3d4ebdf4366e7dbca1"},
 ]
 flake8 = [
     {file = "flake8-3.9.2-py2.py3-none-any.whl", hash = "sha256:bf8fd333346d844f616e8d47905ef3a3384edae6b4e9beb0c5101e25e3110907"},
@@ -682,28 +705,28 @@ mypy-extensions = [
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
 ]
 opentelemetry-api = [
-    {file = "opentelemetry-api-1.1.0.tar.gz", hash = "sha256:704a3b2a7511d2c9065013d362a8371bc452ae6c0521941de680af2a5ca94884"},
-    {file = "opentelemetry_api-1.1.0-py3-none-any.whl", hash = "sha256:38555cd773df903a2f7440778d6f8b48a86fd388604b171969bdbde4b746a558"},
+    {file = "opentelemetry-api-1.2.0.tar.gz", hash = "sha256:e29cacbf1bb0bf6651b92b472fa709be852279821bc6ae357a180adaad51962a"},
+    {file = "opentelemetry_api-1.2.0-py3-none-any.whl", hash = "sha256:17831862757402a945621837ea818d40321ed8e94a274b8bd78c44e43ba4aa60"},
 ]
 opentelemetry-exporter-jaeger-thrift = [
-    {file = "opentelemetry-exporter-jaeger-thrift-1.1.0.tar.gz", hash = "sha256:f349c99391da51eeeadfefab37bd6183a91f02100d2a56cdc864999b5a3b2d29"},
-    {file = "opentelemetry_exporter_jaeger_thrift-1.1.0-py3-none-any.whl", hash = "sha256:894c17272fd9e92472ea7449409b81547d6a9774948d34d7ad6fb7847ee95c89"},
+    {file = "opentelemetry-exporter-jaeger-thrift-1.2.0.tar.gz", hash = "sha256:b2bf0e5cc0d0e2aa842cea1b02da9d742e892ddb222fb8a1a7d00c6960ce6b19"},
+    {file = "opentelemetry_exporter_jaeger_thrift-1.2.0-py3-none-any.whl", hash = "sha256:09db4dbe763db34d8190e3045f850c59cb6ea894cc25df69762073102a4492f5"},
 ]
 opentelemetry-instrumentation = [
-    {file = "opentelemetry-instrumentation-0.20b0.tar.gz", hash = "sha256:55d1eaec47828b658dc5b3e965f662ac9e434bab99c9d870872dd65b81268ec7"},
-    {file = "opentelemetry_instrumentation-0.20b0-py3-none-any.whl", hash = "sha256:5e7e0657c7dd6edffcf12ca33064e97acf62f72492e729e840f9e5701847a9ef"},
+    {file = "opentelemetry-instrumentation-0.21b0.tar.gz", hash = "sha256:ff11299eca6b197e4c399ca4f9850992c8eb6601869605ab7b3baa07d7f9b5d9"},
+    {file = "opentelemetry_instrumentation-0.21b0-py3-none-any.whl", hash = "sha256:8940a82f061cfa716c6f209ff3f13755939d954e1c9ed6b314fae2d31564df48"},
 ]
 opentelemetry-propagator-b3 = [
-    {file = "opentelemetry-propagator-b3-1.1.0.tar.gz", hash = "sha256:a9222cd14b51139783c74c230fd9fffd1acb7e3fd57ab870d48a3ec28d81fd34"},
-    {file = "opentelemetry_propagator_b3-1.1.0-py3-none-any.whl", hash = "sha256:b932508d7085048b4dfc642d7b045a31a4a25ce5b38bc843836c4be9f0750949"},
+    {file = "opentelemetry-propagator-b3-1.2.0.tar.gz", hash = "sha256:79714a36e0727abf9dfccef8bcc432b50ef14ff58d3397b47bc1593455b7aa4f"},
+    {file = "opentelemetry_propagator_b3-1.2.0-py3-none-any.whl", hash = "sha256:2e87dd8feb466aa2f66b07b505e41ff95bdbdaf7e05e3bd7c61701a3b130f513"},
 ]
 opentelemetry-sdk = [
-    {file = "opentelemetry-sdk-1.1.0.tar.gz", hash = "sha256:ba29274aab656572e97e0339afaad6f2bded4102324b1475ab7412079498df6e"},
-    {file = "opentelemetry_sdk-1.1.0-py3-none-any.whl", hash = "sha256:da7dfa6188e8a39f34b99495260e6a1d398c86a9de064c7f0805db6f16733d94"},
+    {file = "opentelemetry-sdk-1.2.0.tar.gz", hash = "sha256:cbe48e97ca65ad49cfbe0943df135167b701c8d8bdd1fd2643fe1e5e427093d6"},
+    {file = "opentelemetry_sdk-1.2.0-py3-none-any.whl", hash = "sha256:369009fd709eba4cc1ac31244aecc2c0ef3206a2108d6ffda1aa7d26134794d8"},
 ]
 opentelemetry-semantic-conventions = [
-    {file = "opentelemetry-semantic-conventions-0.20b0.tar.gz", hash = "sha256:ecae7367203e5204c70518e6d24b438480d6a6f1e5c8ee9dc2145f176ff4452e"},
-    {file = "opentelemetry_semantic_conventions-0.20b0-py3-none-any.whl", hash = "sha256:fac014ac2098b1a05fe58af77cbe74c825ff869d6d53d316c393cc77f507ec15"},
+    {file = "opentelemetry-semantic-conventions-0.21b0.tar.gz", hash = "sha256:78bf456fc127093720f8514fee319aac27649a5b8f5828393d769681ce1960e3"},
+    {file = "opentelemetry_semantic_conventions-0.21b0-py3-none-any.whl", hash = "sha256:174fc15eece79753484ef745aa8d980e9c23cab7c6aa9581b73ff74b82fccb4d"},
 ]
 packaging = [
     {file = "packaging-20.9-py2.py3-none-any.whl", hash = "sha256:67714da7f7bc052e064859c05c595155bd1ee9f69f76557e21f051443c20947a"},
@@ -793,8 +816,8 @@ regex = [
     {file = "regex-2021.4.4.tar.gz", hash = "sha256:52ba3d3f9b942c49d7e4bc105bb28551c44065f139a65062ab7912bef10c9afb"},
 ]
 six = [
-    {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
-    {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
+    {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
+    {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
 thrift = [
     {file = "thrift-0.13.0.tar.gz", hash = "sha256:9af1c86bf73433afc6010ed376a6c6aca2b54099cc0d61895f640870a9ae7d89"},
@@ -836,9 +859,9 @@ typed-ast = [
     {file = "typed_ast-1.4.3.tar.gz", hash = "sha256:fb1bbeac803adea29cedd70781399c99138358c26d05fcbd23c13016b7f5ec65"},
 ]
 typing-extensions = [
-    {file = "typing_extensions-3.7.4.3-py2-none-any.whl", hash = "sha256:dafc7639cde7f1b6e1acc0f457842a83e722ccca8eef5270af2d74792619a89f"},
-    {file = "typing_extensions-3.7.4.3-py3-none-any.whl", hash = "sha256:7cb407020f00f7bfc3cb3e7881628838e69d8f3fcab2f64742a5e76b2f841918"},
-    {file = "typing_extensions-3.7.4.3.tar.gz", hash = "sha256:99d4073b617d30288f569d3f13d2bd7548c3a7e4c8de87db09a9d29bb3a4a60c"},
+    {file = "typing_extensions-3.10.0.0-py2-none-any.whl", hash = "sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497"},
+    {file = "typing_extensions-3.10.0.0-py3-none-any.whl", hash = "sha256:779383f6086d90c99ae41cf0ff39aac8a7937a9283ce0a414e5dd782f4c94a84"},
+    {file = "typing_extensions-3.10.0.0.tar.gz", hash = "sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342"},
 ]
 wrapt = [
     {file = "wrapt-1.12.1.tar.gz", hash = "sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7"},

@@ -1,7 +1,7 @@
 
 # Splunk distribution of OpenTelemetry Python
 
-[![OpenTelemetry Python Version](https://img.shields.io/badge/otel-1.1.0-blueviolet?style=for-the-badge)](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.1.0)
+[![OpenTelemetry Python Version](https://img.shields.io/badge/otel-1.2.0-blueviolet?style=for-the-badge)](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.2.0)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/signalfx/splunk-otel-python?style=for-the-badge)](https://github.com/signalfx/splunk-otel-python/releases)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/splunk-opentelemetry?style=for-the-badge)](https://pypi.org/project/splunk-opentelemetry/)
 [![CircleCI](https://img.shields.io/circleci/build/github/signalfx/splunk-otel-python/main?style=for-the-badge)](https://circleci.com/gh/signalfx/splunk-otel-python)
@@ -61,7 +61,7 @@ Then the runtime parameters should be updated to:
 ```
 $ pip install splunk-opentelemetry
 $ splk-py-trace-bootstrap
-$ OTEL_RESOURCE_ATTRIBUTES=service.name=my-python-app \
+$ OTEL_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
 ```
 
@@ -102,6 +102,7 @@ To see the Python instrumentation in action with sample applications, see our
 
 | Environment variable          | Config Option                        | Default value                        | Notes                                                                  |
 | ----------------------------- | ------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
+| OTEL_SERVICE_NAME             | service_name                         | `unnamed-python-service`     | The service name of this Python application.   |
 | OTEL_EXPORTER_JAEGER_ENDPOINT | endpoint                             | `http://localhost:9080/v1/trace`     | The jaeger endpoint to connect to. Currently only HTTP is supported.   |
 | SPLUNK_ACCESS_TOKEN          | access_token |      | The optional organization access token for trace submission requests.  |
 | SPLUNK_MAX_ATTR_LENGTH       | max_attr_length | 1200            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
