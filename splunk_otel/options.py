@@ -19,6 +19,13 @@ from typing import Dict, Optional, Union
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 
+from splunk_otel.environment_variables import (
+    SPLUNK_ACCESS_TOKEN,
+    SPLUNK_MAX_ATTR_LENGTH,
+    SPLUNK_SERVICE_NAME,
+    SPLUNK_TRACE_EXPORTER_URL,
+    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
+)
 from splunk_otel.version import __version__
 
 logger = logging.getLogger("options")
@@ -57,7 +64,7 @@ class Options:
         if not endpoint:
             endpoint = environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT")
             if not endpoint:
-                endpoint = splunk_env_var("TRACE_EXPORTER_URL")
+                endpoint = environ.get(SPLUNK_TRACE_EXPORTER_URL)
                 if endpoint:
                     logger.warning(
                         "%s is deprecated and will be removed soon. Please use %s instead",
@@ -68,11 +75,11 @@ class Options:
         self.endpoint = endpoint
 
         if not access_token:
-            access_token = splunk_env_var("ACCESS_TOKEN")
+            access_token = environ.get(SPLUNK_ACCESS_TOKEN)
         self.access_token = access_token or None
 
         if not max_attr_length:
-            value = splunk_env_var("MAX_ATTR_LENGTH")
+            value = environ.get(SPLUNK_MAX_ATTR_LENGTH)
             if value:
                 try:
                     max_attr_length = int(value)
@@ -94,7 +101,7 @@ class Options:
                 Resource({_SERVICE_NAME_ATTR: DEFAULT_SERVICE_NAME})
             )
 
-        response_header_env = splunk_env_var("TRACE_RESPONSE_HEADER_ENABLED", "")
+        response_header_env = environ.get(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "")
         if response_header_env and response_header_env.strip().lower() in (
             "false",
             "no",
@@ -107,22 +114,9 @@ class Options:
     @staticmethod
     def _set_default_env() -> None:
         otel_service_name = environ.get(OTEL_SERVICE_NAME, "")
-        splunk_service_name = splunk_env_var("SERVICE_NAME")
+        splunk_service_name = environ.get(SPLUNK_SERVICE_NAME)
         if not otel_service_name and splunk_service_name:
             logger.warning(
                 "SPLUNK_SERVICE_NAME is deprecated and will be removed soon. Please use OTEL_SERVICE_NAME instead"
             )
             environ[OTEL_SERVICE_NAME] = splunk_service_name
-
-
-def splunk_env_var(name: str, default: Optional[str] = None) -> Optional[str]:
-    old_key = "SPLK_{0}".format(name)
-    new_key = "SPLUNK_{0}".format(name)
-    if old_key in environ:
-        logger.warning(
-            "%s is deprecated and will be removed soon. Please use %s instead",
-            old_key,
-            new_key,
-        )
-        return environ[old_key]
-    return environ.get(new_key, default)

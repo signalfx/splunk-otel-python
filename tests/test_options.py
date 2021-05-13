@@ -12,31 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from unittest import TestCase, mock
 
 from opentelemetry.sdk.resources import Resource
 
-from splunk_otel.options import Options, splunk_env_var
+from splunk_otel.options import Options
 
 
 class TestOptions(TestCase):
-    @mock.patch.dict(
-        os.environ, {"SPLK_OLD_VAR": "OLD_VALUE", "SPLUNK_NEW_VAR": "NEW_VALUE"}
-    )
-    def test_from_env(self):
-        self.assertIsNone(splunk_env_var("TEST_VAR1"))
-        self.assertEqual(splunk_env_var("TEST_VAR1", "default value"), "default value")
-
-        with self.assertLogs(level=logging.WARNING) as warning:
-            self.assertEqual(splunk_env_var("OLD_VAR"), "OLD_VALUE")
-            self.assertIn(
-                "SPLK_OLD_VAR is deprecated and will be removed soon. Please use SPLUNK_OLD_VAR instead",
-                warning.output[0],
-            )
-        self.assertEqual(splunk_env_var("NEW_VAR"), "NEW_VALUE")
-
     def test_default_service_name(self):
         options = Options()
         self.assertIsInstance(options.resource, Resource)
