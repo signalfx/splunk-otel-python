@@ -26,6 +26,8 @@
 
 - Changed default trace propagators to W3C trace context and W3C baggage.
   [#58](https://github.com/signalfx/splunk-otel-python/pull/58)
+- `telemetry.auto.version` will now correctly refer to `opentelemetry-instrumentation` version being used.
+  [#67](https://github.com/signalfx/splunk-otel-python/pull/67)
 
 ### Deprecated 
 
