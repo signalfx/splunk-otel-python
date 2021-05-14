@@ -74,17 +74,18 @@ Follow these steps to remove the tracing library:
 
 Follow these steps to deploy the Splunk Distribution for OpenTelemetry Python:
 
-1. Install `splunk-opentelemetry`:
+1. Install `splunk-opentelemetry[all]`:
    ```
    $ pip install splunk-opentelemetry
    ```
    You can also install the package with poetry:
    ```
-   $ poetry add splunk-opentelemetry
+   $ poetry add splunk-opentelemetry[all]
    ```
 2. If you're using a `requirements.txt` or `pyproject.toml` file, add
-   `splunk-opentelemetry` to it.
-3. Install each dependency for `splunk-opentelemetry` with the bootstrap
+   `splunk-opentelemetry[all]` to it.
+
+3. Install instrumentations packages with the bootstrap
    command:
    ```
    splk-py-trace-bootstrap
@@ -107,14 +108,21 @@ for OpenTelemetry:
 
 Rename required environment variables:
 
-    | Old environment variable           | New environment variable             |
-    | ---------------------------------- | ------------------------------------ |
-    | SIGNALFX_ACCESS_TOKEN              | SPLUNK_ACCESS_TOKEN                    |
-    | SIGNALFX_SERVICE_NAME              | SPLUNK_SERVICE_NAME                    |
-    | SIGNALFX_ENDPOINT_URL              | SPLUNK_TRACE_EXPORTER_URL              |
-    | SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLUNK_MAX_ATTR_LENGTH                 |
+| Old environment variable           | New environment variable             |
+| ---------------------------------- | ------------------------------------ |
+| SIGNALFX_ACCESS_TOKEN              | SPLUNK_ACCESS_TOKEN                  |
+| SIGNALFX_SERVICE_NAME              | OTEL_SERVICE_NAME                    |
+| SIGNALFX_ENDPOINT_URL              | OTEL_EXPORTER_JAEGER_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT |
+| SIGNALFX_RECORDED_VALUE_MAX_LENGTH | SPLUNK_MAX_ATTR_LENGTH               |
 
-### Step 4. Update your Django configuration
+### Step 3. Start you Python service
+
+Run your python service with the `splk-py-trace` command. If you run your service as `python main.py`, you
+can automatically instrument it with Splunk distribution of OpenTelemetry by running it as `splk-py-trace python main.py`.
+
+## Special cases
+
+### Django
 
 This Splunk Distribution of OpenTelemetry doesn't ship a Django app, and
 doesn't require you to add anything to your `INSTALLED_APPS`.

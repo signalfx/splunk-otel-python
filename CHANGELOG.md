@@ -8,6 +8,8 @@
   [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
 - Added support for `OTEL_SERVICE_NAME`.
   [#64](https://github.com/signalfx/splunk-otel-python/pull/64)
+- Added support for OTLP gRPC span exporter and `OTEL_TRACES_EXPORTER` environment variable.
+  [#60](https://github.com/signalfx/splunk-otel-python/pull/60)
 
 ### Removed 
 
@@ -16,6 +18,9 @@
 - Removed `opentelemetry-propagator-b3` as a depedency. It can be installed direclty or by using
   the new `b3` extras options e.g, `pip install splunk-opentelemetry[b3]`.
   [#58](https://github.com/signalfx/splunk-otel-python/pull/58)
+- Removed Jaeger Thrift Exporter as a dependency. Users must chose the exporter they want to install
+  when installing splunk-opentelemetry.
+  [#60](https://github.com/signalfx/splunk-otel-python/pull/60)
 
 ### Changed 
 

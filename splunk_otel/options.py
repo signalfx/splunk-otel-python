@@ -13,71 +13,86 @@
 # limitations under the License.
 
 import logging
+from functools import partial
 from os import environ
-from typing import Dict, Optional, Union
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
-from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
+from opentelemetry.environment_variables import OTEL_TRACES_EXPORTER
+from opentelemetry.instrumentation.propagators import ResponsePropagator
+from opentelemetry.sdk.environment_variables import (
+    OTEL_EXPORTER_JAEGER_ENDPOINT,
+    OTEL_SERVICE_NAME,
+)
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace.export import SpanExporter
+from pkg_resources import iter_entry_points
 
 from splunk_otel.environment_variables import (
     SPLUNK_ACCESS_TOKEN,
     SPLUNK_MAX_ATTR_LENGTH,
     SPLUNK_SERVICE_NAME,
-    SPLUNK_TRACE_EXPORTER_URL,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
 )
+from splunk_otel.propagators import ServerTimingResponsePropagator
+from splunk_otel.symbols import (
+    _DEFAULT_EXPORTERS,
+    _DEFAULT_JAEGER_ENDPOINT,
+    _DEFAULT_MAX_ATTR_LENGTH,
+    _DEFAULT_OTEL_SERVICE_NAME,
+    _DEFAULT_SERVICE_NAME,
+    _EXPORTER_JAEGER_SPLUNK,
+    _EXPORTER_JAEGER_THRIFT,
+    _EXPORTER_OTLP,
+    _EXPORTER_OTLP_GRPC,
+    _KNOWN_EXPORTER_PACKAGES,
+    _NO_SERVICE_NAME_WARNING,
+    _SERVICE_NAME_ATTR,
+    _TELEMETRY_VERSION_ATTR,
+)
 from splunk_otel.version import __version__
+
+_SpanExporterFactory = Callable[["Options"], SpanExporter]
+_SpanExporterClass = Callable[..., SpanExporter]
 
 logger = logging.getLogger("options")
 
 
-DEFAULT_SERVICE_NAME = "unnamed-python-service"
-DEFAULT_ENDPOINT = "http://localhost:9080/v1/trace"
-DEFAULT_MAX_ATTR_LENGTH = 1200
-
-_DEFAULT_OTEL_SERVICE_NAME = "unknown_service"
-_SERVICE_NAME_ATTR = "service.name"
-_TELEMETRY_VERSION_ATTR = "telemetry.auto.version"
-_NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
-set your service name using the OTEL_SERVICE_NAME environment variable.
-E.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
-
-
 class Options:
-    endpoint: str
+    span_exporter_factories: Collection[_SpanExporterFactory]
     access_token: Optional[str]
     max_attr_length: int
     resource: Resource
     response_propagation: bool
+    response_propagator: Optional[ResponsePropagator]
 
     def __init__(
         self,
         service_name: Optional[str] = None,
-        endpoint: Optional[str] = None,
+        span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
         access_token: Optional[str] = None,
         max_attr_length: Optional[int] = None,
         resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
-        trace_response_header_enabled: bool = True,
+        trace_response_header_enabled: Optional[bool] = None,
     ):
         self._set_default_env()
+        self.access_token = self._get_access_token(access_token)
+        self.max_attr_length = self._get_max_attr_length(max_attr_length)
+        self.response_propagator = self._get_trace_response_header_enabled(
+            trace_response_header_enabled
+        )
+        self.resource = self._get_resource(service_name, resource_attributes)
+        self.span_exporter_factories = self._get_span_exporter_factories(
+            span_exporter_factories
+        )
 
-        if not endpoint:
-            endpoint = environ.get("OTEL_EXPORTER_JAEGER_ENDPOINT")
-            if not endpoint:
-                endpoint = environ.get(SPLUNK_TRACE_EXPORTER_URL)
-                if endpoint:
-                    logger.warning(
-                        "%s is deprecated and will be removed soon. Please use %s instead",
-                        "SPLUNK_TRACE_EXPORTER_URL",
-                        "OTEL_EXPORTER_JAEGER_ENDPOINT",
-                    )
-            endpoint = endpoint or DEFAULT_ENDPOINT
-        self.endpoint = endpoint
-
+    @staticmethod
+    def _get_access_token(access_token: Optional[str]) -> Optional[str]:
         if not access_token:
             access_token = environ.get(SPLUNK_ACCESS_TOKEN)
-        self.access_token = access_token or None
+        return access_token or None
 
+    @staticmethod
+    def _get_max_attr_length(max_attr_length: Optional[int]) -> int:
         if not max_attr_length:
             value = environ.get(SPLUNK_MAX_ATTR_LENGTH)
             if value:
@@ -85,31 +100,61 @@ class Options:
                     max_attr_length = int(value)
                 except (TypeError, ValueError):
                     logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
-        self.max_attr_length = max_attr_length or DEFAULT_MAX_ATTR_LENGTH
+        return max_attr_length or _DEFAULT_MAX_ATTR_LENGTH
 
-        resource_attributes = resource_attributes or {}
+    @staticmethod
+    def _get_trace_response_header_enabled(
+        enabled: Optional[bool],
+    ) -> Optional[ResponsePropagator]:
+        if enabled is None:
+            enabled = Options._is_truthy(
+                environ.get(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
+            )
+        if enabled:
+            return ServerTimingResponsePropagator()
+        return None
+
+    @staticmethod
+    def _get_resource(
+        service_name: Optional[str],
+        attributes: Optional[Dict[str, Union[str, bool, int, float]]],
+    ) -> Resource:
+        attributes = attributes or {}
         if service_name:
-            resource_attributes[_SERVICE_NAME_ATTR] = service_name
-        resource_attributes.update({_TELEMETRY_VERSION_ATTR: __version__})
-        self.resource = Resource.create(resource_attributes)
+            attributes[_SERVICE_NAME_ATTR] = service_name
+        attributes.update({_TELEMETRY_VERSION_ATTR: __version__})
+        resource = Resource.create(attributes)
         if (
-            self.resource.attributes.get(_SERVICE_NAME_ATTR, _DEFAULT_OTEL_SERVICE_NAME)
+            resource.attributes.get(_SERVICE_NAME_ATTR, _DEFAULT_OTEL_SERVICE_NAME)
             == _DEFAULT_OTEL_SERVICE_NAME
         ):
             logger.warning(_NO_SERVICE_NAME_WARNING)
-            self.resource = self.resource.merge(
-                Resource({_SERVICE_NAME_ATTR: DEFAULT_SERVICE_NAME})
+            resource = resource.merge(
+                Resource({_SERVICE_NAME_ATTR: _DEFAULT_SERVICE_NAME})
             )
+        return resource
 
-        response_header_env = environ.get(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "")
-        if response_header_env and response_header_env.strip().lower() in (
+    @staticmethod
+    def _get_span_exporter_factories(
+        factories: Optional[Collection[_SpanExporterFactory]],
+    ) -> Collection[_SpanExporterFactory]:
+        if factories:
+            return factories
+
+        exporter_names = Options._get_span_exporter_names_from_env()
+        return Options._import_span_exporter_factories(exporter_names)
+
+    @classmethod
+    def _is_truthy(cls, value: Optional[str]) -> bool:
+        if not value:
+            return False
+
+        return value.strip().lower() not in (
             "false",
             "no",
             "f",
             "0",
-        ):
-            trace_response_header_enabled = False
-        self.response_propagation = trace_response_header_enabled
+        )
 
     @staticmethod
     def _set_default_env() -> None:
@@ -120,3 +165,110 @@ class Options:
                 "SPLUNK_SERVICE_NAME is deprecated and will be removed soon. Please use OTEL_SERVICE_NAME instead"
             )
             environ[OTEL_SERVICE_NAME] = splunk_service_name
+
+    @classmethod
+    def _get_span_exporter_names_from_env(cls) -> Collection[Tuple[str, str]]:
+        exporters_env = (
+            environ.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
+        )
+
+        exporters: List[Tuple[str, str]] = []
+        if not cls._is_truthy(exporters_env):
+            return exporters
+
+        # exporters are known by different names internally by Python Otel SDK.
+        # Here we create a mapping of user provided names to internal names so
+        # that we can provide helpful error messages later.
+        for name in exporters_env.split(","):
+            if name == _EXPORTER_OTLP:
+                exporters.append((_EXPORTER_OTLP, _EXPORTER_OTLP_GRPC))
+            elif name == _EXPORTER_JAEGER_SPLUNK:
+                exporters.append((_EXPORTER_JAEGER_SPLUNK, _EXPORTER_JAEGER_THRIFT))
+            else:
+                exporters.append(
+                    (
+                        name,
+                        name,
+                    )
+                )
+        return exporters
+
+    @staticmethod
+    def _import_span_exporter_factories(
+        exporter_names: Collection[Tuple[str, str]],
+    ) -> Collection[_SpanExporterFactory]:
+        factories = []
+        entry_points = {ep.name: ep for ep in iter_entry_points("opentelemetry_exporter")}
+
+        for name, internal_name in exporter_names:
+            if internal_name not in entry_points:
+                package = _KNOWN_EXPORTER_PACKAGES.get(internal_name)
+                if package:
+                    help_msg = "please make sure {0} is installed".format(package)
+                else:
+                    help_msg = (
+                        "please make sure the relevant exporter package is installed."
+                    )
+                raise ValueError(
+                    'exporter "{0} ({1})" not found. {2}'.format(
+                        name, internal_name, help_msg
+                    )
+                )
+
+            exporter_class: _SpanExporterClass = entry_points[internal_name].load()
+            if name == _EXPORTER_JAEGER_SPLUNK:
+                factory = Options._splunk_jaeger_factory
+            elif internal_name == _EXPORTER_JAEGER_THRIFT:
+                factory = Options._jaeger_factory
+            elif internal_name == _EXPORTER_OTLP_GRPC:
+                factory = Options._otlp_factory
+            else:
+                factory = Options._generic_exporter
+            factories.append(partial(factory, exporter_class))
+        return factories
+
+    @staticmethod
+    def _generic_exporter(
+        exporter: _SpanExporterClass,
+        options: "Options",  # pylint: disable=unused-argument
+    ) -> SpanExporter:
+        return exporter()
+
+    @staticmethod
+    def _splunk_jaeger_factory(
+        exporter: _SpanExporterClass, options: "Options"
+    ) -> SpanExporter:
+        kwargs = Options._get_jaeger_kwargs(options)
+        kwargs.update(
+            {
+                "collector_endpoint": environ.get(
+                    OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT
+                ),
+            }
+        )
+        return exporter(**kwargs)
+
+    @staticmethod
+    def _jaeger_factory(exporter: _SpanExporterClass, options: "Options") -> SpanExporter:
+        return exporter(**Options._get_jaeger_kwargs(options))
+
+    @staticmethod
+    def _get_jaeger_kwargs(options: "Options") -> Dict[str, Union[int, str]]:
+        kwargs: Dict[str, Union[int, str]] = {
+            "max_tag_value_length": options.max_attr_length,
+        }
+        if options.access_token:
+            kwargs.update(
+                {
+                    "username": "auth",
+                    "password": options.access_token,
+                }
+            )
+        return kwargs
+
+    @staticmethod
+    def _otlp_factory(exporter: _SpanExporterClass, options: "Options") -> SpanExporter:
+        # TODO: enable after PR is merged and released:
+        # https://github.com/open-telemetry/opentelemetry-python/pull/1824
+        # kwargs = {"max_attr_value_length": self.max_attr_length}
+        return exporter(headers=(("x-sf-token", options.access_token),))
