@@ -45,7 +45,7 @@ The instrumentation works with Python version 3.6+. Supported libraries are
 listed
 [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/master/instrumentation).
 
-To get started, install the `splunk-opentelemetry` package, run the bootstrap
+To get started, install the `splunk-opentelemetry[all]` package, run the bootstrap
 script and wrap your run command with `splk-py-trace`.
 
 For example, if the runtime parameters were:
@@ -63,35 +63,18 @@ $ OTEL_SERVICE_NAME=my-python-app \
     splk-py-trace python main.py --port=8000
 ```
 
-Notes:
-- Depending on the default python version on your system, you might want to use `pip3` and `python3` instead. 
-- To be able to run `splk-py-trace` and `splk-py-trace-bootstrap`, the directory pip installs scripts to will
-  have to be on your system's PATH environment variable. Generally, this works out of the box when using
-  virtual environments, installing packages system-wide or in container images. In some cases, pip may install
-  packages into your user local environment. In that case you'll need to add your Python user base's bin directory
-  to your system path. You can find out your Python user base as follows by running `python -m site --user-base`.
-
-  For example, if `python -m site --user-base` reports that `/Users/splunk/.local` as the Python user base, then
-  you can add the directory to your path on Unix like system as follows:
-
-  ```
-  export PATH="/Users/splunk/.local/bin:$PATH"
-  ```
 
 The service name is the only configuration option that typically needs to be
 specified. A couple other configuration options that may need to be changed or
 set are:
 
-- Endpoint if not sending to a locally running Smart Agent with default
-  configuration
+- Endpoint if not sending to a locally running OpenTelemetry Collector.
 - Environment attribute (example:
   `OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production`) to specify what
   environment the span originated from.
 
 Instrumentation works by patching supported libraries at runtime with an
-OpenTelemetry-compatible tracer to capture and export trace spans. The agent
-also registers an OpenTelemetry `get_tracer` so you can support existing custom
-instrumentation or add custom instrumentation to your application later.
+OpenTelemetry-compatible tracer to capture and export trace spans. 
 
 To see the Python instrumentation in action with sample applications, see our
 [examples](https://github.com/signalfx/tracing-examples/tree/main/opentelemetry-tracing/opentelemetry-python-tracing).
@@ -107,100 +90,9 @@ To see the Python instrumentation in action with sample applications, see our
 | SPLUNK_ACCESS_TOKEN          | access_token |      | The optional organization access token for trace submission requests.  |
 | SPLUNK_MAX_ATTR_LENGTH       | max_attr_length | `1200`            | Maximum length of string attribute value in characters. Longer values are truncated.                                                                                                                                                                                                                                                                                                                      |
 | SPLUNK_TRACE_RESPONSE_HEADER_ENABLED | trace_response_header_enabled | True | Enables adding server trace information to HTTP response headers. |
-| OTEL_RESOURCE_ATTRIBUTES      |            | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`service.name=my-python-service,service.version=3.1,deployment.environment=production`</details>
+| OTEL_RESOURCE_ATTRIBUTES      | resource_attributes | unset          | Comma-separated list of resource attributes added to every reported span. <details><summary>Example</summary>`service.name=my-python-service,service.version=3.1,deployment.environment=production`</details>
 | OTEL_PROPAGATORS              |            | `tracecontext,baggage`   | Comma-separated list of propagator names to be used. See[Configuring Propagators](#configuring-propagators) for more details.
 | OTEL_TRACE_ENABLED            |            | `true`         | Globally enables tracer creation and auto-instrumentation. |
-
-## Advanced Getting Started
-
-### Using a different exporter
-
-The `splunk-opentelemetry` Python package does not install any exporters by default. You can install it with the OTLP or Jaeger Thrift exporter by
-using the `otlp` or `jaeger` extra options. For example, installing `splunk-opentelemetry[otlp]` will also pull in the OTLP gRPC exporter. Similarly,
-installing `splunk-opentelemetry[jaeger]` will install the Jaeger Thrift exporter. You can also install both exporters by mentioning them
-both like `splunk-opentelemetry[jaeger,otlp]`
-
-The distributions uses OTLP by default so we recommend installing `splunk-opentelemetry[otlp]` unless you want to use another exporter.
-
-Once you install the exporter package you want to use, you can tell the distribution to use a different exporter by setting the `OTEL_TRACES_EXPORTER`
-environment variables.
-
-For example, to use the Jaeger exporter, set it as follows:
-
-```
-OTEL_TRACES_EXPORTER=jaeger-thrift-splunk
-```
-
-#### Using multiple exporters
-
-The environment variable accepts multiple comma-separated values. If multiple exporters are specified, all of them will be used. This can be used to export
-to multiple destinations or to debug with the console exporter while still exporting to another destination. For example, the following configuration will
-export all spans using both the OTLP exporter and the Console exporter.
-
-```
-OTEL_TRACES_EXPORTER=otlp,console_span
-```
-
-#### Accepted values for OTEL_TRACES_EXPORTER
-
-This package uses Python's entry points mechanism to look up the requested exporters. As a result, you can install any thrid party or custom exporter package and
-as long as it specifies a `opentelemetry_exporter` entry point to the exporter implementation, you can specify it as a value in `OTEL_TRACES_EXPORTER`.
-
-Known values and the Python packages they ship in are listed below
-
-
-| Exporter name | Python package | Additional comments |
-| ------------- | --------------- | --------------------- | 
-| otlp | opentelemetry-exporter-otlp-proto-grpc | Can be installed with `pip install splunk-opentelemetry[otlp]` | 
-| jaeger-thrift-splunk | opentelemetry-exporter-jaeger-thrift  | Can be installed with `pip install splunk-opentelemetry[jaeger]` | 
-| console_span | opentelemetry-sdk | Always installed with `splunk-opentelemetry` | 
-
-### Instrument and configure with code
-
-If you cannot use `splk-py-trace` command, you can also add a couple of lines
-of code to your Python application to achieve the same result.
-
-```python
-from splunk_otel.tracing import start_tracing
-
-start_tracing()
-
-# Also accepts optional config options:
-# start_tracing(
-#   service_name='my-python-service',
-#   exporter_factories=[OTLPSpanExporter]
-#   access_token='',
-#   max_attr_length=1200,
-#   trace_response_header_enabled=True,
-#   resource_attributes={
-#    'service.version': '3.1',
-#    'deployment.environment': 'production',
-#  })
-
-# rest of your python application's entrypoint script
-```
-
-### Bootstrap: List requirements instead of installing them
-
-The `splk-py-trace-bootstrap` command can optionally print out the list of
-packages it would install if you chose. In order to do so, pass
-`-a=requirements` CLI argument to it. For example,
-
-```
-splk-py-trace-bootstrap -a requirements
-```
-
-Will output something like the following:
-
-```
-opentelemetry-instrumentation-falcon>=0.15b0
-opentelemetry-instrumentation-jinja2>=0.15b0
-opentelemetry-instrumentation-requests>=0.15b0
-opentelemetry-instrumentation-sqlite3>=0.15b0
-```
-
-You can pipe the output of this command to append the new packages to your
-requirements.txt file or to something like `poetry add`.
 
 
 ## Exporting telemetry data
@@ -275,6 +167,100 @@ OTEL_PROPAGATORS=b3multi,baggage
 You can specify any combination of supported propagators. Choices are `tracecontext`, `baggae`, `b3` and `b3multi`. Note that
 `b3` and `b3multi` are only available when the `opentelemetry-propagator-b3` package is installed. This is installed automatically
 by installing `splunk-opentelemetry[all]` or `splunk-opentelemetry[b3]`.
+
+
+## Advanced Getting Started
+
+### Instrument and configure with code
+
+If you cannot use `splk-py-trace` command, you can also add a couple of lines
+of code to your Python application to achieve the same result.
+
+```python
+from splunk_otel.tracing import start_tracing
+
+start_tracing()
+
+# Also accepts optional config options:
+# start_tracing(
+#   service_name='my-python-service',
+#   exporter_factories=[OTLPSpanExporter]
+#   access_token='',
+#   max_attr_length=1200,
+#   trace_response_header_enabled=True,
+#   resource_attributes={
+#    'service.version': '3.1',
+#    'deployment.environment': 'production',
+#  })
+
+# rest of your python application's entrypoint script
+```
+
+### Using a different exporter
+
+The `splunk-opentelemetry` Python package does not install any exporters by default. You can install it with the OTLP or Jaeger Thrift exporter by
+using the `otlp` or `jaeger` extra options. For example, installing `splunk-opentelemetry[otlp]` will also pull in the OTLP gRPC exporter. Similarly,
+installing `splunk-opentelemetry[jaeger]` will install the Jaeger Thrift exporter. You can also install both exporters by mentioning them
+both like `splunk-opentelemetry[jaeger,otlp]`
+
+The distributions uses OTLP by default so we recommend installing `splunk-opentelemetry[otlp]` unless you want to use another exporter.
+
+Once you install the exporter package you want to use, you can tell the distribution to use a different exporter by setting the `OTEL_TRACES_EXPORTER`
+environment variables.
+
+For example, to use the Jaeger exporter, set it as follows:
+
+```
+OTEL_TRACES_EXPORTER=jaeger-thrift-splunk
+```
+
+#### Using multiple exporters
+
+The environment variable accepts multiple comma-separated values. If multiple exporters are specified, all of them will be used. This can be used to export
+to multiple destinations or to debug with the console exporter while still exporting to another destination. For example, the following configuration will
+export all spans using both the OTLP exporter and the Console exporter.
+
+```
+OTEL_TRACES_EXPORTER=otlp,console_span
+```
+
+#### Accepted values for OTEL_TRACES_EXPORTER
+
+This package uses Python's entry points mechanism to look up the requested exporters. As a result, you can install any thrid party or custom exporter package and
+as long as it specifies a `opentelemetry_exporter` entry point to the exporter implementation, you can specify it as a value in `OTEL_TRACES_EXPORTER`.
+
+Known values and the Python packages they ship in are listed below
+
+
+| Exporter name | Python package | Additional comments |
+| ------------- | --------------- | --------------------- | 
+| otlp | opentelemetry-exporter-otlp-proto-grpc | Can be installed with `pip install splunk-opentelemetry[otlp]` | 
+| jaeger-thrift-splunk | opentelemetry-exporter-jaeger-thrift  | Can be installed with `pip install splunk-opentelemetry[jaeger]` | 
+| console_span | opentelemetry-sdk | Always installed with `splunk-opentelemetry` | 
+
+
+### Bootstrap: List requirements instead of installing them
+
+The `splk-py-trace-bootstrap` command can optionally print out the list of
+packages it would install if you chose. In order to do so, pass
+`-a=requirements` CLI argument to it. For example,
+
+```
+splk-py-trace-bootstrap -a requirements
+```
+
+Will output something like the following:
+
+```
+opentelemetry-instrumentation-falcon>=0.15b0
+opentelemetry-instrumentation-jinja2>=0.15b0
+opentelemetry-instrumentation-requests>=0.15b0
+opentelemetry-instrumentation-sqlite3>=0.15b0
+```
+
+You can pipe the output of this command to append the new packages to your
+requirements.txt file or to something like `poetry add`.
+
 
 ### Installing only a subset of dependencies
 
@@ -406,16 +392,29 @@ Documentation on how to manually instrument a Python application is available
 
 ## Troubleshooting
 
-Enable debug logging like you would for any Python application.
+- Depending on the default python version on your system, you might want to use `pip3` and `python3` instead. 
+- To be able to run `splk-py-trace` and `splk-py-trace-bootstrap`, the directory pip installs scripts to will
+  have to be on your system's PATH environment variable. Generally, this works out of the box when using
+  virtual environments, installing packages system-wide or in container images. In some cases, pip may install
+  packages into your user local environment. In that case you'll need to add your Python user base's bin directory
+  to your system path. You can find out your Python user base as follows by running `python -m site --user-base`.
 
-```python
-import logging
+  For example, if `python -m site --user-base` reports that `/Users/splunk/.local` as the Python user base, then
+  you can add the directory to your path on Unix like system as follows:
 
-logging.basicConfig(level=logging.DEBUG)
-```
+  ```
+  export PATH="/Users/splunk/.local/bin:$PATH"
+  ```
+- Enable debug logging like you would for any Python application.
 
-> :warning: Debug logging is extremely verbose and resource intensive. Enable
-> debug logging only when needed and disable when done.
+  ```python
+  import logging
+
+  logging.basicConfig(level=logging.DEBUG)
+  ```
+
+  > :warning: Debug logging is extremely verbose and resource intensive. Enable
+  > debug logging only when needed and disable when done.
 
 # License and versioning
 
