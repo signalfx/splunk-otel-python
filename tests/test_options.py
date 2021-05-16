@@ -22,6 +22,7 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
 from splunk_otel.options import Options
 from splunk_otel.symbols import _DEFAULT_JAEGER_ENDPOINT, _DEFAULT_MAX_ATTR_LENGTH
+from splunk_otel.version import __version__
 
 # pylint: disable=protected-access
 
@@ -182,4 +183,12 @@ class TestOptions(TestCase):
                     "12345",
                 ),
             ),
+        )
+
+    def test_telemetry_attributes(self):
+        options = Options()
+        self.assertIsInstance(options.resource, Resource)
+        self.assertEqual(
+            options.resource.attributes["splunk.distro.version"],
+            __version__,
         )

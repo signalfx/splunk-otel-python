@@ -19,6 +19,9 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 from opentelemetry.environment_variables import OTEL_TRACES_EXPORTER
 from opentelemetry.instrumentation.propagators import ResponsePropagator
+from opentelemetry.instrumentation.version import (
+    __version__ as auto_instrumentation_version,
+)
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_JAEGER_ENDPOINT,
     OTEL_SERVICE_NAME,
@@ -47,6 +50,7 @@ from splunk_otel.symbols import (
     _KNOWN_EXPORTER_PACKAGES,
     _NO_SERVICE_NAME_WARNING,
     _SERVICE_NAME_ATTR,
+    _SPLUNK_DISTRO_VERSION_ATTR,
     _TELEMETRY_VERSION_ATTR,
 )
 from splunk_otel.version import __version__
@@ -122,7 +126,12 @@ class Options:
         attributes = attributes or {}
         if service_name:
             attributes[_SERVICE_NAME_ATTR] = service_name
-        attributes.update({_TELEMETRY_VERSION_ATTR: __version__})
+        attributes.update(
+            {
+                _TELEMETRY_VERSION_ATTR: auto_instrumentation_version,
+                _SPLUNK_DISTRO_VERSION_ATTR: __version__,
+            }
+        )
         resource = Resource.create(attributes)
         if (
             resource.attributes.get(_SERVICE_NAME_ATTR, _DEFAULT_OTEL_SERVICE_NAME)

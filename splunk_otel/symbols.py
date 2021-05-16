@@ -23,6 +23,7 @@ _EXPORTER_JAEGER_THRIFT = "jaeger_thrift"
 _EXPORTER_JAEGER_SPLUNK = "jaeger-thrift-splunk"
 _DEFAULT_OTEL_SERVICE_NAME = "unknown_service"
 
+_SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SERVICE_NAME_ATTR = "service.name"
 _TELEMETRY_VERSION_ATTR = "telemetry.auto.version"
 _NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
