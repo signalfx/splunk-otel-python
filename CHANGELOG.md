@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.13.0 (05-17-2021)
+
 ### Added
 
 - Added `resource_attributes` config option to the `splunk_otel.start_tracing()` function.
