@@ -9,7 +9,7 @@
 
 -------
 
-The documentation below refers to the in development version of this package. Docs for the latest version ([v0.12.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.12.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.12.0/README.md).
+The documentation below refers to the in development version of this package. Docs for the latest version ([v0.13.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.13.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.13.0/README.md).
 
 -------
 
