@@ -184,7 +184,7 @@ start_tracing()
 # Also accepts optional config options:
 # start_tracing(
 #   service_name='my-python-service',
-#   exporter_factories=[OTLPSpanExporter]
+#   span_exporter_factories=[OTLPSpanExporter]
 #   access_token='',
 #   max_attr_length=1200,
 #   trace_response_header_enabled=True,

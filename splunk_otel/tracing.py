@@ -32,7 +32,7 @@ logger.setLevel(logging.INFO)
 
 def start_tracing(
     service_name: Optional[str] = None,
-    exporters: Optional[Collection[_SpanExporterFactory]] = None,
+    span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
     access_token: Optional[str] = None,
     max_attr_length: Optional[int] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
@@ -45,7 +45,7 @@ def start_tracing(
 
     options = Options(
         service_name,
-        exporters,
+        span_exporter_factories,
         access_token,
         max_attr_length,
         resource_attributes,
