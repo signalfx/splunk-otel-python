@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed 
+
+- Renamed `exporters` argument `span_exporter_factories` for `start_tracing()` function.
+  [#71](https://github.com/signalfx/splunk-otel-python/pull/71)
+
 ## 0.13.0 (05-17-2021)
 
 ### Added
