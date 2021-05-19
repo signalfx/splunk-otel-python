@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.14.0 (05-20-2021)
+
 ### Changed 
 
 - Renamed `exporters` argument `span_exporter_factories` for `start_tracing()` function.
