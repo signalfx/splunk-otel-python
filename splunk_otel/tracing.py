@@ -24,7 +24,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
-from splunk_otel.options import Options, _SpanExporterFactory
+from splunk_otel.options import _Options, _SpanExporterFactory
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
@@ -43,7 +43,7 @@ def start_tracing(
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return
 
-    options = Options(
+    options = _Options(
         service_name,
         span_exporter_factories,
         access_token,
@@ -58,7 +58,7 @@ def start_tracing(
         sys.exit(2)
 
 
-def _configure_tracing(options: Options) -> None:
+def _configure_tracing(options: _Options) -> None:
     provider = TracerProvider(resource=options.resource)
     set_global_response_propagator(options.response_propagator)  # type: ignore
     trace.set_tracer_provider(provider)

@@ -55,13 +55,13 @@ from splunk_otel.symbols import (
 )
 from splunk_otel.version import __version__
 
-_SpanExporterFactory = Callable[["Options"], SpanExporter]
+_SpanExporterFactory = Callable[["_Options"], SpanExporter]
 _SpanExporterClass = Callable[..., SpanExporter]
 
 logger = logging.getLogger("options")
 
 
-class Options:
+class _Options:
     span_exporter_factories: Collection[_SpanExporterFactory]
     access_token: Optional[str]
     max_attr_length: int
@@ -111,7 +111,7 @@ class Options:
         enabled: Optional[bool],
     ) -> Optional[ResponsePropagator]:
         if enabled is None:
-            enabled = Options._is_truthy(
+            enabled = _Options._is_truthy(
                 environ.get(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
             )
         if enabled:
@@ -150,8 +150,8 @@ class Options:
         if factories:
             return factories
 
-        exporter_names = Options._get_span_exporter_names_from_env()
-        return Options._import_span_exporter_factories(exporter_names)
+        exporter_names = _Options._get_span_exporter_names_from_env()
+        return _Options._import_span_exporter_factories(exporter_names)
 
     @classmethod
     def _is_truthy(cls, value: Optional[str]) -> bool:
@@ -226,28 +226,28 @@ class Options:
 
             exporter_class: _SpanExporterClass = entry_points[internal_name].load()
             if name == _EXPORTER_JAEGER_SPLUNK:
-                factory = Options._splunk_jaeger_factory
+                factory = _Options._splunk_jaeger_factory
             elif internal_name == _EXPORTER_JAEGER_THRIFT:
-                factory = Options._jaeger_factory
+                factory = _Options._jaeger_factory
             elif internal_name == _EXPORTER_OTLP_GRPC:
-                factory = Options._otlp_factory
+                factory = _Options._otlp_factory
             else:
-                factory = Options._generic_exporter
+                factory = _Options._generic_exporter
             factories.append(partial(factory, exporter_class))
         return factories
 
     @staticmethod
     def _generic_exporter(
         exporter: _SpanExporterClass,
-        options: "Options",  # pylint: disable=unused-argument
+        options: "_Options",  # pylint: disable=unused-argument
     ) -> SpanExporter:
         return exporter()
 
     @staticmethod
     def _splunk_jaeger_factory(
-        exporter: _SpanExporterClass, options: "Options"
+        exporter: _SpanExporterClass, options: "_Options"
     ) -> SpanExporter:
-        kwargs = Options._get_jaeger_kwargs(options)
+        kwargs = _Options._get_jaeger_kwargs(options)
         kwargs.update(
             {
                 "collector_endpoint": environ.get(
@@ -258,11 +258,13 @@ class Options:
         return exporter(**kwargs)
 
     @staticmethod
-    def _jaeger_factory(exporter: _SpanExporterClass, options: "Options") -> SpanExporter:
-        return exporter(**Options._get_jaeger_kwargs(options))
+    def _jaeger_factory(
+        exporter: _SpanExporterClass, options: "_Options"
+    ) -> SpanExporter:
+        return exporter(**_Options._get_jaeger_kwargs(options))
 
     @staticmethod
-    def _get_jaeger_kwargs(options: "Options") -> Dict[str, Union[int, str]]:
+    def _get_jaeger_kwargs(options: "_Options") -> Dict[str, Union[int, str]]:
         kwargs: Dict[str, Union[int, str]] = {
             "max_tag_value_length": options.max_attr_length,
         }
@@ -276,7 +278,7 @@ class Options:
         return kwargs
 
     @staticmethod
-    def _otlp_factory(exporter: _SpanExporterClass, options: "Options") -> SpanExporter:
+    def _otlp_factory(exporter: _SpanExporterClass, options: "_Options") -> SpanExporter:
         # TODO: enable after PR is merged and released:
         # https://github.com/open-telemetry/opentelemetry-python/pull/1824
         # kwargs = {"max_attr_value_length": self.max_attr_length}

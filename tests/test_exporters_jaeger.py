@@ -21,7 +21,7 @@ from opentelemetry import trace as trace_api
 from opentelemetry.exporter.jaeger import thrift as jaeger_exporter
 from opentelemetry.sdk import trace
 
-from splunk_otel.options import Options
+from splunk_otel.options import _Options
 
 
 class TestJaegerExporter(unittest.TestCase):
@@ -50,7 +50,7 @@ class TestJaegerExporter(unittest.TestCase):
 
     @patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
     def test_exporter_uses_collector_not_udp_agent(self):
-        options = Options()
+        options = _Options()
         exporter = options.span_exporter_factories[0](options)
         agent_client_mock = Mock(spec=jaeger_exporter.AgentClientUDP)
         exporter._agent_client = agent_client_mock  # pylint:disable=protected-access
@@ -68,7 +68,7 @@ class TestJaegerExporter(unittest.TestCase):
         },
     )
     def test_http_export(self):
-        options = Options()
+        options = _Options()
         exporter = options.span_exporter_factories[0](options)
         exporter.export((self._test_span,))
 
@@ -86,7 +86,7 @@ class TestJaegerExporter(unittest.TestCase):
     def test_http_export_with_authentication(
         self,
     ):
-        options = Options()
+        options = _Options()
         exporter = options.span_exporter_factories[0](options)
         exporter.export((self._test_span,))
 

@@ -16,10 +16,10 @@ from typing import Any, Dict
 
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 
-from splunk_otel.options import Options
+from splunk_otel.options import _Options
 from splunk_otel.tracing import _configure_tracing
 
 
 class SplunkDistro(BaseDistro):
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
-        _configure_tracing(Options())
+        _configure_tracing(_Options())
