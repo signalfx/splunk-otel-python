@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +15,8 @@
 
 import os
 import os.path
-import sys
 from argparse import REMAINDER, ArgumentParser
 from logging import getLogger
-from os import environ, execl, getcwd
-from shutil import which
-from typing import List, Union
 
 from opentelemetry.instrumentation.auto_instrumentation import run as otel_run
 
