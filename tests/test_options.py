@@ -20,7 +20,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-from splunk_otel.options import Options
+from splunk_otel.options import _Options
 from splunk_otel.symbols import _DEFAULT_JAEGER_ENDPOINT, _DEFAULT_MAX_ATTR_LENGTH
 from splunk_otel.version import __version__
 
@@ -29,14 +29,14 @@ from splunk_otel.version import __version__
 
 class TestOptions(TestCase):
     def test_default_service_name(self):
-        options = Options()
+        options = _Options()
         self.assertIsInstance(options.resource, Resource)
         self.assertEqual(
             options.resource.attributes["service.name"], "unnamed-python-service"
         )
 
     def test_service_name_from_kwargs(self):
-        options = Options(
+        options = _Options(
             resource_attributes={"service.name": "test service name from kwargs"}
         )
         self.assertIsInstance(options.resource, Resource)
@@ -49,7 +49,7 @@ class TestOptions(TestCase):
         {"OTEL_RESOURCE_ATTRIBUTES": "service.name=test service name from env"},
     )
     def test_service_name_from_env_resource_attrs(self):
-        options = Options()
+        options = _Options()
         self.assertIsInstance(options.resource, Resource)
         self.assertEqual(
             options.resource.attributes["service.name"], "test service name from env"
@@ -60,7 +60,7 @@ class TestOptions(TestCase):
         {"OTEL_SERVICE_NAME": "service name from otel service name env"},
     )
     def test_service_name_from_env_service_name(self):
-        options = Options()
+        options = _Options()
         self.assertIsInstance(options.resource, Resource)
         self.assertEqual(
             options.resource.attributes["service.name"],
@@ -73,7 +73,7 @@ class TestOptions(TestCase):
     )
     def test_service_name_backward_compatibility(self):
         self.assertNotIn("OTEL_SERVICE_NAME", os.environ)
-        Options()
+        _Options()
         self.assertEqual(
             os.environ["OTEL_SERVICE_NAME"], os.environ["SPLUNK_SERVICE_NAME"]
         )
@@ -81,13 +81,13 @@ class TestOptions(TestCase):
 
     @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": ""})
     def test_exporters_default(self):
-        options = Options()
+        options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 1)
         otlp = options.span_exporter_factories[0](options)
         self.assertIsInstance(otlp, OTLPSpanExporter)
 
     def test_exporters_from_kwargs_classes(self):
-        options = Options(
+        options = _Options(
             span_exporter_factories=[
                 lambda opts: OTLPSpanExporter(),
                 lambda opts: ConsoleSpanExporter(),
@@ -103,7 +103,7 @@ class TestOptions(TestCase):
 
     @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "otlp,console_span"})
     def test_exporters_from_env(self):
-        options = Options()
+        options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 2)
 
         otlp = options.span_exporter_factories[0](options)
@@ -124,7 +124,7 @@ class TestOptions(TestCase):
 
     @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
     def test_exporters_jaeger_defaults(self):
-        options = Options()
+        options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 1)
         factory = options.span_exporter_factories[0]
         exporter = factory(options)
@@ -142,7 +142,7 @@ class TestOptions(TestCase):
         },
     )
     def test_exporters_jaeger_custom(self):
-        options = Options()
+        options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 1)
         factory = options.span_exporter_factories[0]
         exporter = factory(options)
@@ -154,7 +154,7 @@ class TestOptions(TestCase):
 
     @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "otlp"})
     def test_exporters_otlp_defaults(self):
-        options = Options()
+        options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 1)
         factory = options.span_exporter_factories[0]
         exporter = factory(options)
@@ -169,7 +169,7 @@ class TestOptions(TestCase):
         },
     )
     def test_exporters_otlp_custom(self):
-        options = Options()
+        options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 1)
 
         factory = options.span_exporter_factories[0]
@@ -186,7 +186,7 @@ class TestOptions(TestCase):
         )
 
     def test_telemetry_attributes(self):
-        options = Options()
+        options = _Options()
         self.assertIsInstance(options.resource, Resource)
         self.assertEqual(
             options.resource.attributes["splunk.distro.version"],

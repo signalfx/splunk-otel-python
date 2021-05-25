@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed 
+
+- Renamed `options.Options` to `options._Options` to make it private.
+  [#74](https://github.com/signalfx/splunk-otel-python/pull/74)
+
 ## 0.14.0 (05-20-2021)
 
 ### Changed 
