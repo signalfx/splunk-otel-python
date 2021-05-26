@@ -13,16 +13,11 @@
 # limitations under the License.
 
 import argparse
-import pkgutil
-import subprocess
 import sys
 from logging import getLogger
-from typing import Any, Callable, Collection, Dict, Optional
 
-from opentelemetry.instrumentation.bootstrap import instrumentations
 from opentelemetry.instrumentation.bootstrap import run as otel_run
 
-from splunk_otel import symbols
 from splunk_otel.version import format_version_info
 
 logger = getLogger(__file__)
