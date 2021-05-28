@@ -11,13 +11,21 @@
 </p>
 
 <p align="center">
-
-[![OpenTelemetry Python Version](https://img.shields.io/badge/otel-1.2.0-blueviolet?style=for-the-badge)](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.2.0)
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/signalfx/splunk-otel-python?style=for-the-badge)](https://github.com/signalfx/splunk-otel-python/releases)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/splunk-opentelemetry?style=for-the-badge)](https://pypi.org/project/splunk-opentelemetry/)
-[![CircleCI](https://img.shields.io/circleci/build/github/signalfx/splunk-otel-python/main?style=for-the-badge)](https://circleci.com/gh/signalfx/splunk-otel-python)
-[![Codecov](https://img.shields.io/codecov/c/github/signalfx/splunk-otel-python?style=for-the-badge&token=XKXjEQKGaK)](https://codecov.io/gh/signalfx/splunk-otel-python)
-
+  <a href="https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.2.0">
+    <img alt="OpenTelemetry Python Version" src="https://img.shields.io/badge/otel-1.2.0-blueviolet?style=for-the-badge">
+  </a>
+  <a href="https://github.com/signalfx/splunk-otel-python/releases">
+    <img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/signalfx/splunk-otel-python?style=for-the-badge">
+  </a>
+  <a href="https://pypi.org/project/splunk-opentelemetry/">
+    <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/splunk-opentelemetry?style=for-the-badge">
+  </a>
+  <a href="https://circleci.com/gh/signalfx/splunk-otel-python">
+    <img alt="CircleCI" src="https://img.shields.io/circleci/build/github/signalfx/splunk-otel-python/main?style=for-the-badge">
+  </a>
+  <a href="https://codecov.io/gh/signalfx/splunk-otel-python">
+    <img alt="Codecov" src="https://img.shields.io/codecov/c/github/signalfx/splunk-otel-python?style=for-the-badge&token=XKXjEQKGaK">
+  </a>
 </p>
 
 <p align="center">
