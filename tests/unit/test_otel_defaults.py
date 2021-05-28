@@ -14,8 +14,11 @@
 
 import unittest
 from importlib import reload
+from os import environ
 
 from opentelemetry.sdk import trace
+
+from splunk_otel.defaults import _OTEL_PYTHON_LOG_CORRELATION
 
 
 class TestOtelDefaults(unittest.TestCase):
@@ -34,3 +37,6 @@ class TestOtelDefaults(unittest.TestCase):
         self.assertEqual(trace._SPAN_LINK_COUNT_LIMIT, 1000)
         self.assertEqual(trace._SPAN_EVENT_COUNT_LIMIT, 999999)
         self.assertEqual(trace.SPAN_ATTRIBUTE_COUNT_LIMIT, 999999)
+
+    def test_otel_log_correlation_enabled(self):
+        self.assertTrue(environ[_OTEL_PYTHON_LOG_CORRELATION])
