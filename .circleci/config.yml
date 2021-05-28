@@ -24,6 +24,29 @@ jobs:
           root: ~/
           paths: project/
 
+  integration:
+    machine:
+      image: ubuntu-2004:202008-01
+    steps:
+      - checkout
+      - run:
+          name: Setup Environment Variables
+          command: echo "export PATH=$HOME/.poetry/bin:$PATH" >> $BASH_ENV
+      - restore_cache:
+          key: deps-build-{{ checksum "poetry.lock" }}
+      - run:
+          name: Install Poetry
+          command: python .circleci/get-poetry.py -y
+      - run:
+          command: make deps
+      - save_cache:
+          key: deps-build-{{ checksum "poetry.lock" }}
+          paths:
+            - ".tox"
+            - "/home/circleci/.cache/pip"
+      - run:
+          command: make integration
+
   tox-env:
     parameters:
       py_version:
@@ -64,6 +87,10 @@ workflows:
   test_build:
     jobs:
       - build:
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - integration:
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/

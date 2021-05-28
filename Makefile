@@ -63,11 +63,15 @@ isort:
 
 .PHONY: test
 test:
-	poetry run pytest tests/
+	poetry run pytest tests/unit
+
+.PHONY: integration
+integration:
+	poetry run pytest tests/integration
 
 .PHONY: test-with-cov
 test-with-cov:
 	poetry run coverage erase
-	poetry run pytest --cov splunk_otel --cov-append --cov-branch --cov-report='' --junit-xml=test_results/results.xml tests/
+	poetry run pytest --cov splunk_otel --cov-append --cov-branch --cov-report='' --junit-xml=test_results/results.xml tests/unit/
 	poetry run coverage report --show-missing
 	poetry run coverage xml
