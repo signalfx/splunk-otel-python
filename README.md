@@ -60,7 +60,7 @@ This Splunk distribution comes with the following defaults:
 - [W3C tracecontext](https://www.w3.org/TR/trace-context/) and [W3C
   baggage](https://www.w3.org/TR/baggage/) context propagation;
   [B3](https://github.com/openzipkin/b3-propagation) can also be
-  [configured](https://github.com/signalfx/splunk-otel-java/blob/main/docs/advanced-config.md#trace-propagation-configuration).
+  [configured](docs/advanced-config.md#trace-propagation-configuration).
 - [OTLP gRPC
   exporter](https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html)
   configured to send spans to a locally running [Splunk OpenTelemetry
@@ -124,12 +124,12 @@ A few other configuration options that may need to be changed or set are:
 - Environment resource attribute `deployment.environment` to specify what
   environment the span originated from. For example:
   ```
-  -Dotel.resource.attributes=service.name=my-java-app,deployment.environment=production
+  -Dotel.resource.attributes=service.name=my-python-app,deployment.environment=production
   ```
 - Service version resource attribute `service.version` to specify the version
   of your instrumented application. For example:
   ```
-  -Dotel.resource.attributes=service.name=my-java-app,service.version=1.2.3
+  -Dotel.resource.attributes=service.name=my-python-app,service.version=1.2.3
   ```
 
 The `deployment.environment` and `service.version` resource attributes are not
@@ -142,12 +142,15 @@ The `otel.resource.attributes` syntax is described in detail in the
 ### Supported Python Versions
 
 The instrumentation works with Python verion 3.6 and higher. Supported
-libraries are listed [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation).
+libraries are listed
+[here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation).
 
 ## Advanced Configuration
 
 For the majority of users, the [Getting Started](#getting-started) section is
-all you need. Advanced configuration documentation can be found [here](docs/advanced-config.md).
+all you need. Advanced configuration documentation can be found
+[here](docs/advanced-config.md). In addition, special cases for instrumentation
+are documented [here](docs/instrumentation-special-cases.md).
 
 ## Manually instrument an application
 
