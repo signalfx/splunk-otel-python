@@ -124,19 +124,19 @@ A few other configuration options that may need to be changed or set are:
 - Environment resource attribute `deployment.environment` to specify what
   environment the span originated from. For example:
   ```
-  -Dotel.resource.attributes=service.name=my-python-app,deployment.environment=production
+  OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
   ```
 - Service version resource attribute `service.version` to specify the version
   of your instrumented application. For example:
   ```
-  -Dotel.resource.attributes=service.name=my-python-app,service.version=1.2.3
+  OTEL_RESOURCE_ATTRIBUTES=service.version=1.2.3
   ```
 
 The `deployment.environment` and `service.version` resource attributes are not
 strictly required, but recommended to be set if they are
 available.
 
-The `otel.resource.attributes` syntax is described in detail in the
+The `OTEL_RESOURCE_ATTRIBUTES` syntax is described in detail in the
 [trace configuration](docs/advanced-config.md#trace-configuration) section.
 
 ### Supported Python Versions
