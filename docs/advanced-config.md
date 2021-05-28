@@ -3,19 +3,19 @@
 ## Splunk distribution configuration
 
 | Environment variable                   | Config Option                   | Default value | Support     | Description                                                                                                                                                                                                      |
-| -------------------------------------- | ------------------------------- | ------------  | ----------- |
+| -------------------------------------- | ------------------------------- | ------------  | ----------- | ---                                                                                                                                                                                                              |
 | `SPLUNK_ACCESS_TOKEN`                  | `access_token`                  | unset         | Stable      | (Optional) Auth token allowing exporters to communicate directly with the Splunk cloud, passed as `X-SF-TOKEN` header. Currently, the [Jaeger and OTLP trace exporters](#trace-exporters) support this property.
 | `SPLUNK_TRACE_RESPONSE_HEADER_ENABLED` | `trace_response_header_enabled` | True          | Stable      | Enables adding server trace information to HTTP response headers.
 
 ## Trace exporters
 
 | Environment variable              | Config Option         | Default value                    | Support     | Description                                                                                                                              |
-| --------------------------------- | --------------------- | -------                          | ----------- |
+| --------------------------------- | --------------------- | -------                          | ----------- | ---                                                                                                                                      |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`     |                       | `http://localhost:4317`          | Stable      | The OTLP endpoint to connect to.
 | `OTEL_EXPORTER_JAEGER_ENDPOINT`   |                       | `http://localhost:9080/v1/trace` | Stable      | The Jaeger endpoint to connect to.
 | `OTEL_TRACES_EXPORTER`            | `exporter_factories`  | `otlp`                           | Stable      | Select the traces exporter to use. We recommend using either the OTLP exporter (`otlp`) or the Jaeger exporter (`jaeger-thrift-splunk`).
 
-The Splunk Distribution of OpenTelemetry Java uses the OTLP traces exporter as the default setting. Please note that the
+The Splunk Distribution of OpenTelemetry Python uses the OTLP traces exporter as the default setting. Please note that the
 OTLP format is not supported by the (now deprecated) [SignalFx Smart Agent](https://github.com/signalfx/signalfx-agent).
 If you wish to use the Jaeger exporter instead, you can set it by using the `OTEL_TRACES_EXPORTER` environment variable.
 
