@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- Log trace correlation is not enabled by default. Can be disabled by setting
+  `OTEL_PYTHON_LOG_CORRELATION` env var to `false`.
+  [#77](https://github.com/signalfx/splunk-otel-python/pull/77)
+  
 ### Changed 
 
 - Renamed `options.Options` to `options._Options` to make it private.
