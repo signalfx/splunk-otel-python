@@ -70,7 +70,7 @@ More information about trace propagation can be found [here](configuring-propaga
 | OTEL_TRACE_ENABLED        |                       | `true`                    | Globally enables tracer creation and auto-instrumentation.                                                                                                                                                    |
 ## Instrument and configure with code
 
-If you cannot use `splk-py-trace` command, you can also add a couple of lines
+If you cannot use `splunk-py-trace` command, you can also add a couple of lines
 of code to your Python application to achieve the same result.
 
 ```python

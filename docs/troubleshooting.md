@@ -2,7 +2,7 @@
 
 - Depending on the default python version on your system, you might want to use
   `pip3` and `python3` instead.
-- To be able to run `splk-py-trace` and `splk-py-trace-bootstrap`, the
+- To be able to run `splunk-py-trace` and `splunk-py-trace-bootstrap`, the
   directory pip installs scripts to will have to be on your system's PATH
   environment variable. Generally, this works out of the box when using virtual
   environments, installing packages system-wide or in container images. In some

@@ -2,7 +2,7 @@
 
 ## Celery
 
-Tracing Celery workers works out of the box when you use the `splk-py-trace`
+Tracing Celery workers works out of the box when you use the `splunk-py-trace`
 command to start your Python application. However, if you are instrumenting
 your celery workers with code, you'll need to make sure you setup tracing for
 each worker by using Celery's `celery.signals.worker_process_init` signal.
@@ -31,7 +31,7 @@ Django project as follows:
 
 ```
 export DJANGO_SETTINGS_MODULE=mydjangoproject.settings
-splk-py-trace ./manage.py runserver
+splunk-py-trace ./manage.py runserver
 ```
 
 ## Gunicorn

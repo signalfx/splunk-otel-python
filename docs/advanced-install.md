@@ -2,12 +2,12 @@
 
 ## Bootstrap: List requirements instead of installing them
 
-The `splk-py-trace-bootstrap` command can optionally print out the list of
+The `splunk-py-trace-bootstrap` command can optionally print out the list of
 packages it would install if you chose. In order to do so, pass
 `-a=requirements` CLI argument to it. For example,
 
 ```
-splk-py-trace-bootstrap -a requirements
+splunk-py-trace-bootstrap -a requirements
 ```
 
 Will output something like the following:

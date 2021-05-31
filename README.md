@@ -84,7 +84,7 @@ for Python.
 ## Getting Started
 
 To get started, install the `splunk-opentelemetry[all]` package, run the bootstrap
-script and wrap your run command with `splk-py-trace`.
+script and wrap your run command with `splunk-py-trace`.
 
 For example, if the runtime parameters were:
 
@@ -96,9 +96,9 @@ Then the runtime parameters should be updated to:
 
 ```
 $ pip install splunk-opentelemetry[all]
-$ splk-py-trace-bootstrap
+$ splunk-py-trace-bootstrap
 $ OTEL_SERVICE_NAME=my-python-app \
-    splk-py-trace python main.py --port=8000
+    splunk-py-trace python main.py --port=8000
 ```
 
 To see the Python instrumentation in action with sample applications, see our

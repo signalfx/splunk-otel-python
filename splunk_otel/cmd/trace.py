@@ -76,3 +76,13 @@ def run() -> None:
     except TypeError:
         logger.error("failed to execute program: %s", " ".join(args.command))
         raise
+
+
+def run_deprecated() -> None:
+    logger.warning(
+        (
+            "splk-py-trace is deprecated and will be removed in a future version. "
+            "Please use `splunk-py-trace` instead."
+        )
+    )
+    run()

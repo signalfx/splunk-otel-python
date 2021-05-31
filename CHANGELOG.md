@@ -7,11 +7,18 @@
 - Log trace correlation is not enabled by default. Can be disabled by setting
   `OTEL_PYTHON_LOG_CORRELATION` env var to `false`.
   [#77](https://github.com/signalfx/splunk-otel-python/pull/77)
+- Added `splunk-py-trace` and `splunk-py-trace-bootstrap` commands as replacements for `splunk-py-trace` and `splunk-py-trace-bootstrap` respectively.
+  [#79](https://github.com/signalfx/splunk-otel-python/pull/79)
   
 ### Changed 
 
 - Renamed `options.Options` to `options._Options` to make it private.
   [#74](https://github.com/signalfx/splunk-otel-python/pull/74)
+
+### Deprecated
+
+- Deprecated `splunk-py-trace` and `splunk-py-trace-bootstrap` commands.
+  [#79](https://github.com/signalfx/splunk-otel-python/pull/79)
 
 ## 0.14.0 (05-20-2021)
 
@@ -66,12 +73,12 @@
 
 ### Added
 
-- Added support for `--access-token` and `--service-name` to `splk-py-trace` command.
+- Added support for `--access-token` and `--service-name` to `splunk-py-trace` command.
   [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
 
 ### Changed
 
-- Updated splk-py-trace and splk-py-trace-bootstrap commands.
+- Updated splunk-py-trace and splunk-py-trace-bootstrap commands.
   Both commands now delegate to opentelemetry-instrument and opentelemetry-bootstrap commands.
   [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
 - `start_tracing()` was moved from `splunk_otel.tracing` to `splunk_otel`.
@@ -82,7 +89,7 @@
 
 ### Removed
 
-- Removed support for `--exporters` CLI flag from `splk-py-trace-bootstrap` command.
+- Removed support for `--exporters` CLI flag from `splunk-py-trace-bootstrap` command.
   [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
 
 
