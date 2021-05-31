@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [Unreleased]
 
 ### Added
 
@@ -20,14 +20,14 @@
 - Deprecated `splunk-py-trace` and `splunk-py-trace-bootstrap` commands.
   [#79](https://github.com/signalfx/splunk-otel-python/pull/79)
 
-## 0.14.0 (05-20-2021)
+## [0.14.0] - 05-20-2021
 
 ### Changed 
 
 - Renamed `exporters` argument `span_exporter_factories` for `start_tracing()` function.
   [#71](https://github.com/signalfx/splunk-otel-python/pull/71)
 
-## 0.13.0 (05-17-2021)
+## [0.13.0] - 05-17-2021
 
 ### Added
 
@@ -62,14 +62,14 @@
   Please use `OTEL_SERVICE_NAME=<my-service-name>` instead.
   [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
 
-## 0.12.0 (04-21-2021)
+## [0.12.0] - 04-21-2021
 
 ### Added
 
 - Added support trace response headers.
   [#44](https://github.com/signalfx/splunk-otel-python/pull/44)
 
-## 0.11.0 (03-29-2021)
+## [0.11.0] - 03-29-2021
 
 ### Added
 
@@ -93,7 +93,7 @@
   [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
 
 
-## 0.10.0 (03-27-2021)
+## [0.10.0] - 03-27-2021
 
 ### Changed
 
@@ -110,7 +110,7 @@
 - `start_tracing()` now accepts an argument called `endpoint` instead of `url`.
   ([#29](https://github.com/signalfx/splunk-otel-python/pull/29))
 
-## 0.9.0 (03-13-2021)
+## [0.9.0] - 03-13-2021
 
 ### Changed
 

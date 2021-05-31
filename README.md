@@ -11,9 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.2.0">
-    <img alt="OpenTelemetry Python Version" src="https://img.shields.io/badge/otel-1.2.0-blueviolet?style=for-the-badge">
-  </a>
+  <span class="otel-version-badge"><a href="https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.2.0"><img alt="OpenTelemetry Python Version" src="https://img.shields.io/badge/otel-1.2.0-blueviolet?style=for-the-badge"/></a></span>
   <a href="https://github.com/signalfx/splunk-otel-python/releases">
     <img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/signalfx/splunk-otel-python?style=for-the-badge">
   </a>
@@ -41,9 +39,7 @@
 </p>
 
 ---
-
-The documentation below refers to the in development version of this package. Docs for the latest version ([v0.14.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.14.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.14.0/README.md).
-
+<span class="docs-version-header">The documentation below refers to the in development version of this package. Docs for the latest version ([v0.14.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.14.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.14.0/README.md).</span>
 ---
 
 # Splunk Distribution of OpenTelemetry Python
@@ -160,12 +156,12 @@ Documentation on how to manually instrument a Python application is available
 To extend the instrumentation with the OpenTelemetry Instrumentation for Python,
 you have to use a compatible API version.
 
-<!-- IMPORTANT: do not change comments or break those lines below -->
-The Splunk Distribution of OpenTelemetry Python version <!--SPLUNK_VERSION-->0.12.0<!--SPLUNK_VERSION--> is compatible
+The Splunk Distribution of OpenTelemetry Python version <span class="splunk-version">0.14.0</span> is compatible
 with:
 
-* OpenTelemetry API version <!--OTEL_VERSION-->1.2.0<!--OTEL_VERSION-->
-* OpenTelemetry Instrumentation for Python version <!--OTEL_INSTRUMENTATION_VERSION-->0.21b0<!--OTEL_INSTRUMENTATION_VERSION-->
+* OpenTelemetry API version <span class="otel-api-version">1.2.0</span>
+* OpenTelemetry SDK version <span class="otel-sdk-version">1.2.0</span>
+* OpenTelemetry Instrumentation for Python version <span class="otel-instrumentation-version">0.21b0</span>
 
 ## Correlating traces with logs
 
