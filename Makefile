@@ -37,11 +37,11 @@ black-check:
 
 .PHONY: pylint
 pylint:
-	poetry run pylint ./splunk_otel ./tests/
+	poetry run pylint ./splunk_otel ./tests/ ./scripts/
 
 .PHONY: flake8 
 flake8:
-	poetry run flake8 ./splunk_otel ./tests/
+	poetry run flake8 ./splunk_otel ./tests/ ./scripts/
 
 .PHONY: lint
 lint: isort-check black-check flake8 pylint
@@ -55,11 +55,11 @@ fmt: isort black
 
 .PHONY: black
 black:
-	poetry run black splunk_otel tests
+	poetry run black splunk_otel tests scripts
 
 .PHONY: isort
 isort:
-	poetry run isort --profile black ./splunk_otel ./tests
+	poetry run isort --profile black ./splunk_otel ./tests ./scripts
 
 .PHONY: test
 test:
@@ -75,3 +75,7 @@ test-with-cov:
 	poetry run pytest --cov splunk_otel --cov-append --cov-branch --cov-report='' --junit-xml=test_results/results.xml tests/unit/
 	poetry run coverage report --show-missing
 	poetry run coverage xml
+
+.PHONY: create-github-release
+ci-create-github-release:
+	poetry run python scripts/create_gh_release.py --dry-run=false

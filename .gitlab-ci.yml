@@ -5,6 +5,9 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 cache:
+  key:
+    files:
+      - poetry.lock
   paths:
     - .cache/pip
 
@@ -67,6 +70,8 @@ release:
   except:
     - branches
   script:
+    - make deps
     - poetry config http-basic.pypi __token__ $PYPI_PASSWORD
     - make publish
     - shasum -a 256 dist/* > dist/checksums.txt
+    - make ci-create-github-release
