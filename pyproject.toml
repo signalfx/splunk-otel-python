@@ -16,8 +16,11 @@ include = [
 ]
 
 [tool.poetry.scripts]
-splk-py-trace = 'splunk_otel.cmd.trace:run'
-splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run'
+splunk-py-trace = 'splunk_otel.cmd.trace:run'
+splunk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run'
+# deprecated commands
+splk-py-trace = 'splunk_otel.cmd.trace:run_deprecated'
+splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run_deprecated'
 
 [tool.poetry.plugins."opentelemetry_distro"]
 splunk_distro = "splunk_otel.distro:SplunkDistro"

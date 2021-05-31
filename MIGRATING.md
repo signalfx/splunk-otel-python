@@ -88,13 +88,13 @@ Follow these steps to deploy the Splunk Distribution for OpenTelemetry Python:
 3. Install instrumentations packages with the bootstrap
    command:
    ```
-   splk-py-trace-bootstrap
+   splunk-py-trace-bootstrap
    ```
    This command detects and installs instrumentation for every supported
    package it finds in your Python environment. To see which packages the
    command will install before running it, use this command:
    ```
-   splk-py-trace-bootstrap -a=requirements
+   splunk-py-trace-bootstrap -a=requirements
    ```
    You can integrate the bootstrap in your build/deployment process so
    instrumentation is configured every time you deploy the project. You can
@@ -117,8 +117,8 @@ Rename required environment variables:
 
 ### Step 3. Start you Python service
 
-Run your python service with the `splk-py-trace` command. If you run your service as `python main.py`, you
-can automatically instrument it with Splunk distribution of OpenTelemetry by running it as `splk-py-trace python main.py`.
+Run your python service with the `splunk-py-trace` command. If you run your service as `python main.py`, you
+can automatically instrument it with Splunk distribution of OpenTelemetry by running it as `splunk-py-trace python main.py`.
 
 ## Special cases
 

@@ -66,3 +66,13 @@ def run() -> None:
     if not args.action:
         sys.argv.append("--action=install")
     otel_run()
+
+
+def run_deprecated() -> None:
+    logger.warning(
+        (
+            "splk-py-trace-bootstrap is deprecated and will be removed in a future version. "
+            "Please use `splunk-py-trace-bootstrap` instead."
+        )
+    )
+    run()
