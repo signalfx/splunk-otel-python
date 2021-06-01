@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0-rc1] - 2021-06-01
+
 ### Added
 
 - Log trace correlation is not enabled by default. Can be disabled by setting
