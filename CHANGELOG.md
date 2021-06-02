@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.0.0-rc2] - 2021-06-03
+
+- Upgrade OpenTelemetry Python to 1.3.0 and 0.22b0
+  [#85](https://github.com/signalfx/splunk-otel-python/pull/85)
+
 ## [1.0.0-rc1] - 2021-06-01
 
 ### Added
