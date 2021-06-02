@@ -36,3 +36,5 @@ _KNOWN_EXPORTER_PACKAGES = {
     _EXPORTER_JAEGER_THRIFT: "opentelemetry-exporter-jaeger-thrift",
     _EXPORTER_JAEGER_SPLUNK: "opentelemetry-exporter-jaeger-thrift",
 }
+
+_LIMIT_UNSET_VALUE = "unset"

@@ -13,30 +13,24 @@
 # limitations under the License.
 
 import unittest
-from importlib import reload
 from os import environ
 
-from opentelemetry.sdk import trace
+from opentelemetry.sdk.trace import TracerProvider
 
 from splunk_otel.defaults import _OTEL_PYTHON_LOG_CORRELATION
+from splunk_otel.options import _Options
 
 
 class TestOtelDefaults(unittest.TestCase):
     # pylint: disable=protected-access,import-outside-toplevel
 
-    def test_otel_span_link_count_limit(self):
-        self.assertEqual(trace._SPAN_LINK_COUNT_LIMIT, 128)
-        self.assertEqual(trace._SPAN_EVENT_COUNT_LIMIT, 128)
-        self.assertEqual(trace.SPAN_ATTRIBUTE_COUNT_LIMIT, 128)
-
-        # import splunk_otel sets default envs for otel
-        from splunk_otel import start_tracing  # pylint: disable=unused-import
-
-        # reload otel module so it reads the env again
-        reload(trace)
-        self.assertEqual(trace._SPAN_LINK_COUNT_LIMIT, 1000)
-        self.assertEqual(trace._SPAN_EVENT_COUNT_LIMIT, 999999)
-        self.assertEqual(trace.SPAN_ATTRIBUTE_COUNT_LIMIT, 999999)
+    def test_default_limits(self):
+        # instantiating _Options() sets default env vars
+        _Options()
+        limits = TracerProvider()._span_limits
+        self.assertIsNone(limits.max_attributes)
+        self.assertIsNone(limits.max_events)
+        self.assertIsNone(limits.max_links)
 
     def test_otel_log_correlation_enabled(self):
         self.assertTrue(environ[_OTEL_PYTHON_LOG_CORRELATION])
