@@ -138,3 +138,10 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - tox-env:
+          name: python-3.10
+          py_version: '3.10'
+          tox_env: 'py310-test'
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/

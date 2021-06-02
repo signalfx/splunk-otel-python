@@ -60,6 +60,12 @@ test-py39:
     PY_VERSION: "3.9"
     TOX_ENV: py39-test
 
+test-py310:
+  extends: .tox
+  variables:
+    PY_VERSION: "3.10"
+    TOX_ENV: py310-test
+
 release:
   stage: release
   artifacts:
