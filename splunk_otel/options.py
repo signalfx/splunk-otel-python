@@ -25,6 +25,9 @@ from opentelemetry.instrumentation.version import (
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_JAEGER_ENDPOINT,
     OTEL_SERVICE_NAME,
+    OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
+    OTEL_SPAN_EVENT_COUNT_LIMIT,
+    OTEL_SPAN_LINK_COUNT_LIMIT,
 )
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import SpanExporter
@@ -48,6 +51,7 @@ from splunk_otel.symbols import (
     _EXPORTER_OTLP,
     _EXPORTER_OTLP_GRPC,
     _KNOWN_EXPORTER_PACKAGES,
+    _LIMIT_UNSET_VALUE,
     _NO_SERVICE_NAME_WARNING,
     _SERVICE_NAME_ATTR,
     _SPLUNK_DISTRO_VERSION_ATTR,
@@ -174,6 +178,13 @@ class _Options:
                 "SPLUNK_SERVICE_NAME is deprecated and will be removed soon. Please use OTEL_SERVICE_NAME instead"
             )
             environ[OTEL_SERVICE_NAME] = splunk_service_name
+
+        if OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT not in environ:
+            environ[OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
+        if OTEL_SPAN_EVENT_COUNT_LIMIT not in environ:
+            environ[OTEL_SPAN_EVENT_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
+        if OTEL_SPAN_LINK_COUNT_LIMIT not in environ:
+            environ[OTEL_SPAN_LINK_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
 
     @classmethod
     def _get_span_exporter_names_from_env(cls) -> Collection[Tuple[str, str]]:
