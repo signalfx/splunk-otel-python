@@ -39,7 +39,7 @@
 </p>
 
 ---
-<span class="docs-version-header">The documentation below refers to the in development version of this package. Docs for the latest version ([v1.0.0rc3](https://github.com/signalfx/splunk-otel-python/releases/tag/v1.0.0rc3)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v1.0.0rc3/README.md).</span>
+<span class="docs-version-header">The documentation below refers to the in development version of this package. Docs for the latest version ([v0.16.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.16.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.16.0/README.md).</span>
 ---
 
 # Splunk Distribution of OpenTelemetry Python
@@ -156,7 +156,7 @@ Documentation on how to manually instrument a Python application is available
 To extend the instrumentation with the OpenTelemetry Instrumentation for Python,
 you have to use a compatible API version.
 
-The Splunk Distribution of OpenTelemetry Python version <span class="splunk-version">1.0.0rc3</span> is compatible
+The Splunk Distribution of OpenTelemetry Python version <span class="splunk-version">0.16.0</span> is compatible
 with:
 
 * OpenTelemetry API version <span class="otel-api-version">1.3.0</span>

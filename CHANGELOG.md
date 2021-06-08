@@ -2,17 +2,7 @@
 
 ## [Unreleased]
 
-## [1.0.0rc3] - 2021-06-08
-
-- Pin exact Otel deps until 1.0
-  [#88](https://github.com/signalfx/splunk-otel-python/pull/88)
-
-## [1.0.0-rc2] - 2021-06-03
-
-- Upgrade OpenTelemetry Python to 1.3.0 and 0.22b0
-  [#85](https://github.com/signalfx/splunk-otel-python/pull/85)
-
-## [1.0.0-rc1] - 2021-06-01
+## [0.16.0] - 2021-06-08
 
 ### Added
 
@@ -26,6 +16,12 @@
 
 - Renamed `options.Options` to `options._Options` to make it private.
   [#74](https://github.com/signalfx/splunk-otel-python/pull/74)
+- Pin exact Otel deps until 1.0
+  [#88](https://github.com/signalfx/splunk-otel-python/pull/88)
+- Upgrade OpenTelemetry Python to 1.3.0 and 0.22b0
+  [#85](https://github.com/signalfx/splunk-otel-python/pull/85)
+
+## [0.15.0] - 2021-06-08
 
 ### Deprecated
 
