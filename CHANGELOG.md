@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0rc3] - 2021-06-08
+
 - Pin exact Otel deps until 1.0
   [#88](https://github.com/signalfx/splunk-otel-python/pull/88)
 
