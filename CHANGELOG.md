@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Pin exact Otel deps until 1.0
+  [#88](https://github.com/signalfx/splunk-otel-python/pull/88)
+
 ## [1.0.0-rc2] - 2021-06-03
 
 - Upgrade OpenTelemetry Python to 1.3.0 and 0.22b0
