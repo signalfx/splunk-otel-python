@@ -598,7 +598,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "726691f8c894f53ed837d1f5364347f1cf7f916ecc6e97c630248207b9a619a8"
+content-hash = "a14530b5749f98ae90f1cc1fb2b7fa13aa5362a41599ee40013681b129ee6bcf"
 
 [metadata.files]
 aiocontextvars = [
