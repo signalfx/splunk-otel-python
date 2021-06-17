@@ -16,7 +16,7 @@
 | `OTEL_TRACES_EXPORTER`            | `exporter_factories`  | `otlp`                           | Stable      | Select the traces exporter to use. We recommend using either the OTLP exporter (`otlp`) or the Jaeger exporter (`jaeger-thrift-splunk`).
 
 The Splunk Distribution of OpenTelemetry Python uses the OTLP traces exporter as the default setting. Please note that the
-OTLP format is not supported by the (now deprecated) [SignalFx Smart Agent](https://github.com/signalfx/signalfx-agent).
+OTLP format is neither supported by Splunk Observability Cloud ingest API nor by the (now deprecated) [SignalFx Smart Agent](https://github.com/signalfx/signalfx-agent).
 If you wish to use the Jaeger exporter instead, you can set it by using the `OTEL_TRACES_EXPORTER` environment variable.
 
 For example:
@@ -25,18 +25,12 @@ For example:
 export OTEL_TRACES_EXPORTER=jaeger-thrift-splunk
 ```
 
-Both OTLP and Jaeger exporters can be configured to export traces directly to Splunk ingest. To achieve that, you need
-to set the `SPLUNK_ACCESS_TOKEN` environment variable and set the `OTEL_EXPORTER_OTLP_ENDPOINT` (
-or `OTEL_EXPORTER_JAEGER_ENDPOINT`) to Splunk ingest URL.
+### Exporting directly to Splunk Observability Cloud
 
-OTLP example:
+Only Splunk Jaeger exporter can be configured to export traces directly to Splunk Observability Cloud. To achieve that, you need
+to set the `SPLUNK_ACCESS_TOKEN`, `OTEL_TRACE_EXPORTERS` and `OTEL_EXPORTER_JAEGER_ENDPOINT` environment vairables.
 
-```bash
-export SPLUNK_ACCESS_TOKEN=my_splunk_token
-export OTEL_EXPORTER_OTLP_ENDPOINT=https://ingest.us0.signalfx.com/v2/trace
-```
-
-Jaeger example:
+For example:
 
 ```bash
 export SPLUNK_ACCESS_TOKEN=my_splunk_token
