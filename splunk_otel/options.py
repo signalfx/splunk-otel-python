@@ -46,6 +46,7 @@ from splunk_otel.symbols import (
     _DEFAULT_MAX_ATTR_LENGTH,
     _DEFAULT_OTEL_SERVICE_NAME,
     _DEFAULT_SERVICE_NAME,
+    _DEFAULT_SPAN_LINK_COUNT_LIMIT,
     _EXPORTER_JAEGER_SPLUNK,
     _EXPORTER_JAEGER_THRIFT,
     _EXPORTER_OTLP,
@@ -184,7 +185,7 @@ class _Options:
         if OTEL_SPAN_EVENT_COUNT_LIMIT not in environ:
             environ[OTEL_SPAN_EVENT_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
         if OTEL_SPAN_LINK_COUNT_LIMIT not in environ:
-            environ[OTEL_SPAN_LINK_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
+            environ[OTEL_SPAN_LINK_COUNT_LIMIT] = str(_DEFAULT_SPAN_LINK_COUNT_LIMIT)
 
     @classmethod
     def _get_span_exporter_names_from_env(cls) -> Collection[Tuple[str, str]]:

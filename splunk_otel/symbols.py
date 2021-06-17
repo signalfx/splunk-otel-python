@@ -16,6 +16,7 @@ _DEFAULT_SERVICE_NAME = "unnamed-python-service"
 _DEFAULT_EXPORTERS = "otlp"
 _DEFAULT_JAEGER_ENDPOINT = "http://localhost:9080/v1/trace"
 _DEFAULT_MAX_ATTR_LENGTH = 1200
+_DEFAULT_SPAN_LINK_COUNT_LIMIT = 1000
 
 _EXPORTER_OTLP = "otlp"
 _EXPORTER_OTLP_GRPC = "otlp_proto_grpc_span"

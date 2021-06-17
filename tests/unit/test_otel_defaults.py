@@ -30,7 +30,7 @@ class TestOtelDefaults(unittest.TestCase):
         limits = TracerProvider()._span_limits
         self.assertIsNone(limits.max_attributes)
         self.assertIsNone(limits.max_events)
-        self.assertIsNone(limits.max_links)
+        self.assertEqual(limits.max_links, 1000)
 
     def test_otel_log_correlation_enabled(self):
         self.assertTrue(environ[_OTEL_PYTHON_LOG_CORRELATION])

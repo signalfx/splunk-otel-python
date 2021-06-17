@@ -5,7 +5,7 @@
 | Environment variable                   | Config Option                   | Default value | Support     | Description                                                                                                                                                                                                      |
 | -------------------------------------- | ------------------------------- | ------------  | ----------- | ---                                                                                                                                                                                                              |
 | `SPLUNK_ACCESS_TOKEN`                  | `access_token`                  | unset         | Stable      | (Optional) Auth token allowing exporters to communicate directly with the Splunk cloud, passed as `X-SF-TOKEN` header. Currently, the [Jaeger and OTLP trace exporters](#trace-exporters) support this property.
-| `SPLUNK_TRACE_RESPONSE_HEADER_ENABLED` | `trace_response_header_enabled` | True          | Stable      | Enables adding server trace information to HTTP response headers.
+| `SPLUNK_TRACE_RESPONSE_HEADER_ENABLED` | `trace_response_header_enabled` | True          | Experimental | Enables adding server trace information to HTTP response headers.
 
 ## Trace exporters
 
