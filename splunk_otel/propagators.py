@@ -14,7 +14,7 @@
 
 import typing
 
-import opentelemetry.trace as trace
+from opentelemetry import trace
 from opentelemetry.context.context import Context
 from opentelemetry.instrumentation.propagators import (
     _HTTP_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS,
