@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2021-08-04
+
+- Upgraded Otel dependencies to 1.4.1 and 0.23.0b2
+
 ## [1.0.0rc3] - 2021-06-08
 
 - Pin exact Otel deps until 1.0
