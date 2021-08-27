@@ -510,7 +510,7 @@ thrift = ">=0.10.0"
 
 [[package]]
 name = "opentelemetry-exporter-otlp-proto-grpc"
-version = "1.4.1"
+version = "1.5.0"
 description = "OpenTelemetry Collector Protobuf over gRPC Exporter"
 category = "main"
 optional = true
@@ -521,7 +521,7 @@ backoff = ">=1.10.0,<1.11.0"
 googleapis-common-protos = ">=1.52,<2.0"
 grpcio = ">=1.0.0,<2.0.0"
 opentelemetry-api = ">=1.3,<2.0"
-opentelemetry-proto = "1.4.1"
+opentelemetry-proto = "1.5.0"
 opentelemetry-sdk = ">=1.3,<2.0"
 
 [package.extras]
@@ -553,7 +553,7 @@ opentelemetry-api = ">=1.3,<2.0"
 
 [[package]]
 name = "opentelemetry-proto"
-version = "1.4.1"
+version = "1.5.0"
 description = "OpenTelemetry Python Proto"
 category = "main"
 optional = true
@@ -968,7 +968,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "5e009c66039761faf098e17a34c368706b53b7b63204b91c3a85960209305744"
+content-hash = "6f727add3cc8392986e0a8b98be83cca512cc47e1f72fdbe065c417eed664bc1"
 
 [metadata.files]
 aiocontextvars = [
@@ -1141,8 +1141,10 @@ cryptography = [
     {file = "cryptography-3.4.7-cp36-abi3-win_amd64.whl", hash = "sha256:de4e5f7f68220d92b7637fc99847475b59154b7a1b3868fb7385337af54ac9ca"},
     {file = "cryptography-3.4.7-pp36-pypy36_pp73-manylinux2010_x86_64.whl", hash = "sha256:26965837447f9c82f1855e0bc8bc4fb910240b6e0d16a664bb722df3b5b06873"},
     {file = "cryptography-3.4.7-pp36-pypy36_pp73-manylinux2014_x86_64.whl", hash = "sha256:eb8cc2afe8b05acbd84a43905832ec78e7b3873fb124ca190f574dca7389a87d"},
+    {file = "cryptography-3.4.7-pp37-pypy37_pp73-macosx_10_10_x86_64.whl", hash = "sha256:b01fd6f2737816cb1e08ed4807ae194404790eac7ad030b34f2ce72b332f5586"},
     {file = "cryptography-3.4.7-pp37-pypy37_pp73-manylinux2010_x86_64.whl", hash = "sha256:7ec5d3b029f5fa2b179325908b9cd93db28ab7b85bb6c1db56b10e0b54235177"},
     {file = "cryptography-3.4.7-pp37-pypy37_pp73-manylinux2014_x86_64.whl", hash = "sha256:ee77aa129f481be46f8d92a1a7db57269a2f23052d5f2433b4621bb457081cc9"},
+    {file = "cryptography-3.4.7-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:bf40af59ca2465b24e54f671b2de2c59257ddc4f7e5706dbd6930e26823668d3"},
     {file = "cryptography-3.4.7.tar.gz", hash = "sha256:3d10de8116d25649631977cb37da6cbdd2d6fa0e0281d014a5b7d337255ca713"},
 ]
 dataclasses = [
@@ -1346,8 +1348,8 @@ opentelemetry-exporter-jaeger-thrift = [
     {file = "opentelemetry_exporter_jaeger_thrift-1.4.1-py3-none-any.whl", hash = "sha256:b4e43c9381f6c45cb3fb7459935a014e9e3e5f7ebadad6748c8e024554fd4239"},
 ]
 opentelemetry-exporter-otlp-proto-grpc = [
-    {file = "opentelemetry-exporter-otlp-proto-grpc-1.4.1.tar.gz", hash = "sha256:b35f5912035972e22430d711a95c5a2431e0af48afcc3eb1be02a0145c0df22f"},
-    {file = "opentelemetry_exporter_otlp_proto_grpc-1.4.1-py3-none-any.whl", hash = "sha256:0eb9fad0dbcdfdd89a50a3398b87be6c08594968fd33efb05d3935941a63a66f"},
+    {file = "opentelemetry-exporter-otlp-proto-grpc-1.5.0.tar.gz", hash = "sha256:bcf8657ac87e27f87bc0bf7d41b35e5063aeb16d39e4f89980c8dec8c3be703f"},
+    {file = "opentelemetry_exporter_otlp_proto_grpc-1.5.0-py3-none-any.whl", hash = "sha256:ff61cc53dc87b980ab1ebcea63708ea9cb865b8028295320c98b9d6e50861ce6"},
 ]
 opentelemetry-instrumentation = [
     {file = "opentelemetry-instrumentation-0.23b2.tar.gz", hash = "sha256:03f47469f47970e96d69ae65a231c3e3510b160ac19c90b09ab33893876e2b89"},
@@ -1358,8 +1360,8 @@ opentelemetry-propagator-b3 = [
     {file = "opentelemetry_propagator_b3-1.4.1-py3-none-any.whl", hash = "sha256:14aebdca0919ef325eef86efa0cf38097724730faf765596ac037ead69571867"},
 ]
 opentelemetry-proto = [
-    {file = "opentelemetry-proto-1.4.1.tar.gz", hash = "sha256:306320d6a7dc79c33b1c749ed35c681920015e821ff5837626dcab01720bab33"},
-    {file = "opentelemetry_proto-1.4.1-py3-none-any.whl", hash = "sha256:e655bfbd9573e9648d93b189a655589813f371e211f020142d8867e47c69fd91"},
+    {file = "opentelemetry-proto-1.5.0.tar.gz", hash = "sha256:a0bbaefa09c839858cf15f3bd41ede7e8faf13f8039beb2301a03d1dd3647464"},
+    {file = "opentelemetry_proto-1.5.0-py3-none-any.whl", hash = "sha256:c9c12415a112b035c3d801893bc9819427d9d12f2fdc6c79d1c5f2205808b2cf"},
 ]
 opentelemetry-sdk = [
     {file = "opentelemetry-sdk-1.4.1.tar.gz", hash = "sha256:ef0d6fe69c0e6dffe24114af5dc87f8155347a59e8feba6da81cf96837623b6a"},
@@ -1404,9 +1406,13 @@ protobuf = [
     {file = "protobuf-3.17.3-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:2ae692bb6d1992afb6b74348e7bb648a75bb0d3565a3f5eea5bec8f62bd06d87"},
     {file = "protobuf-3.17.3-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:99938f2a2d7ca6563c0ade0c5ca8982264c484fdecf418bd68e880a7ab5730b1"},
     {file = "protobuf-3.17.3-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:6902a1e4b7a319ec611a7345ff81b6b004b36b0d2196ce7a748b3493da3d226d"},
+    {file = "protobuf-3.17.3-cp38-cp38-win32.whl", hash = "sha256:59e5cf6b737c3a376932fbfb869043415f7c16a0cf176ab30a5bbc419cd709c1"},
+    {file = "protobuf-3.17.3-cp38-cp38-win_amd64.whl", hash = "sha256:ebcb546f10069b56dc2e3da35e003a02076aaa377caf8530fe9789570984a8d2"},
     {file = "protobuf-3.17.3-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:4ffbd23640bb7403574f7aff8368e2aeb2ec9a5c6306580be48ac59a6bac8bde"},
     {file = "protobuf-3.17.3-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:26010f693b675ff5a1d0e1bdb17689b8b716a18709113288fead438703d45539"},
     {file = "protobuf-3.17.3-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:e76d9686e088fece2450dbc7ee905f9be904e427341d289acbe9ad00b78ebd47"},
+    {file = "protobuf-3.17.3-cp39-cp39-win32.whl", hash = "sha256:a38bac25f51c93e4be4092c88b2568b9f407c27217d3dd23c7a57fa522a17554"},
+    {file = "protobuf-3.17.3-cp39-cp39-win_amd64.whl", hash = "sha256:85d6303e4adade2827e43c2b54114d9a6ea547b671cb63fafd5011dc47d0e13d"},
     {file = "protobuf-3.17.3-py2.py3-none-any.whl", hash = "sha256:2bfb815216a9cd9faec52b16fd2bfa68437a44b67c56bee59bc3926522ecb04e"},
     {file = "protobuf-3.17.3.tar.gz", hash = "sha256:72804ea5eaa9c22a090d2803813e280fb273b62d5ae497aaf3553d141c4fdd7b"},
 ]
