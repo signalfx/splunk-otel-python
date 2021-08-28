@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches-ignore:
+    - 'release/*'
+  pull_request:
+
+jobs:
+  build:
+    env:
+      py36: 3.6
+      py37: 3.7
+      py38: 3.8
+      py39: 3.9
+      pypy3: pypy3
+      RUN_MATRIX_COMBINATION: ${{ matrix.python-version }}-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
+      matrix:
+        python-version: [ py36, py37, py38, py39, pypy3 ]
+        target: [ py36-test, py37-test, py38-test, py39-test, pypy3-test, lint ]
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - name: Checkout Repo @ SHA - ${{ github.sha }}
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ env[matrix.python-version] }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env[matrix.python-version] }}
+
+      - name: Cache tox environment
+        # Preserves .tox directory between runs for faster installs
+        uses: actions/cache@v2
+        with:
+          path: |
+            .tox
+            ~/.cache/pip
+          key: cache-${{ env.RUN_MATRIX_COMBINATION }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install deps 
+        run: make deps
+
+      - name: run tox
+        run: tox -f ${{ matrix.target }}

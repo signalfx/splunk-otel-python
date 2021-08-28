@@ -1,58 +1,75 @@
-# Development
+# Contributing Guidelines
 
-## Bootstraping
+Thank you for your interest in contributing to our project! Whether it's a bug
+report, new feature, question, or additional documentation, we greatly value
+feedback and contributions from our community. Read through this document
+before submitting any issues or pull requests to ensure we have all the
+necessary information to effectively respond to your bug report or
+contribution.
 
-### Install Poetry
+In addition to this document, please review our [Code of
+Conduct](CODE_OF_CONDUCT.md). For any code of conduct questions or comments
+please email oss@splunk.com.
 
-This project uses poetry to manage dependencies and the package. Follow the
-instructions here to install Poetry on your system:
-https://python-poetry.org/docs/#installation
+## Reporting Bugs/Feature Requests
 
-### Install dependencies
+We welcome you to use the GitHub issue tracker to report bugs or suggest
+features. When filing an issue, please check existing open, or recently closed,
+issues to make sure somebody else hasn't already reported the issue. Please try
+to include as much information as you can. Details like these are incredibly
+useful:
 
-Once poetry is installed and available run the following command to install all
-package required for local development.
+- A reproducible test case or series of steps
+- The version of our code being used
+- Any modifications you've made relevant to the bug
+- Anything unusual about your environment or deployment
+- Any known workarounds
 
-```
-make deps
-```
+When filing an issue, please do *NOT* include:
 
-## Testing in a local project
+- Internal identifiers such as JIRA tickets
+- Any sensitive information related to your environment, users, etc.
 
-In order to install and test the package in a local test project, we'll need to
-generate a setup.py file and then install an editable version of the package in
-the test project's environment. Assuming the test project environment lives at
-`/path/to/test/project/venv`, the following steps will install an editable
-version of package in the test project.
+## Contributing via Pull Requests
 
-```
-make develop DEV_ENV=/path/to/test/project/venv
-```
+Contributions via Pull Requests (PRs) are much appreciated. Before sending us a
+pull request, please ensure that:
 
-This will install an editable version of the package in the test project. Any
-changes made to the library will automatically reflect in the test project
-without the need to install the package again.
+1. You are working against the latest source on the `main` branch.
+2. You check existing open, and recently merged, pull requests to make sure
+   someone else hasn't addressed the problem already.
+3. You open an issue to discuss any significant work - we would hate for your
+   time to be wasted.
+4. You submit PRs that are easy to review and ideally less 500 lines of code.
+   Multiple PRs can be submitted for larger contributions.
 
-## Releasing
+To send us a pull request, please:
 
-Assuming the latest version is 0.14.0 and you want to releaase 0.15.0,
+1. Fork the repository.
+2. Modify the source; please ensure a single change per PR. If you also
+   reformat all the code, it will be hard for us to focus on your change.
+3. Ensure local tests pass and add new tests related to the contribution.
+4. Commit to your fork using clear commit messages.
+5. Send us a pull request, answering any default questions in the pull request
+   interface.
+6. Pay attention to any automated CI failures reported in the pull request, and
+   stay involved in the conversation.
 
-1. Run `make prepare-release VERSION=0.15.0` 
-   This will bump the version where neccesary, update the changelog and commit
-   all the changes to a new branch with name `release/v0.15.0`.
-2. Submit a GitHub PR for the new branch and merge it once it is approved.
-3. Switch to the main branch and pull the newly merged changes. Make sure you have the same commit
-   checked out that was auto-generated in step 1.
-4. Tag the commit with the version number
-   ```shell
-   git tag -s v0.15.0
-   ```
-5. Push the new tag to bot GitHub and GitLab
-   ```shell
-   git push github v0.15.0
-   git push gitlab v0.15.0
-   ```
-   This will kickoff a Gitlab release job which will publish packages to pypi.org
-   and create a new GitHub release.
-6. You should review the GitHub release and add
-   additional information to it if required.
+GitHub provides additional documentation on [forking a
+repository](https://help.github.com/articles/fork-a-repo/) and [creating a pull
+request](https://help.github.com/articles/creating-a-pull-request/).
+
+## Finding contributions to work on
+
+Looking at the existing issues is a great way to find something to contribute
+on. As our projects, by default, use the default GitHub issue labels
+(enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at
+any 'help wanted' issues is a great place to start.
+
+## Licensing
+
+See the [LICENSE](LICENSE) file for our project's licensing. We will ask you to
+confirm the licensing of your contribution.
+
+## CLA
+All contributors must execute the [Splunk Contributor License Agree (CLA)](https://www.splunk.com/en_us/form/contributions.html) form.

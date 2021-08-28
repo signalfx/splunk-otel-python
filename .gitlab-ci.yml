@@ -33,7 +33,7 @@ build:
 lint:
   extends: .tox
   variables:
-    PY_VERSION: "3.8"
+    PY_VERSION: "3.9"
     TOX_ENV: lint
 
 test-py36:
