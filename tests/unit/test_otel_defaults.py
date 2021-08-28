@@ -28,9 +28,17 @@ class TestOtelDefaults(unittest.TestCase):
         # instantiating _Options() sets default env vars
         _Options()
         limits = TracerProvider()._span_limits
+
+        # unlimited by default
         self.assertIsNone(limits.max_attributes)
         self.assertIsNone(limits.max_events)
+        self.assertIsNone(limits.max_event_attributes)
+        self.assertIsNone(limits.max_link_attributes)
+
+        # have default limits
         self.assertEqual(limits.max_links, 1000)
+        self.assertEqual(limits.max_attribute_length, 1200)
+        self.assertEqual(limits.max_span_attribute_length, 1200)
 
     def test_otel_log_correlation_enabled(self):
         self.assertTrue(environ[_OTEL_PYTHON_LOG_CORRELATION])

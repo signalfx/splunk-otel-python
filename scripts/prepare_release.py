@@ -56,13 +56,13 @@ def update_docs(versions):
     }
 
     markdown = ""
-    with open(readme_path, "r") as readme:
+    with open(readme_path, "r", encoding="utf-8") as readme:
         markdown = readme.read()
 
     for name, value in variables.items():
         markdown = re.sub(regexp.format(name), value, markdown)
 
-    with open(readme_path, "w") as readme:
+    with open(readme_path, "w", encoding="utf-8") as readme:
         readme.write(markdown)
 
 

@@ -1,17 +1,32 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+
+- Upgraded Otel dependencies to 1.5.0 and 0.24.0b0
+
+### Removed
+
+- SPLUNK_SERVICE_NAME and SPLUNK_MAX_ATTR_LENGTH env vars were removed.
+  Use `OTEL_SERVICE_NAME` and `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` instead.
+  [#116](https://github.com/signalfx/splunk-otel-python/pull/116)
 
 ## [0.16.0] - 2021-08-04
+
+### Changed
 
 - Upgraded Otel dependencies to 1.4.1 and 0.23.0b2
 
 ## [1.0.0rc3] - 2021-06-08
 
+### Changed
+
 - Pin exact Otel deps until 1.0
   [#88](https://github.com/signalfx/splunk-otel-python/pull/88)
 
 ## [1.0.0-rc2] - 2021-06-03
+
+### Changed
 
 - Upgrade OpenTelemetry Python to 1.3.0 and 0.22b0
   [#85](https://github.com/signalfx/splunk-otel-python/pull/85)
