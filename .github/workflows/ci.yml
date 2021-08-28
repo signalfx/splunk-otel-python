@@ -1,0 +1,111 @@
+name: Tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+
+jobs:
+
+  check-links:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check all links in *.md files
+        id: lychee
+        uses: lycheeverse/lychee-action@v1.0.8
+        with:
+          args: >-
+            -v -n "*.md" "**/*.md"
+            --exclude "https://ingest.us0.signalfx.com.*"
+            --exclude "http://localhost*"
+      - name: Fail if there were link errors
+        run: exit ${{ steps.lychee.outputs.exit_code }}
+
+  test:
+    env:
+      py36: 3.6
+      py37: 3.7
+      py38: 3.8
+      py39: 3.9
+      pypy3: pypy-3.7
+      RUN_MATRIX_COMBINATION: ${{ matrix.python-version }}-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
+      matrix:
+        python-version: [ py36, py37, py38, py39, pypy3 ]
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - name: Checkout Repo @ SHA - ${{ github.sha }}
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ env[matrix.python-version] }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env[matrix.python-version] }}
+      - name: Cache Python
+        uses: actions/cache@v2
+        with:
+          path: |
+            .tox
+            ~/.cache/pip
+            ~/.poetry/
+          key: test-cache-${{ env.RUN_MATRIX_COMBINATION }}-${{ hashFiles('poetry.lock') }}
+      - name: Install Tools 
+        run: make install-tools
+      # tox fails on windows and Python3.6 when tox dir is reused between builds so we remove it
+      - name: fix for windows + py3.6
+        if: ${{ matrix.os == 'windows-latest' && matrix.python-version == 'py36' }} 
+        shell: pwsh
+        run: Remove-Item .\.tox\ -Force -Recurse -ErrorAction Ignore
+      - name: Test
+        # pypy has some issues on github ci that we need to resolve before enabling it
+        if: ${{ matrix.python-version != 'pypy3' }}
+        run: tox -f ${{ matrix.python-version }}-test
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo @ SHA - ${{ github.sha }}
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ env[matrix.python-version] }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Cache tox environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            .tox
+            ~/.cache/pip
+            ~/.poetry/
+          key: integration-cache-${{ hashFiles('poetry.lock') }}
+      - name: Install Tools
+        run: make install-tools
+      - name: Integration 
+        run: tox -e integration
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo @ SHA - ${{ github.sha }}
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ env[matrix.python-version] }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Cache tox environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            .tox
+            ~/.cache/pip
+            ~/.poetry/
+          key: lint-cache-${{ hashFiles('poetry.lock') }}
+      - name: Install Tools
+        run: make install-tools
+      - name: Lint
+        run: tox -e lint
