@@ -34,7 +34,6 @@ def start_tracing(
     service_name: Optional[str] = None,
     span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
     access_token: Optional[str] = None,
-    max_attr_length: Optional[int] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
 ) -> None:
@@ -47,7 +46,6 @@ def start_tracing(
         service_name,
         span_exporter_factories,
         access_token,
-        max_attr_length,
         resource_attributes,
         trace_response_header_enabled,
     )

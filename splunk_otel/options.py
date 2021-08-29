@@ -23,8 +23,10 @@ from opentelemetry.instrumentation.version import (
     __version__ as auto_instrumentation_version,
 )
 from opentelemetry.sdk.environment_variables import (
+    OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
+    OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT,
     OTEL_EXPORTER_JAEGER_ENDPOINT,
-    OTEL_SERVICE_NAME,
+    OTEL_LINK_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_EVENT_COUNT_LIMIT,
     OTEL_SPAN_LINK_COUNT_LIMIT,
@@ -34,10 +36,8 @@ from opentelemetry.sdk.trace.export import SpanExporter
 from pkg_resources import iter_entry_points
 
 from splunk_otel.environment_variables import (
-    SPLUNK_ACCESS_TOKEN,
-    SPLUNK_MAX_ATTR_LENGTH,
-    SPLUNK_SERVICE_NAME,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
+    _SPLUNK_ACCESS_TOKEN,
+    _SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
 )
 from splunk_otel.propagators import ServerTimingResponsePropagator
 from splunk_otel.symbols import (
@@ -69,7 +69,6 @@ logger = logging.getLogger("options")
 class _Options:
     span_exporter_factories: Collection[_SpanExporterFactory]
     access_token: Optional[str]
-    max_attr_length: int
     resource: Resource
     response_propagation: bool
     response_propagator: Optional[ResponsePropagator]
@@ -79,13 +78,11 @@ class _Options:
         service_name: Optional[str] = None,
         span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
         access_token: Optional[str] = None,
-        max_attr_length: Optional[int] = None,
         resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
         trace_response_header_enabled: Optional[bool] = None,
     ):
         self._set_default_env()
         self.access_token = self._get_access_token(access_token)
-        self.max_attr_length = self._get_max_attr_length(max_attr_length)
         self.response_propagator = self._get_trace_response_header_enabled(
             trace_response_header_enabled
         )
@@ -97,19 +94,8 @@ class _Options:
     @staticmethod
     def _get_access_token(access_token: Optional[str]) -> Optional[str]:
         if not access_token:
-            access_token = environ.get(SPLUNK_ACCESS_TOKEN)
+            access_token = environ.get(_SPLUNK_ACCESS_TOKEN)
         return access_token or None
-
-    @staticmethod
-    def _get_max_attr_length(max_attr_length: Optional[int]) -> int:
-        if not max_attr_length:
-            value = environ.get(SPLUNK_MAX_ATTR_LENGTH)
-            if value:
-                try:
-                    max_attr_length = int(value)
-                except (TypeError, ValueError):
-                    logger.error("SPLUNK_MAX_ATTR_LENGTH must be a number.")
-        return max_attr_length or _DEFAULT_MAX_ATTR_LENGTH
 
     @staticmethod
     def _get_trace_response_header_enabled(
@@ -117,7 +103,7 @@ class _Options:
     ) -> Optional[ResponsePropagator]:
         if enabled is None:
             enabled = _Options._is_truthy(
-                environ.get(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
+                environ.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
             )
         if enabled:
             return ServerTimingResponsePropagator()
@@ -172,20 +158,19 @@ class _Options:
 
     @staticmethod
     def _set_default_env() -> None:
-        otel_service_name = environ.get(OTEL_SERVICE_NAME, "")
-        splunk_service_name = environ.get(SPLUNK_SERVICE_NAME)
-        if not otel_service_name and splunk_service_name:
-            logger.warning(
-                "SPLUNK_SERVICE_NAME is deprecated and will be removed soon. Please use OTEL_SERVICE_NAME instead"
-            )
-            environ[OTEL_SERVICE_NAME] = splunk_service_name
+        defaults = {
+            OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
+            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
+        }
 
-        if OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT not in environ:
-            environ[OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
-        if OTEL_SPAN_EVENT_COUNT_LIMIT not in environ:
-            environ[OTEL_SPAN_EVENT_COUNT_LIMIT] = _LIMIT_UNSET_VALUE
-        if OTEL_SPAN_LINK_COUNT_LIMIT not in environ:
-            environ[OTEL_SPAN_LINK_COUNT_LIMIT] = str(_DEFAULT_SPAN_LINK_COUNT_LIMIT)
+        for key, value in defaults.items():
+            if key not in environ:
+                environ[key] = value
 
     @classmethod
     def _get_span_exporter_names_from_env(cls) -> Collection[Tuple[str, str]]:
@@ -276,22 +261,14 @@ class _Options:
         return exporter(**_Options._get_jaeger_kwargs(options))
 
     @staticmethod
-    def _get_jaeger_kwargs(options: "_Options") -> Dict[str, Union[int, str]]:
-        kwargs: Dict[str, Union[int, str]] = {
-            "max_tag_value_length": options.max_attr_length,
-        }
+    def _get_jaeger_kwargs(options: "_Options") -> Dict[str, str]:
         if options.access_token:
-            kwargs.update(
-                {
-                    "username": "auth",
-                    "password": options.access_token,
-                }
-            )
-        return kwargs
+            return {
+                "username": "auth",
+                "password": options.access_token,
+            }
+        return {}
 
     @staticmethod
     def _otlp_factory(exporter: _SpanExporterClass, options: "_Options") -> SpanExporter:
-        # TODO: enable after PR is merged and released:
-        # https://github.com/open-telemetry/opentelemetry-python/pull/1824
-        # kwargs = {"max_attr_value_length": self.max_attr_length}
         return exporter(headers=(("x-sf-token", options.access_token),))
