@@ -28,7 +28,7 @@ def render_changelog(version):
 
 
 def render_release_notes(**kwargs):
-    with open(relase_template_path, "r") as tmpl:
+    with open(relase_template_path, "r", encoding="utf-8") as tmpl:
         notes = tmpl.read().format(**kwargs)
         return notes
 

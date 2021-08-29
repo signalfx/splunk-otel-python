@@ -66,7 +66,7 @@ def run() -> None:
         os.environ["SPLUNK_ACCESS_TOKEN"] = args.token
 
     if args.service_name:
-        os.environ["SPLUNK_SERVICE_NAME"] = args.service_name
+        os.environ["OTEL_SERVICE_NAME"] = args.service_name
 
     if not args.command:
         ap.error(ap.format_help())
