@@ -38,7 +38,7 @@ jobs:
       fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
       matrix:
         python-version: [ py36, py37, py38, py39, pypy3 ]
-        os: [ ubuntu-latest, windows-latest ]
+        os: [ ubuntu-20.04, windows-2019 ]
     steps:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
         uses: actions/checkout@v2
@@ -46,6 +46,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env[matrix.python-version] }}
+          architecture: 'x64'
       - name: Cache Python
         uses: actions/cache@v2
         with:
@@ -53,21 +54,19 @@ jobs:
             .tox
             ~/.cache/pip
             ~/.poetry/
-          key: test-cache-${{ env.RUN_MATRIX_COMBINATION }}-${{ hashFiles('poetry.lock') }}
+          key: v1-test-cache-${{ env.RUN_MATRIX_COMBINATION }}-${{ hashFiles('poetry.lock') }}
       - name: Install Tools 
         run: make install-tools
       # tox fails on windows and Python3.6 when tox dir is reused between builds so we remove it
       - name: fix for windows + py3.6
-        if: ${{ matrix.os == 'windows-latest' && matrix.python-version == 'py36' }} 
+        if: ${{ matrix.os == 'windows-2019' && matrix.python-version == 'py36' }} 
         shell: pwsh
         run: Remove-Item .\.tox\ -Force -Recurse -ErrorAction Ignore
       - name: Test
-        # pypy has some issues on github ci that we need to resolve before enabling it
-        if: ${{ matrix.python-version != 'pypy3' }}
         run: tox -f ${{ matrix.python-version }}-test
 
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
         uses: actions/checkout@v2
@@ -75,6 +74,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
+          architecture: 'x64'
       - name: Cache tox environment
         uses: actions/cache@v2
         with:
@@ -82,14 +82,14 @@ jobs:
             .tox
             ~/.cache/pip
             ~/.poetry/
-          key: integration-cache-${{ hashFiles('poetry.lock') }}
+          key: v1-integration-cache-${{ hashFiles('poetry.lock') }}
       - name: Install Tools
         run: make install-tools
       - name: Integration 
         run: tox -e integration
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
         uses: actions/checkout@v2
@@ -97,6 +97,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
+          architecture: 'x64'
       - name: Cache tox environment
         uses: actions/cache@v2
         with:
@@ -104,7 +105,7 @@ jobs:
             .tox
             ~/.cache/pip
             ~/.poetry/
-          key: lint-cache-${{ hashFiles('poetry.lock') }}
+          key: v1-lint-cache-${{ hashFiles('poetry.lock') }}
       - name: Install Tools
         run: make install-tools
       - name: Lint
