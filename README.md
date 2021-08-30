@@ -18,11 +18,14 @@
   <a href="https://pypi.org/project/splunk-opentelemetry/">
     <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/splunk-opentelemetry?style=for-the-badge">
   </a>
-  <a href="https://circleci.com/gh/signalfx/splunk-otel-python">
-    <img alt="CircleCI" src="https://img.shields.io/circleci/build/github/signalfx/splunk-otel-python/main?style=for-the-badge">
+  <a href="https://github.com/signalfx/gdi-specification/releases/tag/v1.0.0">
+    <img alt="Splunk GDI specification" src="https://img.shields.io/badge/GDI-1.0.0-blueviolet?style=for-the-badge">
   </a>
   <a href="https://codecov.io/gh/signalfx/splunk-otel-python">
     <img alt="Codecov" src="https://img.shields.io/codecov/c/github/signalfx/splunk-otel-python?style=for-the-badge&token=XKXjEQKGaK">
+  </a>
+  <a href="https://github.com/signalfx/splunk-otel-python/actions?query=workflow%3ATests">
+    <img alt="Build Status" src="https://img.shields.io/github/workflow/status/signalfx/splunk-otel-python/Tests?style=for-the-badge">
   </a>
 </p>
 

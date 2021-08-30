@@ -19,7 +19,7 @@ import keepachangelog
 from github_release import gh_release_create
 from splunk_packaging import changelog_path, get_versions, root_path
 
-relase_template_path = path.join(root_path, "scripts", "gh_release_template.md")
+relase_template_path = path.join(root_path, "scripts", "gh_release_template.md.in")
 artifacts_path = path.join(root_path, "dist/*")
 
 
