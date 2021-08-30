@@ -1,6 +1,17 @@
 DEV_VENV?=""
 VERSION?=""
 
+.PHONY: install-poetry
+install-poetry:
+	pip install poetry==1.1.8
+
+.PHONY: install-tox
+install-tox:
+	pip install tox==3.24.3 tox-factor==0.1.2
+
+.PHONY: install-tools
+install-tools: install-poetry install-tox
+
 .PHONY: deps
 deps:
 	poetry install --extras all
