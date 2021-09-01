@@ -3,6 +3,7 @@
 ## Unreleased
 
 ## 0.17.0 - 2021-08-29
+
 ### General
 
 - Upgraded Otel dependencies to 1.5.0 and 0.24.0b0
@@ -52,6 +53,7 @@
   [#74](https://github.com/signalfx/splunk-otel-python/pull/74)
 - Deprecated `splunk-py-trace` and `splunk-py-trace-bootstrap` commands.
   [#79](https://github.com/signalfx/splunk-otel-python/pull/79)
+
 ### Enhancements
 
 - Log trace correlation is not enabled by default. Can be disabled by setting
@@ -84,6 +86,7 @@
 - Deprecated support for `SPLUNK_SERVICE_NAME` environment variable.
   Please use `OTEL_SERVICE_NAME=<my-service-name>` instead.
   [#57](https://github.com/signalfx/splunk-otel-python/pull/57)
+
 ### Enhancements
 
 - Added `resource_attributes` config option to the `splunk_otel.start_tracing()` function.
@@ -108,6 +111,7 @@
   [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
 - Removed support for `--exporters` CLI flag from `splunk-py-trace-bootstrap` command.
   [#34](https://github.com/signalfx/splunk-otel-python/pull/34)
+
 ### Enchancements
 
 - Added support for `--access-token` and `--service-name` to `splunk-py-trace` command.
@@ -120,10 +124,12 @@
   ([#35](https://github.com/signalfx/splunk-otel-python/pull/35))
 
 ## 0.10.0 - 03-27-2021
+
 ### General
 
 - Upgraded OpenTelemetry to 1.0 and 0.19b0
   ([#34](https://github.com/signalfx/splunk-otel-python/pull/34))
+
 ### Breaking Changes
 
 - `SPLUNK_MAX_ATTR_LENGTH` properly supported now. This env var was documented
