@@ -429,7 +429,7 @@ format_nongpl = ["idna", "jsonpointer (>1.13)", "webcolors", "rfc3986-validator 
 name = "keepachangelog"
 version = "1.0.0"
 description = "Manipulate keep a changelog files."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -984,7 +984,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "13fb940baeb3bbe1fd30686c1e372d3223fc5c599ff24c7c2f225e99382b1742"
+content-hash = "787d68cdcb27f10cb8133cd0c12e797a097b258f0824baf1d75ee9cfa6a93df7"
 
 [metadata.files]
 aiocontextvars = [
