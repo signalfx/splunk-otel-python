@@ -35,7 +35,7 @@
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
     <a href="SECURITY.md">Security</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation">Supported Libraries</a>
+    <a href="https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/instrumentation/README.md">Supported Libraries</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
     <a href="docs/troubleshooting.md">Troubleshooting</a>
   </strong>
