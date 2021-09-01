@@ -1,1 +1,12 @@
 *       @gdi-python-maintainers @gdi-python-approvers
+
+#####################################################
+#
+# Docs reviewers
+#
+#####################################################
+
+*.md @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
+*.rst @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
+docs/ @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
+README* @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
