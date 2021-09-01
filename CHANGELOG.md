@@ -13,6 +13,12 @@
   Use `OTEL_SERVICE_NAME` and `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` instead.
   [#116](https://github.com/signalfx/splunk-otel-python/pull/116)
 
+## [1.0.0rc4] - 2021-08-04
+
+### Changed
+
+- Upgraded Otel dependencies to 1.4.1 and 0.23.0b2
+
 ## [0.16.0] - 2021-08-04
 
 ### Changed
