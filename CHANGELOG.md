@@ -56,7 +56,7 @@
 
 ### Enhancements
 
-- Log trace correlation is not enabled by default. Can be disabled by setting
+- Log trace correlation is enabled by default. Can be disabled by setting
   `OTEL_PYTHON_LOG_CORRELATION` env var to `false`.
   [#77](https://github.com/signalfx/splunk-otel-python/pull/77)
 
