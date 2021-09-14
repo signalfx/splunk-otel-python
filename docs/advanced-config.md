@@ -1,3 +1,5 @@
+> The official Splunk documentation for this page is [Configure the Python agent](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html).
+
 # Advanced Configuration
 
 ## Splunk distribution configuration

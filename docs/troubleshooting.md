@@ -1,3 +1,5 @@
+> The official Splunk documentation for this page is [Troubleshoot Python instrumentation](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/common-python-troubleshooting.html).
+
 # Troubleshooting
 
 - Depending on the default python version on your system, you might want to use

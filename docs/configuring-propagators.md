@@ -1,3 +1,4 @@
+> The official Splunk documentation for this page is [Configure the Python agent](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html#trace-propagation-configuration-python).
 # Configuring Propagators
 
 This package uses W3C trace context and W3C baggage propagators by default. You can override

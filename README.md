@@ -2,11 +2,11 @@
 
 <p align="center">
   <strong>
-    <a href="#getting-started">Getting Started</a>
+    <a href="https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/get-started.html">Get Started</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="CONTRIBUTING.md">Getting Involved</a>
+    <a href="CONTRIBUTING.md">Get Involved</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="MIGRATING.md">Migrating from SignalFx Python Tracing</a>
+    <a href="https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html">Migrating from SignalFx Python Tracing</a>
   </strong>
 </p>
 
@@ -37,50 +37,46 @@
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
     <a href="https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/instrumentation/README.md">Supported Libraries</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="docs/troubleshooting.md">Troubleshooting</a>
+    <a href="https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/common-python-troubleshooting.html">Troubleshooting</a>
   </strong>
 </p>
-
----
-<span class="docs-version-header">The documentation below refers to the in development version of this package. Docs for the latest version ([v0.17.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.17.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.17.0/README.md).</span>
----
 
 # Splunk Distribution of OpenTelemetry Python
 
 The Splunk distribution of [OpenTelemetry
 Python](https://github.com/open-telemetry/opentelemetry-python) provides
-multiple installable packages that automatically instruments your Python
+multiple installable packages that automatically instrument your Python
 application to capture and report distributed traces to Splunk APM.
 Instrumentation works by patching supported libraries at runtime with an
 OpenTelemetry-compatible tracer to capture and export trace spans.
 
-This Splunk distribution comes with the following defaults:
+This distribution comes with the following defaults:
 
 - [W3C tracecontext](https://www.w3.org/TR/trace-context/) and [W3C
   baggage](https://www.w3.org/TR/baggage/) context propagation;
   [B3](https://github.com/openzipkin/b3-propagation) can also be
-  [configured](docs/advanced-config.md#trace-propagation-configuration).
+  [configured](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html).
 - [OTLP gRPC
   exporter](https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html)
   configured to send spans to a locally running [Splunk OpenTelemetry
   Connector](https://github.com/signalfx/splunk-otel-collector)
   (`http://localhost:4317`).
-- Unlimited default limits for [configuration options](docs/advanced-config.md#trace-configuration) to
+- Unlimited default limits for [configuration options](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html) to
   support full-fidelity traces.
 
 If you're currently using the SignalFx Tracing Library for Python and want to
 migrate to the Splunk Distribution of OpenTelemetry Python, see [Migrate from
-the SignalFx Tracing Library for Python](MIGRATING.md).
+the SignalFx Tracing Library for Python](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html#nav-Migrate-from-SignalFX-Python-agent).
 
-> :construction: This project is currently in **BETA**. It is **officially supported** by Splunk. However, breaking changes **MAY** be introduced.
+---
+This README refers to the in development version of this package. Docs for the latest version ([v0.17.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.17.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.17.0/README.md).
+---
 
 ## Requirements
 
 This Splunk Distribution of OpenTelemetry requires Python 3.6 or later.
-If you're still using Python 2, continue using the SignalFx Tracing Library
-for Python.
 
-## Getting Started
+## Get started
 
 To get started, install the `splunk-opentelemetry[all]` package, run the bootstrap
 script and wrap your run command with `splunk-py-trace`.
@@ -103,11 +99,11 @@ $ OTEL_SERVICE_NAME=my-python-app \
 To see the Python instrumentation in action with sample applications, see our
 [examples](https://github.com/signalfx/tracing-examples/tree/main/opentelemetry-tracing/opentelemetry-python-tracing).
 
-### Basic Configuration
+### Basic configuration
 
 The service name resource attribute is the only configuration option
 that needs to be specified. You can set it by adding a `service.name`
-attribute as shown in the [example above](#getting-started).
+attribute as shown in the [example above](#get-started).
 
 A few other configuration options that may need to be changed or set are:
 
@@ -140,13 +136,13 @@ The `OTEL_RESOURCE_ATTRIBUTES` syntax is described in detail in the
 
 ### Supported Python Versions
 
-The instrumentation works with Python verion 3.6 and higher. Supported
+The instrumentation works with Python verion 3.6 or higher. Supported
 libraries are listed
 [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation).
 
 ## Advanced Configuration
 
-For the majority of users, the [Getting Started](#getting-started) section is
+For the majority of users, the [Getting Started](#get-started) section is
 all you need. Advanced configuration documentation can be found
 [here](docs/advanced-config.md). In addition, special cases for instrumentation
 are documented [here](docs/instrumentation-special-cases.md).
@@ -154,7 +150,7 @@ are documented [here](docs/instrumentation-special-cases.md).
 ## Manually instrument an application
 
 Documentation on how to manually instrument a Python application is available
-[here](https://opentelemetry-python.readthedocs.io/en/stable/getting-started.html).
+[here](https://opentelemetry-python.readthedocs.io/en/stable/get-started.html).
 
 To extend the instrumentation with the OpenTelemetry Instrumentation for Python,
 you have to use a compatible API version.
@@ -169,9 +165,7 @@ with:
 ## Correlating traces with logs
 
 The Splunk Distribution of OpenTelemetry Python provides a way
-to correlate traces with logs. It is enabled automatically as part of the
-[logging
-instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/logging/logging.html).
+to correlate traces with logs. See [Connect Python trace data with logs](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/instrumentation/connect-traces-logs.html).
 
 # License and versioning
 
