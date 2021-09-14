@@ -150,7 +150,7 @@ are documented [here](docs/instrumentation-special-cases.md).
 ## Manually instrument an application
 
 Documentation on how to manually instrument a Python application is available
-[here](https://opentelemetry-python.readthedocs.io/en/stable/get-started.html).
+[here](https://opentelemetry-python.readthedocs.io/en/stable/getting-started.html).
 
 To extend the instrumentation with the OpenTelemetry Instrumentation for Python,
 you have to use a compatible API version.
