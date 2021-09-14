@@ -1,3 +1,5 @@
+> The official Splunk documentation for this page is [Configure the Python agent](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html#trace-exporters-settings-python).
+
 # Exporting telemetry data
 
 This package can export spans in the OTLP format over gRPRC or Jaeger Thrift

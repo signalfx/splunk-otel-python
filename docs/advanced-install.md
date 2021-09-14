@@ -1,3 +1,4 @@
+> The official Splunk documentation for this page is [Instrument a Python application automatically](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/instrumentation/instrument-python-application.html).
 # Advanced Installation
 
 ## Bootstrap: List requirements instead of installing them
