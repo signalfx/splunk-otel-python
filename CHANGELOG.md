@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### General
+
+- Changed default for `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` to `12000`.
+  [#135](https://github.com/signalfx/splunk-otel-python/pull/135)
+
 ## 0.17.0 - 2021-08-29
 
 ### General

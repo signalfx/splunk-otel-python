@@ -69,7 +69,7 @@ More information about trace propagation can be found [here](configuring-propaga
 | OTEL_LINK_ATTRIBUTE_COUNT_LIMIT   |                       | `""` (unlimited)          | Maximum number of attributes per link.  |
 | OTEL_SPAN_EVENT_COUNT_LIMIT       |                       | `""` (unlimited)          | Maximum number of events per span. |
 | OTEL_SPAN_LINK_COUNT_LIMIT        |                       | `1000`                    | Maximum number of links per span. |
-| OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT |                       | `1200`                    | Maximum length string attribute values can have. Values larger than this will be truncated. |
+| OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT |                       | `12000`                   | Maximum length string attribute values can have. Values larger than this will be truncated. |
 
 ## Instrument and configure with code
 
@@ -86,7 +86,7 @@ start_tracing()
 #   service_name='my-python-service',
 #   span_exporter_factories=[OTLPSpanExporter]
 #   access_token='',
-#   max_attr_length=1200,
+#   max_attr_length=12000,
 #   trace_response_header_enabled=True,
 #   resource_attributes={
 #    'service.version': '3.1',
