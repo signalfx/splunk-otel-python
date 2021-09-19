@@ -26,7 +26,7 @@ def test_simple_app(integration: IntegrationSession):
 
     # execute instrumented program
     subprocess.call(
-        ["python", "{0}/simple/main.py".format(integration.rootdir)],
+        ["python", f"{integration.rootdir}/simple/main.py"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
