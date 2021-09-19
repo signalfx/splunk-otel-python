@@ -209,15 +209,13 @@ class _Options:
             if internal_name not in entry_points:
                 package = _KNOWN_EXPORTER_PACKAGES.get(internal_name)
                 if package:
-                    help_msg = "please make sure {0} is installed".format(package)
+                    help_msg = f"please make sure {package} is installed"
                 else:
                     help_msg = (
                         "please make sure the relevant exporter package is installed."
                     )
                 raise ValueError(
-                    'exporter "{0} ({1})" not found. {2}'.format(
-                        name, internal_name, help_msg
-                    )
+                    f'exporter "{name} ({internal_name})" not found. {help_msg}'
                 )
 
             exporter_class: _SpanExporterClass = entry_points[internal_name].load()
