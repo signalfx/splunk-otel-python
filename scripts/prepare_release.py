@@ -67,6 +67,7 @@ def update_docs(versions):
 
 
 def update_changelog(file_path, version):
+    # pylint: disable=C0209
     release_title = "## {0} - {1}".format(version, datetime.today().strftime("%Y-%m-%d"))
     with open(file_path, "r+", encoding="utf-8") as file:
         modified = file.read().replace(

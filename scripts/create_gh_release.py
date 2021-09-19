@@ -35,19 +35,17 @@ def render_release_notes(**kwargs):
 
 def print_release_details(**kwargs):
     print(
-        """
+        f"""
 Run with --dry-run=false to create the following release
 
-- Repo: {repo_name}
-- Version: {tag_name}
-- Name: {name}
-- Artifacts: {asset_pattern}
+- Repo: {kwargs["repo_name"]}
+- Version: {kwargs["tag_name"]}
+- Name: {kwargs["name"]}
+- Artifacts: {kwargs["asset_pattern"]}
 - Release notes:
 
-{body}
-""".format(
-            **kwargs
-        )
+{kwargs["body"]}
+"""
     )
 
 
@@ -69,7 +67,7 @@ def main(dry_run):
         changelog=changelog,
     )
 
-    git_tag = "v{}".format(versions.distro)
+    git_tag = f"v{versions.distro}"
 
     action = print_release_details
     if not dry_run:

@@ -31,12 +31,12 @@ def docker_compose_file(pytestconfig):
 @pytest.fixture(scope="session")
 def integration(pytestconfig, docker_ip, docker_services):
     port = docker_services.port_for("collector", 13133)
-    url = "http://{}:{}".format(docker_ip, port)
+    url = f"http://{docker_ip}:{port}"
     docker_services.wait_until_responsive(
         timeout=10, pause=0.1, check=lambda: is_responsive(url)
     )
     return IntegrationSession(
-        poll_url="http://{}:{}".format(docker_ip, "8378"),
+        poll_url=f"http://{docker_ip}:8378",
         rootdir=path.join(str(pytestconfig.rootdir), "tests", "integration"),
     )
 
