@@ -69,8 +69,6 @@ migrate to the Splunk Distribution of OpenTelemetry Python, see [Migrate from
 the SignalFx Tracing Library for Python](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html#nav-Migrate-from-SignalFX-Python-agent).
 
 ---
-This README refers to the in development version of this package. Docs for the latest version ([v0.17.0](https://github.com/signalfx/splunk-otel-python/releases/tag/v0.17.0)) can be found [here](https://github.com/signalfx/splunk-otel-python/blob/v0.17.0/README.md).
----
 
 ## Requirements
 
