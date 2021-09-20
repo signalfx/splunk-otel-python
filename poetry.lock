@@ -712,7 +712,7 @@ typing-extensions = {version = ">=3.10.0", markers = "python_version < \"3.10\""
 
 [[package]]
 name = "pylintfileheader"
-version = "0.3.0"
+version = "0.3.2"
 description = "Enables pylint to force a consistent file header."
 category = "dev"
 optional = false
@@ -985,7 +985,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "9192ecdc1a0febb73c6f9d9bccd5fe68b36e0e84c64359fa993f2fc19931e950"
+content-hash = "0b3b6a1364c29a121d50dd3228b78544c3cedad0be12d3411543fdaf3a24be88"
 
 [metadata.files]
 aiocontextvars = [
@@ -1474,8 +1474,8 @@ pylint = [
     {file = "pylint-2.11.1.tar.gz", hash = "sha256:2c9843fff1a88ca0ad98a256806c82c5a8f86086e7ccbdb93297d86c3f90c436"},
 ]
 pylintfileheader = [
-    {file = "pylintfileheader-0.3.0-py3-none-any.whl", hash = "sha256:7871193691484210268d467dc12d88ac5b3ba7eb7dec6239e24075797185a3b2"},
-    {file = "pylintfileheader-0.3.0.tar.gz", hash = "sha256:a23f143b0fb4d65f984ffd824731d6e41f2840e26a5752a90df93f4454b5ccd1"},
+    {file = "pylintfileheader-0.3.2-py3-none-any.whl", hash = "sha256:77a991cc07611c99f8cb75b83a8b85189070152ce55b64f746a9a5e741b9643c"},
+    {file = "pylintfileheader-0.3.2.tar.gz", hash = "sha256:fb46995d4d84809be23b98310734a920322b3fff387d13ba23230c6f21bda4b9"},
 ]
 pynacl = [
     {file = "PyNaCl-1.4.0-cp27-cp27m-macosx_10_10_x86_64.whl", hash = "sha256:ea6841bc3a76fa4942ce00f3bda7d436fda21e2d91602b9e21b7ca9ecab8f3ff"},
