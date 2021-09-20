@@ -18,10 +18,15 @@ stages:
 .tox:
   image: 'cimg/python:$PY_VERSION'
   cache:
-    key: v1-tox-cache
+    key:
+      prefix: $TOX_ENV
+      files:
+        - poetry.lock
     paths:
       - .tox
   script:
+    - sudo apt update
+    - sudo apt install -y python3-distutils python3-apt
     - pip install tox
     - tox -e $TOX_ENV
 
@@ -71,7 +76,7 @@ release:
     - branches
   script:
     - make deps
-    - poetry config http-basic.pypi __token__ $PYPI_PASSWORD
+    - poetry config pypi-token.pypi $PYPI_PASSWORD
     - make publish
     - shasum -a 256 dist/* > dist/checksums.txt
     - make ci-create-github-release
