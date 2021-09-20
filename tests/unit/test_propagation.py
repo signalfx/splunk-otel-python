@@ -24,7 +24,7 @@ from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from splunk_otel.options import _Options
-from splunk_otel.propagators import ServerTimingResponsePropagator
+from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.tracing import _configure_tracing
 
 
@@ -55,7 +55,7 @@ class TestPropagator(TestCase):
     def test_server_timing_is_default_response_propagator(self):
         _configure_tracing(_Options())
         propagtor = get_global_response_propagator()
-        self.assertIsInstance(propagtor, ServerTimingResponsePropagator)
+        self.assertIsInstance(propagtor, _ServerTimingResponsePropagator)
 
     def test_server_timing_is_global_response_propagator_disabled_code(self):
         _configure_tracing(_Options(trace_response_header_enabled=False))
@@ -83,7 +83,7 @@ class TestServerTimingResponsePropagator(TestCase):
         )
 
         ctx = trace.set_span_in_context(span)
-        prop = ServerTimingResponsePropagator()
+        prop = _ServerTimingResponsePropagator()
         carrier = {}
         prop.inject(carrier, ctx)
         self.assertEqual(carrier["Access-Control-Expose-Headers"], "Server-Timing")
@@ -104,7 +104,7 @@ class TestServerTimingResponsePropagator(TestCase):
         )
 
         ctx = trace.set_span_in_context(span)
-        prop = ServerTimingResponsePropagator()
+        prop = _ServerTimingResponsePropagator()
         carrier = {}
         prop.inject(carrier, ctx)
         self.assertEqual(carrier["Access-Control-Expose-Headers"], "Server-Timing")

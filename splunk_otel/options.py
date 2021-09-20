@@ -39,7 +39,7 @@ from splunk_otel.environment_variables import (
     _SPLUNK_ACCESS_TOKEN,
     _SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
 )
-from splunk_otel.propagators import ServerTimingResponsePropagator
+from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.symbols import (
     _DEFAULT_EXPORTERS,
     _DEFAULT_JAEGER_ENDPOINT,
@@ -106,7 +106,7 @@ class _Options:
                 environ.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
             )
         if enabled:
-            return ServerTimingResponsePropagator()
+            return _ServerTimingResponsePropagator()
         return None
 
     @staticmethod

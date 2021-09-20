@@ -18,7 +18,7 @@ from logging import getLogger
 
 from opentelemetry.instrumentation.bootstrap import run as otel_run
 
-from splunk_otel.version import format_version_info
+from splunk_otel.version import _format_version_info
 
 logger = getLogger(__file__)
 
@@ -58,7 +58,7 @@ def run() -> None:
     args = parser.parse_args()
 
     if args.version:
-        print(format_version_info())
+        print(_format_version_info())
         return
 
     # pass custom list to otel_run() once otel supports receiving custom args

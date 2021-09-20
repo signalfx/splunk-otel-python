@@ -25,7 +25,7 @@ from opentelemetry.propagators import textmap
 from opentelemetry.trace import format_span_id, format_trace_id
 
 
-class ServerTimingResponsePropagator(ResponsePropagator):
+class _ServerTimingResponsePropagator(ResponsePropagator):
     """Response propagator that injects tracecontext into HTTP responses as Server-Timing headers."""
 
     def inject(

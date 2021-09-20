@@ -20,7 +20,7 @@ from logging import getLogger
 
 from opentelemetry.instrumentation.auto_instrumentation import run as otel_run
 
-from splunk_otel.version import format_version_info
+from splunk_otel.version import _format_version_info
 
 logger = getLogger(__file__)
 
@@ -59,7 +59,7 @@ ap.add_argument(
 def run() -> None:
     args = ap.parse_args()
     if args.version:
-        print(format_version_info())
+        print(_format_version_info())
         return
 
     if args.token:
