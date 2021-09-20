@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.0rc5 - 2021-09-20
+
 ### General
 
 - Changed default for `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` to `12000`.
