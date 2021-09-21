@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 1.0.0 - 2021-09-20
+
+### General
+
+- Changed default for `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT` to `12000`.
+  [#135](https://github.com/signalfx/splunk-otel-python/pull/135)
+
+### Breaking Changes
+
+- `propagators.ServerTimingResponsePropagator`, `version.format_version_info` and `distro.SplunkDistro`
+  are not longer available as part of the public API.
+  [#143](https://github.com/signalfx/splunk-otel-python/pull/143)
+
 ## 0.17.0 - 2021-08-29
 
 ### General

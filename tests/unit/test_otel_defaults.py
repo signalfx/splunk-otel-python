@@ -37,8 +37,8 @@ class TestOtelDefaults(unittest.TestCase):
 
         # have default limits
         self.assertEqual(limits.max_links, 1000)
-        self.assertEqual(limits.max_attribute_length, 1200)
-        self.assertEqual(limits.max_span_attribute_length, 1200)
+        self.assertEqual(limits.max_attribute_length, 12000)
+        self.assertEqual(limits.max_span_attribute_length, 12000)
 
     def test_otel_log_correlation_enabled(self):
         self.assertTrue(environ[_OTEL_PYTHON_LOG_CORRELATION])

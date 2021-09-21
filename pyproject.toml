@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "splunk-opentelemetry"
-version = "0.17.0"
+version = "1.0.0"
 description = "The Splunk distribution of OpenTelemetry Python Instrumentation provides a Python agent that automatically instruments your Python application to capture and report distributed traces to SignalFx APM."
 authors = ["Splunk <splunk-oss@splunk.com>"]
 license = "Apache-2.0"
@@ -23,7 +23,7 @@ splk-py-trace = 'splunk_otel.cmd.trace:run_deprecated'
 splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run_deprecated'
 
 [tool.poetry.plugins."opentelemetry_distro"]
-splunk_distro = "splunk_otel.distro:SplunkDistro"
+splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 python = "^3.6"
@@ -50,13 +50,13 @@ pytest = "^6.2.5"
 coverage = "^5.5"
 pytest-cov = "^2.12.1"
 pylint = "^2.9.6"
-pylintfileheader = "^0.3.0"
+pylintfileheader = "^0.3.2"
 pytest-docker = "^0.10.3"
 requests-futures = "^1.0.0"
 githubrelease = "^1.5.8"
 keepachangelog = "^1.0.0"
 click = "^8.0.1"
-types-setuptools = "^57.0.0"
+types-setuptools = "^57.4.0"
 
 [tool.black]
 line-length = 90

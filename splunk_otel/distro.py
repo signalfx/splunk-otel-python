@@ -20,6 +20,6 @@ from splunk_otel.options import _Options
 from splunk_otel.tracing import _configure_tracing
 
 
-class SplunkDistro(BaseDistro):
+class _SplunkDistro(BaseDistro):
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
         _configure_tracing(_Options())
