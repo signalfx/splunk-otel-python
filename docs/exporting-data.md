@@ -1,4 +1,4 @@
-> The official Splunk documentation for this page is [Configure the Python agent](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html#trace-exporters-settings-python).
+> The official Splunk documentation for this page is [Configure the Python agent](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html#trace-exporters-settings-python). For instructions on how to contribute to the docs, see [CONTRIBUTE.md](../CONTRIBUTE.md).
 
 # Exporting telemetry data
 

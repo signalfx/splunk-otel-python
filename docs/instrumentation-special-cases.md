@@ -1,4 +1,4 @@
-> The official Splunk documentation for this page is [Additional instructions for Python frameworks](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/instrumentation/instrument-python-frameworks.html).
+> The official Splunk documentation for this page is [Additional instructions for Python frameworks](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/instrumentation/instrument-python-frameworks.html). For instructions on how to contribute to the docs, see [CONTRIBUTE.md](../CONTRIBUTE.md).
 
 # Instrumentation Special Cases
 
