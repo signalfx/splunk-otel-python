@@ -2,11 +2,11 @@
 
 <p align="center">
   <strong>
-    <a href="https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/get-started.html">Get Started</a>
+    <a href="https://docs.splunk.com/Observability/gdi/get-data-in/application/python/get-started.html">Get Started</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
     <a href="CONTRIBUTING.md">Get Involved</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html">Migrating from SignalFx Python Tracing</a>
+    <a href="https://docs.splunk.com/Observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html">Migrating from SignalFx Python Tracing</a>
   </strong>
 </p>
 
@@ -37,7 +37,7 @@
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
     <a href="https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/instrumentation/README.md">Supported Libraries</a>
     &nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/common-python-troubleshooting.html">Troubleshooting</a>
+    <a href="https://docs.splunk.com/Observability/gdi/get-data-in/application/python/troubleshooting/common-python-troubleshooting.html">Troubleshooting</a>
   </strong>
 </p>
 
@@ -55,18 +55,18 @@ This distribution comes with the following defaults:
 - [W3C tracecontext](https://www.w3.org/TR/trace-context/) and [W3C
   baggage](https://www.w3.org/TR/baggage/) context propagation;
   [B3](https://github.com/openzipkin/b3-propagation) can also be
-  [configured](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html).
+  [configured](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html).
 - [OTLP gRPC
   exporter](https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html)
   configured to send spans to a locally running [Splunk OpenTelemetry
   Connector](https://github.com/signalfx/splunk-otel-collector)
   (`http://localhost:4317`).
-- Unlimited default limits for [configuration options](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html) to
+- Unlimited default limits for [configuration options](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html) to
   support full-fidelity traces.
 
 If you're currently using the SignalFx Tracing Library for Python and want to
 migrate to the Splunk Distribution of OpenTelemetry Python, see [Migrate from
-the SignalFx Tracing Library for Python](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html#nav-Migrate-from-SignalFX-Python-agent).
+the SignalFx Tracing Library for Python](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/troubleshooting/migrate-signalfx-python-agent-to-otel.html#nav-Migrate-from-SignalFX-Python-agent).
 
 ---
 
@@ -163,7 +163,7 @@ with:
 ## Correlating traces with logs
 
 The Splunk Distribution of OpenTelemetry Python provides a way
-to correlate traces with logs. See [Connect Python trace data with logs](https://docs.signalfx.com/en/observability/gdi/get-data-in/application/python/instrumentation/connect-traces-logs.html).
+to correlate traces with logs. See [Connect Python trace data with logs](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/instrumentation/connect-traces-logs.html).
 
 # License and versioning
 
