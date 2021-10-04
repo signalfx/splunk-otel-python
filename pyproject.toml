@@ -47,7 +47,7 @@ mypy = "^0.910"
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.8.0", python = "^3.6"}
 pytest = "^6.2.5"
-coverage = "^5.5"
+coverage = "^6.0"
 pytest-cov = "^2.12.1"
 pylint = "^2.9.6"
 pylintfileheader = "^0.3.2"
