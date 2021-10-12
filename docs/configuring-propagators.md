@@ -26,3 +26,4 @@ OTEL_PROPAGATORS=b3multi,baggage
 You can specify any combination of supported propagators. Choices are `tracecontext`, `baggae`, `b3` and `b3multi`. Note that
 `b3` and `b3multi` are only available when the `opentelemetry-propagator-b3` package is installed. This is installed automatically
 by installing `splunk-opentelemetry[all]` or `splunk-opentelemetry[b3]`.
+ 
