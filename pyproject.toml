@@ -42,7 +42,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 
 [tool.poetry.dev-dependencies]
-flake8 = "^3.9.2"
+flake8 = "^4.0.1"
 mypy = "^0.910"
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.8.0", python = "^3.6"}
