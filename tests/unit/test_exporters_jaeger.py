@@ -42,6 +42,7 @@ class TestJaegerExporter(unittest.TestCase):
         self.connection_mock = self.connection_patcher.start()
         conn = self.connection_mock.return_value
         response = http.client.HTTPResponse(Mock())
+        response.msg = response.headers = http.client.HTTPMessage()
         response.status = 200
         conn.getresponse.return_value = response
 

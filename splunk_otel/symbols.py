@@ -19,7 +19,7 @@ _DEFAULT_MAX_ATTR_LENGTH = 12000
 _DEFAULT_SPAN_LINK_COUNT_LIMIT = 1000
 
 _EXPORTER_OTLP = "otlp"
-_EXPORTER_OTLP_GRPC = "otlp_proto_grpc_span"
+_EXPORTER_OTLP_GRPC = "otlp_proto_grpc"
 _EXPORTER_JAEGER_THRIFT = "jaeger_thrift"
 _EXPORTER_JAEGER_SPLUNK = "jaeger-thrift-splunk"
 _DEFAULT_OTEL_SERVICE_NAME = "unknown_service"

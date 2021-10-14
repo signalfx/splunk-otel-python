@@ -30,8 +30,8 @@ class TestOtelDefaults(unittest.TestCase):
         limits = TracerProvider()._span_limits
 
         # unlimited by default
-        self.assertIsNone(limits.max_attributes)
         self.assertIsNone(limits.max_events)
+        self.assertIsNone(limits.max_span_attributes)
         self.assertIsNone(limits.max_event_attributes)
         self.assertIsNone(limits.max_link_attributes)
 
