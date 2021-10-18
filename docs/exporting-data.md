@@ -84,7 +84,7 @@ exporting to another destination. For example, the following configuration will
 export all spans using both the OTLP exporter and the Console exporter.
 
 ```
-OTEL_TRACES_EXPORTER=otlp,console_span
+OTEL_TRACES_EXPORTER=otlp,console
 ```
 
 ### Accepted values for OTEL_TRACES_EXPORTER
@@ -101,4 +101,4 @@ Known values and the Python packages they ship in are listed below.
 | -------------        | ---------------                        | ---------------------                                            |
 | otlp                 | opentelemetry-exporter-otlp-proto-grpc | Can be installed with `pip install splunk-opentelemetry[otlp]`   |
 | jaeger-thrift-splunk | opentelemetry-exporter-jaeger-thrift   | Can be installed with `pip install splunk-opentelemetry[jaeger]` |
-| console_span         | opentelemetry-sdk                      | Always installed with `splunk-opentelemetry`                     |
+| console              | opentelemetry-sdk                      | Always installed with `splunk-opentelemetry`                     |

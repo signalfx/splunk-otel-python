@@ -27,13 +27,13 @@ splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-opentelemetry-api = "1.5.0"
-opentelemetry-sdk = "1.5.0"
-opentelemetry-instrumentation = "0.24b0"
-opentelemetry-semantic-conventions = "0.24b0"
-opentelemetry-propagator-b3 = {version = "1.5.0", optional = true} 
-opentelemetry-exporter-jaeger-thrift = {version = "1.5.0", optional = true}
-opentelemetry-exporter-otlp-proto-grpc = {version = "1.5.0", optional = true}
+opentelemetry-api = "1.6.0"
+opentelemetry-sdk = "1.6.0"
+opentelemetry-instrumentation = "0.25b0"
+opentelemetry-semantic-conventions = "0.25b0"
+opentelemetry-propagator-b3 = {version = "1.6.0", optional = true} 
+opentelemetry-exporter-jaeger-thrift = {version = "1.6.0", optional = true}
+opentelemetry-exporter-otlp-proto-grpc = {version = "1.6.0", optional = true}
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-jaeger-thrift"]
@@ -42,25 +42,25 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 
 [tool.poetry.dev-dependencies]
-flake8 = "^3.9.2"
-mypy = "^0.910"
-black = {version = "^20.8b1", python = "^3.6"}
-isort = {version = "^5.8.0", python = "^3.6"}
-pytest = "^6.2.5"
-coverage = "^5.5"
-pytest-cov = "^2.12.1"
-pylint = "^2.9.6"
-pylintfileheader = "^0.3.2"
-pytest-docker = "^0.10.3"
-requests-futures = "^1.0.0"
-githubrelease = "^1.5.8"
-keepachangelog = "^1.0.0"
-click = "^8.0.1"
-types-setuptools = "^57.4.0"
+flake8 = "4.0.1"
+mypy = "0.910"
+black = {version = "21.9b", python = ">=3.6.2"}
+isort = {version = "5.9.3", python = ">=3.6.1"}
+pytest = "6.2.5"
+coverage = "5.5"
+pytest-cov = "2.12.1"
+pylint = "2.11.1"
+pylintfileheader = "0.3.2"
+pytest-docker = "0.10.3"
+requests-futures = "1.0.0"
+githubrelease = "1.5.8"
+keepachangelog = "1.0.0"
+click = "8.0.1"
+types-setuptools = "57.4.0"
 
 [tool.black]
 line-length = 90
-requires = ["poetry>=1.1.5"]
+requires = ["poetry>=1.2.0a2"]
 build-backend = "poetry.masonry.api"
 
 [tool.pytest.ini_options]

@@ -89,7 +89,7 @@ class TestOptions(TestCase):
             options.span_exporter_factories[1](options), ConsoleSpanExporter
         )
 
-    @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "otlp,console_span"})
+    @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "otlp,console"})
     def test_exporters_from_env(self):
         options = _Options()
         self.assertEqual(len(options.span_exporter_factories), 2)

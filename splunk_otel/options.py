@@ -23,6 +23,7 @@ from opentelemetry.instrumentation.version import (
     __version__ as auto_instrumentation_version,
 )
 from opentelemetry.sdk.environment_variables import (
+    OTEL_ATTRIBUTE_COUNT_LIMIT,
     OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
     OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT,
     OTEL_EXPORTER_JAEGER_ENDPOINT,
@@ -159,6 +160,7 @@ class _Options:
     @staticmethod
     def _set_default_env() -> None:
         defaults = {
+            OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
             OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
             OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
             OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
@@ -203,7 +205,9 @@ class _Options:
         exporter_names: Collection[Tuple[str, str]],
     ) -> Collection[_SpanExporterFactory]:
         factories = []
-        entry_points = {ep.name: ep for ep in iter_entry_points("opentelemetry_exporter")}
+        entry_points = {
+            ep.name: ep for ep in iter_entry_points("opentelemetry_traces_exporter")
+        }
 
         for name, internal_name in exporter_names:
             if internal_name not in entry_points:

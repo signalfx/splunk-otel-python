@@ -17,8 +17,10 @@ import os
 import sys
 from typing import Any, Collection, Dict, Optional, Union
 
-from opentelemetry import environment_variables as otel_env_vars
 from opentelemetry import trace
+from opentelemetry.instrumentation.environment_variables import (
+    OTEL_PYTHON_DISABLED_INSTRUMENTATIONS,
+)
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -65,9 +67,9 @@ def _configure_tracing(options: _Options) -> None:
 
 
 def _load_instrumentors() -> None:
-    package_to_exclude = os.environ.get(
-        otel_env_vars.OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, ""
-    ).split(",")
+    package_to_exclude = os.environ.get(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, "").split(
+        ","
+    )
     package_to_exclude = [p.strip() for p in package_to_exclude]
 
     for entry_point in iter_entry_points("opentelemetry_instrumentor"):
