@@ -6,7 +6,7 @@
 #
 #####################################################
 
-*.md @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
-*.rst @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
-docs/ @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
-README* @signalfx/docs @gdi-python-maintainers @gdi-python-approvers
+*.md @signalfx/gdi-docs @gdi-python-maintainers @gdi-python-approvers
+*.rst @signalfx/gdi-docs @gdi-python-maintainers @gdi-python-approvers
+docs/ @signalfx/gdi-docs @gdi-python-maintainers @gdi-python-approvers
+README* @signalfx/gdi-docs @gdi-python-maintainers @gdi-python-approvers
