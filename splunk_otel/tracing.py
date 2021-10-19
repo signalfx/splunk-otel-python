@@ -38,11 +38,11 @@ def start_tracing(
     access_token: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
-) -> None:
+) -> TracerProvider:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
-        return
+        return None
 
     options = _Options(
         service_name,
@@ -52,18 +52,20 @@ def start_tracing(
         trace_response_header_enabled,
     )
     try:
-        _configure_tracing(options)
+        provider = _configure_tracing(options)
         _load_instrumentors()
+        return provider
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 
-def _configure_tracing(options: _Options) -> None:
+def _configure_tracing(options: _Options) -> TracerProvider:
     provider = TracerProvider(resource=options.resource)
     set_global_response_propagator(options.response_propagator)  # type: ignore
     trace.set_tracer_provider(provider)
     for factory in options.span_exporter_factories:
         provider.add_span_processor(BatchSpanProcessor(factory(options)))
+    return provider
 
 
 def _load_instrumentors() -> None:

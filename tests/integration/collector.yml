@@ -9,9 +9,13 @@ receivers:
         http:
             endpoint: 0.0.0.0:55681
 
+  smartagent/signalfx-forwarder:
+    listenAddress: '0.0.0.0:9080'
+    type: signalfx-forwarder
+
 exporters:
   logging:
-  polling:
+  httpsink:
       endpoint: 0.0.0.0:8378 
 
 
@@ -19,5 +23,5 @@ service:
   extensions: ["health_check"]
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [polling]
+      receivers: [otlp, smartagent/signalfx-forwarder]
+      exporters: [httpsink]
