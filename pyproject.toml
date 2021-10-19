@@ -27,13 +27,13 @@ splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-opentelemetry-api = "1.6.0"
-opentelemetry-sdk = "1.6.0"
-opentelemetry-instrumentation = "0.25b0"
-opentelemetry-semantic-conventions = "0.25b0"
-opentelemetry-propagator-b3 = {version = "1.6.0", optional = true} 
-opentelemetry-exporter-jaeger-thrift = {version = "1.6.0", optional = true}
-opentelemetry-exporter-otlp-proto-grpc = {version = "1.6.0", optional = true}
+opentelemetry-api = "1.6.1"
+opentelemetry-sdk = "1.6.1"
+opentelemetry-instrumentation = "0.25b1"
+opentelemetry-semantic-conventions = "0.25b1"
+opentelemetry-propagator-b3 = {version = "1.6.1", optional = true} 
+opentelemetry-exporter-jaeger-thrift = {version = "1.6.1", optional = true}
+opentelemetry-exporter-otlp-proto-grpc = {version = "1.6.1", optional = true}
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-jaeger-thrift"]
@@ -44,7 +44,7 @@ jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 [tool.poetry.dev-dependencies]
 flake8 = "4.0.1"
 mypy = "0.910"
-black = {version = "21.9b", python = ">=3.6.2"}
+black = {version = "20.8b1", python = ">=3.6.2"}
 isort = {version = "5.9.3", python = ">=3.6.1"}
 pytest = "6.2.5"
 coverage = "5.5"
