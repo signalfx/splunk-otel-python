@@ -4,10 +4,10 @@
 
 ### General
 
-- Upgraded Otel dependencies to 1.6.1 and 0.25.0b1
-  [#159](https://github.com/signalfx/splunk-otel-python/pull/159)
 - `start_tracing()` now returns a `TracerProvider`
   [#160](https://github.com/signalfx/splunk-otel-python/pull/160)
+- Upgraded Otel dependencies to 1.6.2 and 0.25.0b2
+  [#161](https://github.com/signalfx/splunk-otel-python/pull/161)
 
 ## 1.0.0 - 2021-09-20
 
