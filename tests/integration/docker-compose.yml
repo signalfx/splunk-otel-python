@@ -1,16 +1,15 @@
 version: '3'
 services:
   collector:
-    # hopefully 0.27.0 will include polling exporter
-    # image: quay.io/signalfx/splunk-otel-collector:0.27.0
-    image: ghcr.io/splunk-o11y-gdi-bot/splunk-otel-collector-dev:polling
+    image: quay.io/signalfx/splunk-otel-collector:0.37.0
     environment:
       - SPLUNK_CONFIG=/etc/otel/config.yml
     volumes:
         - ${PWD}/tests/integration/collector.yml:/etc/otel/config.yml
         # for running docker compose up manually from the same dir
-        # - ${PWD}/collector.yml:/etc/otel/config.yml
+        #- ${PWD}/collector.yml:/etc/otel/config.yml
     ports:
       - "4317:4317"
       - "8378:8378"
+      - "9080:9080"
       - "13133:13133" 
