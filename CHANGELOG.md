@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.1.0 - 2021-10-20
+
 ### General
 
 - `start_tracing()` now returns a `TracerProvider`
