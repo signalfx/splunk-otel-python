@@ -2,26 +2,6 @@
 
 # Instrumentation Special Cases
 
-## Celery
-
-Tracing Celery workers works out of the box when you use the `splunk-py-trace`
-command to start your Python application. However, if you are instrumenting
-your celery workers with code, you'll need to make sure you setup tracing for
-each worker by using Celery's `celery.signals.worker_process_init` signal.
-
-For example:
-
-```python
-from splunk_otel.tracing import start_tracing
-from celery.signals import worker_process_init
-
-@worker_process_init.connect(weak=False)
-def on_worker_process_init(*args, **kwargs):
-    start_tracing()
-
-# rest of your python application's entrypoint script
-```
-
 ## Django
 
 Automatically instrumenting Django requires `DJANGO_SETTINGS_MODULE`
@@ -36,26 +16,9 @@ export DJANGO_SETTINGS_MODULE=mydjangoproject.settings
 splunk-py-trace ./manage.py runserver
 ```
 
-## Gunicorn
+## uWSGI
 
-Like Celery, we'll also need to setup tracing per Gunicorn worker. This can be
-done by setting up tracing inside Gunicorn's `post_fork()` handler.
-
-For example:
-
-```python
-# gunicorn.config.py
-from splunk_otel.tracing import start_tracing
-
-def post_fork(server, worker):
-    start_tracing()
-```
-
-Then add `-c gunicorn.config.py` CLI flag to your gunicorn command.
-
-## UWSGI
-
-When using UWSGI, tracing must be setup as a response to the `post_fork` signal.
+When using uWSGI, tracing must be setup as a response to the `post_fork` signal.
 
 For example:
 
