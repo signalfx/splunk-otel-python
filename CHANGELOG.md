@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.2.0 - 2021-11-12
+
 ### General
 
 - Upgraded Otel dependencies to 1.7.1 and 0.26b1
