@@ -27,13 +27,13 @@ splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-opentelemetry-api = "1.6.2"
-opentelemetry-sdk = "1.6.2"
-opentelemetry-instrumentation = "0.25b2"
-opentelemetry-semantic-conventions = "0.25b2"
-opentelemetry-propagator-b3 = {version = "1.6.2", optional = true} 
-opentelemetry-exporter-jaeger-thrift = {version = "1.6.2", optional = true}
-opentelemetry-exporter-otlp-proto-grpc = {version = "1.6.2", optional = true}
+opentelemetry-api = "1.7.1"
+opentelemetry-sdk = "1.7.1"
+opentelemetry-instrumentation = "0.26b1"
+opentelemetry-semantic-conventions = "0.26b1"
+opentelemetry-propagator-b3 = {version = "1.7.1", optional = true} 
+opentelemetry-exporter-jaeger-thrift = {version = "1.7.1", optional = true}
+opentelemetry-exporter-otlp-proto-grpc = {version = "1.7.1", optional = true}
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-jaeger-thrift"]
