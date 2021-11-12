@@ -79,6 +79,7 @@ python-versions = ">=3.6.2"
 
 [package.dependencies]
 click = ">=7.1.2"
+dataclasses = {version = ">=0.6", markers = "python_version < \"3.7\""}
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0,<1"
 platformdirs = ">=2"
@@ -195,6 +196,14 @@ pep8test = ["black", "flake8", "flake8-import-order", "pep8-naming"]
 sdist = ["setuptools_rust (>=0.11.4)"]
 ssh = ["bcrypt (>=3.1.5)"]
 test = ["pytest (>=6.2.0)", "pytest-cov", "pytest-subtests", "pytest-xdist", "pretend", "iso8601", "pytz", "hypothesis (>=1.11.4,!=3.79.2)"]
+
+[[package]]
+name = "dataclasses"
+version = "0.8"
+description = "A backport of the dataclasses module for Python 3.6"
+category = "dev"
+optional = false
+python-versions = ">=3.6, <3.7"
 
 [[package]]
 name = "deprecated"
@@ -533,7 +542,7 @@ wrapt = ">=1.0.0,<2.0.0"
 
 [[package]]
 name = "opentelemetry-propagator-b3"
-version = "1.6.2"
+version = "1.7.1"
 description = "OpenTelemetry B3 Propagator"
 category = "main"
 optional = true
@@ -979,7 +988,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "2bfb8b938e4713b34935973f0996c8ba2722a1e60d4edefcd9550bacdcad8ddf"
+content-hash = "3eea99bc61fd462de0a6ce6a6f70c70894e2d1b7f27d9bd96b14efbfb07e3a86"
 
 [metadata.files]
 aiocontextvars = [
@@ -1159,6 +1168,10 @@ cryptography = [
     {file = "cryptography-35.0.0-pp37-pypy37_pp73-manylinux_2_24_x86_64.whl", hash = "sha256:abb5a361d2585bb95012a19ed9b2c8f412c5d723a9836418fab7aaa0243e67d2"},
     {file = "cryptography-35.0.0-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:1ed82abf16df40a60942a8c211251ae72858b25b7421ce2497c2eb7a1cee817c"},
     {file = "cryptography-35.0.0.tar.gz", hash = "sha256:9933f28f70d0517686bd7de36166dda42094eac49415459d9bdf5e7df3e0086d"},
+]
+dataclasses = [
+    {file = "dataclasses-0.8-py3-none-any.whl", hash = "sha256:0201d89fa866f68c8ebd9d08ee6ff50c0b255f8ec63a71c16fda7af82bb887bf"},
+    {file = "dataclasses-0.8.tar.gz", hash = "sha256:8479067f342acf957dc82ec415d355ab5edb7e7646b90dc6e2fd1d96ad084c97"},
 ]
 deprecated = [
     {file = "Deprecated-1.2.13-py2.py3-none-any.whl", hash = "sha256:64756e3e14c8c5eea9795d93c524551432a0be75629f8f29e67ab8caf076c76d"},
@@ -1370,8 +1383,8 @@ opentelemetry-instrumentation = [
     {file = "opentelemetry_instrumentation-0.25b2-py3-none-any.whl", hash = "sha256:e81256d91e2917fe5cbda0c2286e5f1383e8a2d78defe212612dcfb6a07c2b83"},
 ]
 opentelemetry-propagator-b3 = [
-    {file = "opentelemetry-propagator-b3-1.6.2.tar.gz", hash = "sha256:cf33853fb9084a862093712d417b55da8dc4ef1aeeb72cc74f7bc2199badf176"},
-    {file = "opentelemetry_propagator_b3-1.6.2-py3-none-any.whl", hash = "sha256:5a41404e347da375c59a0a136e569495dc42e7642c8a72c622d4f00b6599c916"},
+    {file = "opentelemetry-propagator-b3-1.7.1.tar.gz", hash = "sha256:51959b722de92d725c15154bd3d9e38c4df9a55a90cc2a2a2fe519163355b745"},
+    {file = "opentelemetry_propagator_b3-1.7.1-py3-none-any.whl", hash = "sha256:9b2ffe679a3d057405efcb04274b1b3bd803f167d0041661e3dde998074f5969"},
 ]
 opentelemetry-proto = [
     {file = "opentelemetry-proto-1.6.2.tar.gz", hash = "sha256:e85192583c798c2abee976f5d7cdb7d3fcf7a039f30c97a8313f59116c0a311e"},

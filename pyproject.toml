@@ -31,7 +31,7 @@ opentelemetry-api = "1.6.2"
 opentelemetry-sdk = "1.6.2"
 opentelemetry-instrumentation = "0.25b2"
 opentelemetry-semantic-conventions = "0.25b2"
-opentelemetry-propagator-b3 = {version = "1.6.2", optional = true} 
+opentelemetry-propagator-b3 = {version = "1.7.1", optional = true} 
 opentelemetry-exporter-jaeger-thrift = {version = "1.6.2", optional = true}
 opentelemetry-exporter-otlp-proto-grpc = {version = "1.6.2", optional = true}
 
