@@ -98,7 +98,7 @@ ifeq ($(VERSION),"")
 	@echo "Usage: make prepare-release VERSION=<version_number>"
 else
 	git checkout -B release/v$(VERSION)
-	python scripts/prepare_release.py --version $(VERSION)
+	poetry run python scripts/prepare_release.py --version $(VERSION)
 	git add -A .
 	git commit -m"Preparing release v$(VERSION)"
 endif
