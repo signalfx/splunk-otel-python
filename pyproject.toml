@@ -49,7 +49,7 @@ isort = {version = "5.9.3", python = ">=3.7.0"}
 pytest = "6.2.5"
 coverage = "6.1.1"
 pytest-cov = "2.12.1"
-pylint = "2.11.1"
+pylint = "2.12.0"
 pylintfileheader = "0.3.2"
 pytest-docker = {version = "0.10.3", platform = "linux"}
 requests-futures = "1.0.0"
