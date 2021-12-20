@@ -32,7 +32,7 @@ opentelemetry-sdk = "1.7.1"
 opentelemetry-instrumentation = "0.26b1"
 opentelemetry-semantic-conventions = "0.26b1"
 opentelemetry-propagator-b3 = {version = "1.7.1", optional = true} 
-opentelemetry-exporter-jaeger-thrift = {version = "1.7.1", optional = true}
+opentelemetry-exporter-jaeger-thrift = {version = "1.8.0", optional = true}
 opentelemetry-exporter-otlp-proto-grpc = {version = "1.7.1", optional = true}
 
 [tool.poetry.extras]
