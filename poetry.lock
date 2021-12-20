@@ -530,7 +530,7 @@ test = ["pytest-grpc"]
 
 [[package]]
 name = "opentelemetry-instrumentation"
-version = "0.26b1"
+version = "0.27b0"
 description = "Instrumentation Tools & Auto Instrumentation for OpenTelemetry Python"
 category = "main"
 optional = false
@@ -988,7 +988,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "f7a779fa8758a730b17c3c1b68e6641d1b9b81fa4d207fa1e0bbe6083b742ba8"
+content-hash = "6008cddb132a31c379596f5d1cb526c2bc4bf19faefce2af6c845c4b59e95712"
 
 [metadata.files]
 aiocontextvars = [
@@ -1379,8 +1379,8 @@ opentelemetry-exporter-otlp-proto-grpc = [
     {file = "opentelemetry_exporter_otlp_proto_grpc-1.7.1-py3-none-any.whl", hash = "sha256:272f80b7bd5ab925dc49cfe8427e835911e62ab793b703ba0817686e50532046"},
 ]
 opentelemetry-instrumentation = [
-    {file = "opentelemetry-instrumentation-0.26b1.tar.gz", hash = "sha256:c8f60bbe8a803f2489627fdd66726891de64347e8828c259d3c607a9c97d20c0"},
-    {file = "opentelemetry_instrumentation-0.26b1-py3-none-any.whl", hash = "sha256:6f84d5496c59b449c282258fe834e5f3cd2cc1887ba39933607f5a710e3ee657"},
+    {file = "opentelemetry-instrumentation-0.27b0.tar.gz", hash = "sha256:1a51253c118713031a621f53493cb7fb7fc9f783b543265cb2a40c5b4be0aaa2"},
+    {file = "opentelemetry_instrumentation-0.27b0-py3-none-any.whl", hash = "sha256:40673c0699443487a5f76694a8fdb84f2aea3a95cb584f205bed29203cba2ad8"},
 ]
 opentelemetry-propagator-b3 = [
     {file = "opentelemetry-propagator-b3-1.7.1.tar.gz", hash = "sha256:51959b722de92d725c15154bd3d9e38c4df9a55a90cc2a2a2fe519163355b745"},
