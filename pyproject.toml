@@ -27,13 +27,13 @@ splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-opentelemetry-api = "1.7.1"
-opentelemetry-sdk = "1.7.1"
-opentelemetry-instrumentation = "0.26b1"
-opentelemetry-semantic-conventions = "0.26b1"
-opentelemetry-propagator-b3 = {version = "1.7.1", optional = true} 
-opentelemetry-exporter-jaeger-thrift = {version = "1.7.1", optional = true}
-opentelemetry-exporter-otlp-proto-grpc = {version = "1.7.1", optional = true}
+opentelemetry-api = "1.8.0"
+opentelemetry-sdk = "1.8.0"
+opentelemetry-instrumentation = "0.27b0"
+opentelemetry-semantic-conventions = "0.27b0"
+opentelemetry-propagator-b3 = "1.8.0" 
+opentelemetry-exporter-jaeger-thrift = "1.8.0"
+opentelemetry-exporter-otlp-proto-grpc = "1.8.0"
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-jaeger-thrift"]
@@ -43,8 +43,8 @@ jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 
 [tool.poetry.dev-dependencies]
 flake8 = "4.0.1"
-mypy = "0.910"
-black = {version = "21.11b1", python = ">=3.7.0"}
+mypy = "0.920"
+black = {version = "21.12b0", python = ">=3.7.0"}
 isort = {version = "5.9.3", python = ">=3.7.0"}
 pytest = "6.2.5"
 coverage = "6.1.1"
@@ -56,7 +56,7 @@ requests-futures = "1.0.0"
 githubrelease = "1.5.8"
 keepachangelog = "1.0.0"
 click = "8.0.1"
-types-setuptools = "57.4.2"
+types-setuptools = "57.4.4"
 
 [tool.black]
 line-length = 90
