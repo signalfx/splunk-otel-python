@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### General
+
+- Upgraded Otel dependencies to 1.9.0 and 0.28b0
+  [#200](https://github.com/signalfx/splunk-otel-python/pull/200)
 - Add support for OTEL_TRACE_ENABLED to splunk-py-trace command.
   [#199](https://github.com/signalfx/splunk-otel-python/pull/199)
 
