@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add support for OTEL_TRACE_ENABLED to splunk-py-trace command.
+  [#199](https://github.com/signalfx/splunk-otel-python/pull/199)
+
 ## 1.3.0 - 2021-12-20
 
 ### General

@@ -12,14 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import os
 from typing import Any, Dict
 
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
+from pkg_resources import EntryPoint
 
 from splunk_otel.options import _Options
-from splunk_otel.tracing import _configure_tracing
+from splunk_otel.tracing import _configure_tracing, _is_truthy
+
+logger = logging.getLogger(__file__)
+logger.setLevel(logging.INFO)
 
 
 class _SplunkDistro(BaseDistro):
+    def __init__(self):
+        tracing_enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
+        self._tracing_enabled = _is_truthy(tracing_enabled)
+        if not self._tracing_enabled:
+            logger.info(
+                "tracing has been disabled with OTEL_TRACE_ENABLED=%s", tracing_enabled
+            )
+
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
-        _configure_tracing(_Options())
+        if self._tracing_enabled:
+            _configure_tracing(_Options())
+
+    def load_instrumentor(self, entry_point: EntryPoint, **kwargs):
+        if self._tracing_enabled:
+            super().load_instrumentor(entry_point, **kwargs)
