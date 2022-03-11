@@ -32,7 +32,7 @@ opentelemetry-sdk = "1.9.1"
 opentelemetry-instrumentation = "0.28b1"
 opentelemetry-semantic-conventions = "0.28b1"
 opentelemetry-propagator-b3 = "1.9.1" 
-opentelemetry-exporter-jaeger-thrift = "1.9.1"
+opentelemetry-exporter-jaeger-thrift = "1.10.0"
 opentelemetry-exporter-otlp-proto-grpc = "1.9.1"
 
 [tool.poetry.extras]
