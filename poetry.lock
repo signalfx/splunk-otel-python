@@ -913,7 +913,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "types-setuptools"
-version = "57.4.9"
+version = "57.4.11"
 description = "Typing stubs for setuptools"
 category = "dev"
 optional = false
@@ -980,7 +980,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "39f5510d5cf65c76f415bd1a61e64044222432b74ef2f6525edcadfcdbd4d132"
+content-hash = "46b606a7c23e6619d7338706fa4825e30f268333225a9254541988a6e9b3659c"
 
 [metadata.files]
 aiocontextvars = [
@@ -1652,8 +1652,8 @@ typed-ast = [
     {file = "typed_ast-1.5.2.tar.gz", hash = "sha256:525a2d4088e70a9f75b08b3f87a51acc9cde640e19cc523c7e41aa355564ae27"},
 ]
 types-setuptools = [
-    {file = "types-setuptools-57.4.9.tar.gz", hash = "sha256:536ef74744f8e1e4be4fc719887f886e74e4cf3c792b4a06984320be4df450b5"},
-    {file = "types_setuptools-57.4.9-py3-none-any.whl", hash = "sha256:948dc6863373750e2cd0b223a84f1fb608414cde5e55cf38ea657b93aeb411d2"},
+    {file = "types-setuptools-57.4.11.tar.gz", hash = "sha256:262f7406e0c7d705ad6bb4526b5b761fa500bf99eab74de85ac3592187d62935"},
+    {file = "types_setuptools-57.4.11-py3-none-any.whl", hash = "sha256:fbb0647569d6fb2f6bc472402265250c0ffa53e60180d2cbfee9e84f085921f0"},
 ]
 typing-extensions = [
     {file = "typing_extensions-4.1.1-py3-none-any.whl", hash = "sha256:21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2"},
