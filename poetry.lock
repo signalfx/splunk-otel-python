@@ -79,6 +79,7 @@ python-versions = ">=3.6.2"
 
 [package.dependencies]
 click = ">=8.0.0"
+dataclasses = {version = ">=0.6", markers = "python_version < \"3.7\""}
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0"
 platformdirs = ">=2"
@@ -784,7 +785,7 @@ testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtuale
 
 [[package]]
 name = "pytest-docker"
-version = "0.10.3"
+version = "0.11.0"
 description = "Simple pytest fixtures for Docker and docker-compose based tests"
 category = "dev"
 optional = false
@@ -793,7 +794,7 @@ python-versions = ">=3.6"
 [package.dependencies]
 attrs = ">=19,<22"
 docker-compose = ">=1.27.3,<2.0"
-pytest = ">=4.0,<7.0"
+pytest = ">=4.0,<8.0"
 
 [package.extras]
 tests = ["requests (>=2.22.0,<3.0)", "pytest-pylint (>=0.14.1,<1.0)", "pytest-pycodestyle (>=2.0.0,<3.0)"]
@@ -1545,8 +1546,8 @@ pytest-cov = [
     {file = "pytest_cov-2.12.1-py2.py3-none-any.whl", hash = "sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a"},
 ]
 pytest-docker = [
-    {file = "pytest-docker-0.10.3.tar.gz", hash = "sha256:29a6a316508b0601f0085fbc45c9a54c7169f7213cac9ff906658186e3bcca23"},
-    {file = "pytest_docker-0.10.3-py3-none-any.whl", hash = "sha256:292d23c5a1745aaa71b23edc24f410e9c4b1f52cb1ead859c923bd4438bac3b8"},
+    {file = "pytest-docker-0.11.0.tar.gz", hash = "sha256:7bcec98624ce55d9aea185942c2c0f58072551d7db1025aeec84dd288a3c0939"},
+    {file = "pytest_docker-0.11.0-py3-none-any.whl", hash = "sha256:bfd5d7337da467bcb58f17cf6077c2e5827af4eaade7c590ff4d4a0d5de42b21"},
 ]
 python-dotenv = [
     {file = "python-dotenv-0.19.2.tar.gz", hash = "sha256:a5de49a31e953b45ff2d2fd434bbc2670e8db5273606c1e737cc6b93eff3655f"},
