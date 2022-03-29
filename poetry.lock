@@ -79,6 +79,7 @@ python-versions = ">=3.6.2"
 
 [package.dependencies]
 click = ">=8.0.0"
+dataclasses = {version = ">=0.6", markers = "python_version < \"3.7\""}
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0"
 platformdirs = ">=2"
@@ -231,6 +232,7 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 paramiko = {version = ">=2.4.2", optional = true, markers = "extra == \"ssh\""}
+pywin32 = {version = "227", markers = "sys_platform == \"win32\""}
 requests = ">=2.14.2,<2.18.0 || >2.18.0"
 websocket-client = ">=0.32.0"
 
@@ -248,6 +250,7 @@ python-versions = ">=3.4"
 
 [package.dependencies]
 cached-property = {version = ">=1.2.0,<2", markers = "python_version < \"3.8\""}
+colorama = {version = ">=0.4,<1", markers = "sys_platform == \"win32\""}
 distro = ">=1.5.0,<2"
 docker = {version = ">=5", extras = ["ssh"]}
 dockerpty = ">=0.4.1,<1"
@@ -782,7 +785,7 @@ testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtuale
 
 [[package]]
 name = "pytest-docker"
-version = "0.10.3"
+version = "0.11.0"
 description = "Simple pytest fixtures for Docker and docker-compose based tests"
 category = "dev"
 optional = false
@@ -791,7 +794,7 @@ python-versions = ">=3.6"
 [package.dependencies]
 attrs = ">=19,<22"
 docker-compose = ">=1.27.3,<2.0"
-pytest = ">=4.0,<7.0"
+pytest = ">=4.0,<8.0"
 
 [package.extras]
 tests = ["requests (>=2.22.0,<3.0)", "pytest-pylint (>=0.14.1,<1.0)", "pytest-pycodestyle (>=2.0.0,<3.0)"]
@@ -806,6 +809,14 @@ python-versions = ">=3.5"
 
 [package.extras]
 cli = ["click (>=5.0)"]
+
+[[package]]
+name = "pywin32"
+version = "227"
+description = "Python for Window Extensions"
+category = "dev"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "pyyaml"
@@ -969,7 +980,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "0464ca16acb136fc8fe1ee2180220d304a25162fd576e096b5a64b9832d89387"
+content-hash = "815da9cf918cc5a0ae3393213c775c6203243b49fe9b8300bb437322cfaa60e8"
 
 [metadata.files]
 aiocontextvars = [
@@ -1535,12 +1546,26 @@ pytest-cov = [
     {file = "pytest_cov-2.12.1-py2.py3-none-any.whl", hash = "sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a"},
 ]
 pytest-docker = [
-    {file = "pytest-docker-0.10.3.tar.gz", hash = "sha256:29a6a316508b0601f0085fbc45c9a54c7169f7213cac9ff906658186e3bcca23"},
-    {file = "pytest_docker-0.10.3-py3-none-any.whl", hash = "sha256:292d23c5a1745aaa71b23edc24f410e9c4b1f52cb1ead859c923bd4438bac3b8"},
+    {file = "pytest-docker-0.11.0.tar.gz", hash = "sha256:7bcec98624ce55d9aea185942c2c0f58072551d7db1025aeec84dd288a3c0939"},
+    {file = "pytest_docker-0.11.0-py3-none-any.whl", hash = "sha256:bfd5d7337da467bcb58f17cf6077c2e5827af4eaade7c590ff4d4a0d5de42b21"},
 ]
 python-dotenv = [
     {file = "python-dotenv-0.19.2.tar.gz", hash = "sha256:a5de49a31e953b45ff2d2fd434bbc2670e8db5273606c1e737cc6b93eff3655f"},
     {file = "python_dotenv-0.19.2-py2.py3-none-any.whl", hash = "sha256:32b2bdc1873fd3a3c346da1c6db83d0053c3c62f28f1f38516070c4c8971b1d3"},
+]
+pywin32 = [
+    {file = "pywin32-227-cp27-cp27m-win32.whl", hash = "sha256:371fcc39416d736401f0274dd64c2302728c9e034808e37381b5e1b22be4a6b0"},
+    {file = "pywin32-227-cp27-cp27m-win_amd64.whl", hash = "sha256:4cdad3e84191194ea6d0dd1b1b9bdda574ff563177d2adf2b4efec2a244fa116"},
+    {file = "pywin32-227-cp35-cp35m-win32.whl", hash = "sha256:f4c5be1a293bae0076d93c88f37ee8da68136744588bc5e2be2f299a34ceb7aa"},
+    {file = "pywin32-227-cp35-cp35m-win_amd64.whl", hash = "sha256:a929a4af626e530383a579431b70e512e736e9588106715215bf685a3ea508d4"},
+    {file = "pywin32-227-cp36-cp36m-win32.whl", hash = "sha256:300a2db938e98c3e7e2093e4491439e62287d0d493fe07cce110db070b54c0be"},
+    {file = "pywin32-227-cp36-cp36m-win_amd64.whl", hash = "sha256:9b31e009564fb95db160f154e2aa195ed66bcc4c058ed72850d047141b36f3a2"},
+    {file = "pywin32-227-cp37-cp37m-win32.whl", hash = "sha256:47a3c7551376a865dd8d095a98deba954a98f326c6fe3c72d8726ca6e6b15507"},
+    {file = "pywin32-227-cp37-cp37m-win_amd64.whl", hash = "sha256:31f88a89139cb2adc40f8f0e65ee56a8c585f629974f9e07622ba80199057511"},
+    {file = "pywin32-227-cp38-cp38-win32.whl", hash = "sha256:7f18199fbf29ca99dff10e1f09451582ae9e372a892ff03a28528a24d55875bc"},
+    {file = "pywin32-227-cp38-cp38-win_amd64.whl", hash = "sha256:7c1ae32c489dc012930787f06244426f8356e129184a02c25aef163917ce158e"},
+    {file = "pywin32-227-cp39-cp39-win32.whl", hash = "sha256:c054c52ba46e7eb6b7d7dfae4dbd987a1bb48ee86debe3f245a2884ece46e295"},
+    {file = "pywin32-227-cp39-cp39-win_amd64.whl", hash = "sha256:f27cec5e7f588c3d1051651830ecc00294f90728d19c3bf6916e6dba93ea357c"},
 ]
 pyyaml = [
     {file = "PyYAML-5.4.1-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:3b2b1824fe7112845700f815ff6a489360226a5609b96ec2190a45e62a9fc922"},
