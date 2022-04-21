@@ -47,15 +47,13 @@ def _test_simple(integration: IntegrationSession, exporter: str):
     tags = [
         {"key": "otel.library.name", "vStr": "simple"},
         {"key": "otel.library.version", "vStr": "0.1"},
-        {"key": "otel.status_code", "vType": "INT64"},
     ]
     for tag in tags:
         assert tag in span["tags"]
 
 
 def test_otlp_simple(integration: IntegrationSession):
-    # _test_simple(integration, exporter="otlp")
-    pass
+    _test_simple(integration, exporter="otlp")
 
 
 def test_jaeger_simple(integration: IntegrationSession):
