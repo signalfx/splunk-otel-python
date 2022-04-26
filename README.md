@@ -153,7 +153,7 @@ Documentation on how to manually instrument a Python application is available
 To extend the instrumentation with the OpenTelemetry Instrumentation for Python,
 you have to use a compatible API version.
 
-The Splunk Distribution of OpenTelemetry Python version <span class="splunk-version">1.5.0</span> is compatible
+The Splunk Distribution of OpenTelemetry Python version <span class="splunk-version">1.6.0</span> is compatible
 with:
 
 * OpenTelemetry API version <span class="otel-api-version">1.10.0</span>
