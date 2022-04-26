@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-
+## 1.6.0 - 2022-04-26
 
 ### General
 
