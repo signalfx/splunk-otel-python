@@ -100,5 +100,5 @@ else
 	git checkout -B release/v$(VERSION)
 	poetry run python scripts/prepare_release.py --version $(VERSION)
 	git add -A .
-	git commit -m"Preparing release v$(VERSION)"
+	git commit -m"Preparing release v$(VERSION)" -S
 endif
