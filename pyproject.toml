@@ -46,12 +46,12 @@ flake8 = "4.0.1"
 mypy = "0.942"
 black = {version = "22.3.0", python = ">=3.7.0"}
 isort = {version = "5.9.3", python = ">=3.7.0"}
-pytest = "6.2.5"
+pytest = "7.0.1"
 coverage = "6.1.1"
 pytest-cov = "2.12.1"
 pylint = "2.12.0"
 pylintfileheader = "0.3.2"
-pytest-docker = {version = "0.11.0", platform = "linux"}
+pytest-docker = {version = "0.12.0", platform = "linux"}
 requests-futures = "1.0.0"
 githubrelease = "1.5.8"
 keepachangelog = "1.0.0"
