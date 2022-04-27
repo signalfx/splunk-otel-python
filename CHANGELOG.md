@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 1.6.0 - 2022-04-27
 - Upgraded Otel dependencies to 1.11.1 and 0.30b1
   [#226](https://github.com/signalfx/splunk-otel-python/pull/226)
   
