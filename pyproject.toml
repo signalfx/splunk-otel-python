@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "splunk-opentelemetry"
-version = "1.6.0"
+version = "1.7.0"
 description = "The Splunk distribution of OpenTelemetry Python Instrumentation provides a Python agent that automatically instruments your Python application to capture and report distributed traces to SignalFx APM."
 authors = ["Splunk <splunk-oss@splunk.com>"]
 license = "Apache-2.0"
@@ -27,13 +27,13 @@ splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-opentelemetry-api = "1.11.1"
-opentelemetry-sdk = "1.11.1"
-opentelemetry-instrumentation = "0.30b1"
-opentelemetry-semantic-conventions = "0.30b1"
-opentelemetry-propagator-b3 = "1.11.1" 
-opentelemetry-exporter-jaeger-thrift = "1.11.1"
-opentelemetry-exporter-otlp-proto-grpc = "1.11.1"
+opentelemetry-api = "1.12.0rc2"
+opentelemetry-sdk = "1.12.0rc2"
+opentelemetry-instrumentation = "0.32b0"
+opentelemetry-semantic-conventions = "0.32b0"
+opentelemetry-propagator-b3 = "1.12.0rc2" 
+opentelemetry-exporter-jaeger-thrift = "1.12.0rc2"
+opentelemetry-exporter-otlp-proto-grpc = "1.12.0rc2"
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-jaeger-thrift"]
