@@ -51,7 +51,7 @@ git push gitlab v1.1.0
 
 ## 4. Monitor Gitlab release job 
 
-Go to (the Gitlab project)[https://cd.splunkdev.com/o11y-gdi/splunk-otel-python-releaser/-/pipelines] and verify the build for your new version was successful.
+Go to the Gitlab Splunk Otel Python releaser and verify the build for your new version was successful.
 
 This CI job will automatically create a Github release with changelogs and artifacts, and also publish new version to PyPI.
 
