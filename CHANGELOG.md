@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.0 - 2022-08-10
+
 - Upgraded Otel dependencies to 1.12.0 and 0.33b0
 - Vendored in githubrelease package
 
