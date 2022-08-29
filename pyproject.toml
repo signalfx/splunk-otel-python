@@ -57,7 +57,7 @@ requests-futures = "1.0.0"
 githubrelease = {path = "./vendor/githubrelease-1.5.8-23-g067d7f1.tar.gz"}
 keepachangelog = "1.0.0"
 click = "8.0.4"
-types-setuptools = "63.4.0"
+types-setuptools = "65.3.0"
 
 [tool.black]
 line-length = 90
