@@ -165,7 +165,7 @@ with:
 The Splunk Distribution of OpenTelemetry Python provides a way
 to correlate traces with logs. See [Connect Python trace data with logs](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/instrumentation/connect-traces-logs.html).
 
-# License and versioning
+# License
 
 The Splunk distribution of OpenTelemetry Python Instrumentation is a
 distribution of the [OpenTelemetry Python
