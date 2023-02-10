@@ -36,7 +36,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "backoff"
-version = "2.2.1"
+version = "2.1.2"
 description = "Function decoration for backoff and retry"
 category = "main"
 optional = false
@@ -142,20 +142,17 @@ pyflakes = ">=2.4.0,<2.5.0"
 
 [[package]]
 name = "githubrelease"
-version = "1.5.8-23-g067d7f1"
+version = "1.5.9"
 description = "githubrelease is a CLI to easily manage GitHub releases, assets and references"
 category = "dev"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
+backoff = ">=2.1.2,<2.2.0"
 click = "*"
 linkheader = "*"
 requests = "*"
-
-[package.source]
-type = "file"
-url = "vendor/githubrelease-1.5.8-23-g067d7f1.tar.gz"
 
 [[package]]
 name = "googleapis-common-protos"
@@ -681,7 +678,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "34255b90bbbd9c7e897728af80bc8792b0136177033cb619fc1a1c0c15b4feeb"
+content-hash = "772100144616790c58f110389d4435dd5731ad6a956ed087103f9934a1d32067"
 
 [metadata.files]
 astroid = []
@@ -696,9 +693,7 @@ colorama = []
 coverage = []
 deprecated = []
 flake8 = []
-githubrelease = [
-    {file = "githubrelease-1.5.8-23-g067d7f1.tar.gz", hash = "sha256:f6ce2747f6b1aa0dbd6121ce5ac6e409bafd328ffba5c4ef087c50c4f3f7a88a"},
-]
+githubrelease = []
 googleapis-common-protos = []
 grpcio = []
 idna = []
