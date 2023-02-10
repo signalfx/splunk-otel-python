@@ -72,7 +72,7 @@ the SignalFx Tracing Library for Python](https://docs.splunk.com/Observability/g
 
 ## Requirements
 
-This Splunk Distribution of OpenTelemetry requires Python 3.6 or later.
+This Splunk Distribution of OpenTelemetry requires Python 3.7 or later.
 
 ## Get started
 
@@ -134,7 +134,7 @@ The `OTEL_RESOURCE_ATTRIBUTES` syntax is described in detail in the
 
 ### Supported Python Versions
 
-The instrumentation works with Python verion 3.6 or higher. Supported
+The instrumentation works with Python verion 3.7 or higher. Supported
 libraries are listed
 [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation).
 
