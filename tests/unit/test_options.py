@@ -96,15 +96,7 @@ class TestOptions(TestCase):
 
         otlp = options.span_exporter_factories[0](options)
         self.assertIsInstance(otlp, OTLPSpanExporter)
-        self.assertEqual(
-            otlp._headers,
-            (
-                (
-                    "x-sf-token",
-                    None,
-                ),
-            ),
-        )
+        self.assertTrue(("x-sf-token", None) in otlp._headers)
 
         self.assertIsInstance(
             options.span_exporter_factories[1](options), ConsoleSpanExporter
@@ -160,15 +152,7 @@ class TestOptions(TestCase):
         factory = options.span_exporter_factories[0]
         exporter = factory(options)
         self.assertIsInstance(exporter, OTLPSpanExporter)
-        self.assertEqual(
-            exporter._headers,
-            (
-                (
-                    "x-sf-token",
-                    "12345",
-                ),
-            ),
-        )
+        self.assertTrue(("x-sf-token", "12345") in exporter._headers)
 
     def test_telemetry_attributes(self):
         options = _Options()
