@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Upgraded Otel dependencies to 1.15.0 and 0.36b0
+- Upgraded Otel dependencies to 1.15.0 and 0.36b0.  This removes support for python 3.6.
 
 ## 1.8.0 - 2022-08-10
 
