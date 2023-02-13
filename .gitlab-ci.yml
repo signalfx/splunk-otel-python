@@ -41,12 +41,6 @@ lint:
     PY_VERSION: "3.9"
     TOX_ENV: lint
 
-test-py36:
-  extends: .tox
-  variables:
-    PY_VERSION: "3.6"
-    TOX_ENV: py36-test
-
 test-py37:
   extends: .tox
   variables:
