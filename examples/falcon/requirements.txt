@@ -2,7 +2,7 @@ appnope==0.1.0
 backcall==0.2.0
 decorator==4.4.2
 falcon==2.0.0
-ipython==7.18.1
+ipython==8.10.0
 ipython-genutils==0.2.0
 jedi==0.17.2
 parso==0.7.1
