@@ -35,4 +35,4 @@ without the need to install the package again.
 
 ## Releasing
 
-See RELEASING.md.
+See [RELEASING.md](RELEASING.md).
