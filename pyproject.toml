@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "splunk-opentelemetry"
-version = "1.8.0"
+version = "1.9.1"
 description = "The Splunk distribution of OpenTelemetry Python Instrumentation provides a Python agent that automatically instruments your Python application to capture and report distributed traces to SignalFx APM."
 authors = ["Splunk <splunk-oss@splunk.com>"]
 license = "Apache-2.0"
@@ -26,14 +26,14 @@ splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run_deprecated'
 splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
-python = "^3.6"
-opentelemetry-api = "1.12.0"
-opentelemetry-sdk = "1.12.0"
-opentelemetry-instrumentation = "0.33b0"
-opentelemetry-semantic-conventions = "0.33b0"
-opentelemetry-propagator-b3 = "1.12.0" 
-opentelemetry-exporter-jaeger-thrift = "1.12.0"
-opentelemetry-exporter-otlp-proto-grpc = "1.12.0"
+python = "^3.7"
+opentelemetry-api = "1.15.0"
+opentelemetry-sdk = "1.15.0"
+opentelemetry-instrumentation = "0.36b0"
+opentelemetry-semantic-conventions = "0.36b0"
+opentelemetry-propagator-b3 = "1.15.0" 
+opentelemetry-exporter-jaeger-thrift = "1.15.0"
+opentelemetry-exporter-otlp-proto-grpc = "1.15.0"
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-jaeger-thrift"]
@@ -53,8 +53,7 @@ pylint = "2.12.0"
 pylintfileheader = "0.3.2"
 pytest-docker = {version = "1.0.0", platform = "linux"}
 requests-futures = "1.0.0"
-#githubrelease = "1.5.8"
-githubrelease = {path = "./vendor/githubrelease-1.5.8-23-g067d7f1.tar.gz"}
+githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
 click = "8.0.4"
 types-setuptools = "65.3.0"

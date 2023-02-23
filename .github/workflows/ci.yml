@@ -27,7 +27,6 @@ jobs:
 
   test:
     env:
-      py36: 3.6
       py37: 3.7
       py38: 3.8
       py39: 3.9
@@ -38,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
       matrix:
-        python-version: [ py36, py37, py38, py39, py310, pypy3 ]
+        python-version: [ py37, py38, py39, py310, pypy3 ]
         os: [ ubuntu-latest, windows-latest ]
     steps:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
@@ -57,11 +56,6 @@ jobs:
           key: test-cache-${{ env.RUN_MATRIX_COMBINATION }}-${{ hashFiles('poetry.lock') }}
       - name: Install Tools 
         run: make install-tools
-      # tox fails on windows and Python3.6 when tox dir is reused between builds so we remove it
-      - name: fix for windows + py3.6
-        if: ${{ matrix.os == 'windows-latest' && matrix.python-version == 'py36' }} 
-        shell: pwsh
-        run: Remove-Item .\.tox\ -Force -Recurse -ErrorAction Ignore
       - name: Test
         # pypy has some issues on github ci that we need to resolve before enabling it
         if: ${{ matrix.python-version != 'pypy3' }}
