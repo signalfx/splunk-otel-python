@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 1.10.0 - 2023-05-01
 - Upgraded Otel dependencies to 1.17.0 and 0.38b0.
 - Pinned flake8 at ~3.7 to match OTel requirements
 ## 1.9.0 - 2023-02-13
