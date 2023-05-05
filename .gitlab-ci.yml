@@ -92,7 +92,6 @@ release-github:
     - branches
   needs:
     - release-pypi
-  dependencies:
-    - release-pypi
+      artifacts: true
   script:
     - make ci-create-github-release
