@@ -34,6 +34,10 @@ build:
   script:
     - make deps
     - make build
+  artifacts:
+    paths:
+      - dist/
+    when: always
 
 lint:
   extends: .tox
@@ -59,11 +63,12 @@ test-py39:
     PY_VERSION: "3.9"
     TOX_ENV: py39-test
 
-release:
+release-pypi:
   stage: release
   artifacts:
     paths:
       - dist/
+    when: always
   only:
     - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
   except:
@@ -73,4 +78,16 @@ release:
     - poetry config pypi-token.pypi $PYPI_PASSWORD
     - make publish
     - shasum -a 256 dist/* > dist/checksums.txt
+
+
+release-github:
+  stage: release
+  only:
+    - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+  except:
+    - branches
+  needs:
+    - release-pypi
+      artifacts: true
+  script:
     - make ci-create-github-release
