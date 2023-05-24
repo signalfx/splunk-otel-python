@@ -40,8 +40,6 @@ export OTEL_TRACES_EXPORTER=jaeger-thrift-splunk
 export OTEL_EXPORTER_JAEGER_ENDPOINT=https://ingest.us0.signalfx.com/v2/trace
 ```
 
-More information about exporting can be found [here](exporting-data.md).
-
 ## Trace propagation configuration
 
 | Environment variable | Default value          | Support | Description                                                                                                                    |
@@ -54,8 +52,6 @@ Python Tracing) you can set the trace propagator to B3:
 ```bash
 export OTEL_PROPAGATORS=b3multi
 ```
-
-More information about trace propagation can be found [here](configuring-propagators.md).
 
 ## Trace configuration
 
@@ -95,8 +91,3 @@ start_tracing()
 
 # rest of your python application's entrypoint script
 ```
-
-## Other
-
-- Advanced installation information can be found [here](advanced-install.md)
-- Instrumentation special cases information can be found [here](instrumentation-special-cases.md)
