@@ -661,7 +661,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "urllib3"
-version = "2.0.2"
+version = "2.0.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "dev"
 optional = false
@@ -702,7 +702,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "b84b0896f314942313a211ca355c5fe72768464b754ba58d9ea3ce0f8d79b710"
+content-hash = "05b6675e4dc718cf82618a9cbdf80e91daddfbb932139d9dc4491d443c2b8cd3"
 
 [metadata.files]
 astroid = []
