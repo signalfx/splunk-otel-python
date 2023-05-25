@@ -1,4 +1,4 @@
-> The official Splunk documentation for this page is [Configure the Python agent](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html). For instructions on how to contribute to the docs, see [CONTRIBUTING.md](../CONTRIBUTING.md#documentation).
+> The official Splunk documentation for this page is [Configure the Python agent](https://quickdraw.splunk.com/redirect/?product=Observability&version=current&location=python.configuration). For instructions on how to contribute to the docs, see [CONTRIBUTING.md](../CONTRIBUTING.md#documentation).
 
 # Advanced Configuration
 
@@ -40,8 +40,6 @@ export OTEL_TRACES_EXPORTER=jaeger-thrift-splunk
 export OTEL_EXPORTER_JAEGER_ENDPOINT=https://ingest.us0.signalfx.com/v2/trace
 ```
 
-More information about exporting can be found [here](exporting-data.md).
-
 ## Trace propagation configuration
 
 | Environment variable | Default value          | Support | Description                                                                                                                    |
@@ -54,8 +52,6 @@ Python Tracing) you can set the trace propagator to B3:
 ```bash
 export OTEL_PROPAGATORS=b3multi
 ```
-
-More information about trace propagation can be found [here](configuring-propagators.md).
 
 ## Trace configuration
 
@@ -95,8 +91,3 @@ start_tracing()
 
 # rest of your python application's entrypoint script
 ```
-
-## Other
-
-- Advanced installation information can be found [here](advanced-install.md)
-- Instrumentation special cases information can be found [here](instrumentation-special-cases.md)
