@@ -13,7 +13,8 @@ cache:
 
 stages:
   - test
-  - release 
+  - build
+  - release
 
 .tox:
   image: 'cimg/python:$PY_VERSION'
@@ -63,8 +64,8 @@ test-py39:
     PY_VERSION: "3.9"
     TOX_ENV: py39-test
 
-release-pypi:
-  stage: release
+build-release:
+  stage: build
   artifacts:
     paths:
       - dist/
@@ -75,9 +76,20 @@ release-pypi:
     - branches
   script:
     - make deps
+    - make build
+    - shasum -a 256 dist/* > dist/checksums.txt
+
+release-pypi:
+  stage: release
+  only:
+    - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+  except:
+    - branches
+  needs:
+    - build-release
+  script:
     - poetry config pypi-token.pypi $PYPI_PASSWORD
     - make publish
-    - shasum -a 256 dist/* > dist/checksums.txt
 
 
 release-github:
@@ -87,6 +99,6 @@ release-github:
   except:
     - branches
   needs:
-    - release-pypi
+    - build-release
   script:
     - make ci-create-github-release
