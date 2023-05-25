@@ -58,6 +58,7 @@ keepachangelog = "1.0.0"
 click = "8.0.4"
 types-setuptools = "65.3.0"
 urllib3 = "2.0.0"
+click = "8.0.4"
 
 [tool.black]
 line-length = 90
