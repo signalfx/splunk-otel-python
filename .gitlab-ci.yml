@@ -101,5 +101,4 @@ release-github:
   needs:
     - build-release
   script:
-    - pip install click keepachangelog github_release
     - make ci-create-github-release
