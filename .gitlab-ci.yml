@@ -88,6 +88,5 @@ release-github:
     - branches
   needs:
     - release-pypi
-      artifacts: true
   script:
     - make ci-create-github-release
