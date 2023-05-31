@@ -3,7 +3,6 @@ VERSION?=""
 
 .PHONY: install-poetry
 install-poetry:
-	pip install "cryptography>=2.0,<41.0.0"
 	pip install poetry==1.5.1
 
 .PHONY: install-tox
