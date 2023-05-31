@@ -742,7 +742,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "c3ab4fba417a55d0a05add4a21b061f42356272931b21352a56e5824f80bcfbe"
+content-hash = "7de6e051456d57e0bbd66c2c35a076351d6971062c7d9010e84900bbd55f4427"
 
 [metadata.files]
 astroid = []

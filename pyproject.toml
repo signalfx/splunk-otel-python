@@ -42,7 +42,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 
 [tool.poetry.dev-dependencies]
-cryptography="<41.0.0"
+cryptography=">=2.0,<=40.0.2"
 flake8 = "~3.7"
 mypy = "0.971"
 black = {version = "22.6.0", python = ">=3.7.0"}
