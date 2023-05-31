@@ -55,7 +55,7 @@ jobs:
             ~/.poetry/
           key: test-cache-${{ env.RUN_MATRIX_COMBINATION }}-${{ hashFiles('poetry.lock') }}
       - name: Fix cryptography version workaround 
-        if: ${{ matrix.python-version == 'pypy3' and matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.python-version == 'pypy3' && matrix.os == 'ubuntu-latest' }}
         run: pip install “cryptography>=2.0,<=40.0.2"
       - name: Install Tools 
         run: make install-tools
