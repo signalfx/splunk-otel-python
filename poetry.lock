@@ -74,6 +74,17 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "cffi"
+version = "1.15.1"
+description = "Foreign Function Interface for Python calling C code."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pycparser = "*"
+
+[[package]]
 name = "charset-normalizer"
 version = "3.1.0"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
@@ -113,8 +124,29 @@ python-versions = ">=3.6"
 toml = ["tomli"]
 
 [[package]]
+name = "cryptography"
+version = "40.0.2"
+description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+cffi = ">=1.12"
+
+[package.extras]
+docs = ["sphinx (>=5.3.0)", "sphinx-rtd-theme (>=1.1.1)"]
+docstest = ["pyenchant (>=1.6.11)", "twine (>=1.12.0)", "sphinxcontrib-spelling (>=4.0.1)"]
+pep8test = ["black", "ruff", "mypy", "check-manifest"]
+sdist = ["setuptools-rust (>=0.11.4)"]
+ssh = ["bcrypt (>=3.1.5)"]
+test = ["pytest (>=6.2.0)", "pytest-shard (>=0.1.2)", "pytest-benchmark", "pytest-cov", "pytest-subtests", "pytest-xdist", "pretend", "iso8601"]
+test-randomorder = ["pytest-randomly"]
+tox = ["tox"]
+
+[[package]]
 name = "deprecated"
-version = "1.2.13"
+version = "1.2.14"
 description = "Python @deprecated decorator to deprecate old python classes, functions or methods."
 category = "main"
 optional = false
@@ -124,7 +156,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 wrapt = ">=1.10,<2"
 
 [package.extras]
-dev = ["tox", "bump2version (<1)", "sphinx (<2)", "importlib-metadata (<3)", "importlib-resources (<4)", "configparser (<5)", "sphinxcontrib-websupport (<2)", "zipp (<2)", "PyTest (<5)", "PyTest-Cov (<2.6)", "pytest", "pytest-cov"]
+dev = ["tox", "pytest", "pytest-cov", "bump2version (<1)", "sphinx (<2)"]
 
 [[package]]
 name = "entrypoints"
@@ -457,7 +489,7 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "protobuf"
-version = "4.23.1"
+version = "4.23.2"
 description = ""
 category = "main"
 optional = false
@@ -475,6 +507,14 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 name = "pycodestyle"
 version = "2.5.0"
 description = "Python style guide checker"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+
+[[package]]
+name = "pycparser"
+version = "2.21"
+description = "C parser in Python"
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
@@ -653,7 +693,7 @@ python-versions = "*"
 
 [[package]]
 name = "typing-extensions"
-version = "4.6.1"
+version = "4.6.2"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 category = "main"
 optional = false
@@ -702,7 +742,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "05b6675e4dc718cf82618a9cbdf80e91daddfbb932139d9dc4491d443c2b8cd3"
+content-hash = "c3ab4fba417a55d0a05add4a21b061f42356272931b21352a56e5824f80bcfbe"
 
 [metadata.files]
 astroid = []
@@ -711,10 +751,12 @@ attrs = []
 backoff = []
 black = []
 certifi = []
+cffi = []
 charset-normalizer = []
 click = []
 colorama = []
 coverage = []
+cryptography = []
 deprecated = []
 entrypoints = []
 flake8 = []
@@ -747,6 +789,7 @@ pluggy = []
 protobuf = []
 py = []
 pycodestyle = []
+pycparser = []
 pyflakes = []
 pylint = []
 pylintfileheader = []
