@@ -3,7 +3,7 @@ VERSION?=""
 
 .PHONY: install-poetry
 install-poetry:
-	pip install poetry==1.3.2
+	pip install poetry==1.5.1
 
 .PHONY: install-tox
 install-tox:
@@ -88,9 +88,9 @@ test-with-cov:
 	poetry run coverage report --show-missing
 	poetry run coverage xml
 
-.PHONY: create-github-release
+.PHONY: ci-create-github-release
 ci-create-github-release:
-	poetry run pip install click keepachangelog github_release
+	poetry install
 	poetry run python scripts/create_gh_release.py --dry-run=false
 
 .PHONY: prepare-release
