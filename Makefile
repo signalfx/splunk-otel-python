@@ -88,7 +88,7 @@ test-with-cov:
 	poetry run coverage report --show-missing
 	poetry run coverage xml
 
-.PHONY: create-github-release
+.PHONY: ci-create-github-release
 ci-create-github-release:
 	poetry install
 	poetry run python scripts/create_gh_release.py --dry-run=false
