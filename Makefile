@@ -90,7 +90,7 @@ test-with-cov:
 
 .PHONY: ci-create-github-release
 ci-create-github-release:
-	poetry install
+	poetry run pip install click keepachangelog githubrelease
 	poetry run python scripts/create_gh_release.py --dry-run=false
 
 .PHONY: prepare-release
