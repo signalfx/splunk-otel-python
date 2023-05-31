@@ -45,7 +45,7 @@ jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 [tool.poetry.dev-dependencies]
 flake8 = "~3.7"
 mypy = "0.971"
-black = {version = "22.6.0", python = ">=3.7.0"}
+black = {version = "23.3.0", python = ">=3.7.0"}
 isort = {version = "5.9.3", python = ">=3.7.0"}
 pytest = "7.0.1"
 coverage = "6.1.1"
