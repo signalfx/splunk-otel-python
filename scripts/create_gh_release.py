@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from os import path
+from time import sleep
 
+import backoff
 import click
 import keepachangelog
 from github_release import gh_release_create
@@ -55,6 +57,9 @@ Run with --dry-run=false to create the following release
     default=True,
     help="Print out the release details instead of actually creating one",
 )
+@backoff.on_exception(backoff.expo,
+    requests.exceptions.HTTPError,
+    max_time=60)
 def main(dry_run):
     versions = get_versions()
 
@@ -72,6 +77,7 @@ def main(dry_run):
     action = print_release_details
     if not dry_run:
         action = gh_release_create
+    sleep(5)
     action(
         repo_name="signalfx/splunk-otel-python",
         tag_name=git_tag,

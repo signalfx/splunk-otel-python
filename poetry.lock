@@ -693,7 +693,7 @@ python-versions = "*"
 
 [[package]]
 name = "typing-extensions"
-version = "4.6.2"
+version = "4.6.3"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 category = "main"
 optional = false
@@ -742,7 +742,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "c3ecc35b65c4cff5d94fe624b0b528542b8084abb5794ef639c91d63d53503a8"
+content-hash = "d11a2d2ff95bfdc2022b3fc5ccfb22d3b41bed7fd912c663ab068f8592045ef3"
 
 [metadata.files]
 astroid = []
