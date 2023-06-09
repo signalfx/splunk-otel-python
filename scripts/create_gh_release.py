@@ -58,9 +58,7 @@ Run with --dry-run=false to create the following release
     default=True,
     help="Print out the release details instead of actually creating one",
 )
-@backoff.on_exception(backoff.expo,
-    HTTPError,
-    max_time=60)
+@backoff.on_exception(backoff.expo, HTTPError, max_time=60)
 def main(dry_run):
     versions = get_versions()
 
