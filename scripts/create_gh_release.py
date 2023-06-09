@@ -14,6 +14,7 @@
 
 from os import path
 from time import sleep
+from urllib3.exceptions import HTTPError
 
 import backoff
 import click
@@ -58,7 +59,7 @@ Run with --dry-run=false to create the following release
     help="Print out the release details instead of actually creating one",
 )
 @backoff.on_exception(backoff.expo,
-    requests.exceptions.HTTPError,
+    HTTPError,
     max_time=60)
 def main(dry_run):
     versions = get_versions()
