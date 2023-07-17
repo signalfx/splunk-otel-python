@@ -26,6 +26,7 @@ _DEFAULT_OTEL_SERVICE_NAME = "unknown_service"
 
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SERVICE_NAME_ATTR = "service.name"
+_SPLUNK_SERVICE_NAME_ATTR = "sf_service"
 _TELEMETRY_VERSION_ATTR = "telemetry.auto.version"
 _NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
 set your service name using the OTEL_SERVICE_NAME environment variable.

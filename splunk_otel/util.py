@@ -12,18 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The Splunk distribution of OpenTelemetry Python provides multiple
-installable packages that automatically instruments your Python
-application to capture and report distributed traces to Splunk APM.
+from typing import Any
 
-https://github.com/signalfx/splunk-otel-python
-"""
-
-from .defaults import _set_otel_defaults
-
-_set_otel_defaults()
-
-# pylint: disable=wrong-import-position
-from .metrics import start_metrics  # noqa: E402
-from .tracing import start_tracing  # noqa: E402
-from .version import __version__  # noqa: E402
+def _is_truthy(value: Any) -> bool:
+    if isinstance(value, str):
+        value = value.lower().strip()
+    return value in [True, 1, "true", "yes"]
