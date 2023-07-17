@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 1.12.0 - 2023-07-17
 - Upgraded Otel dependencies to 1.19.0 and 0.40b0
 
 ## 1.11.0 - 2023-05-24
