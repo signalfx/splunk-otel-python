@@ -27,7 +27,7 @@ logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
 def start_metrics() -> MeterProvider:
-    enabled = os.environ.get("OTEL_METRICS_ENABLED", False)
+    enabled = os.environ.get("OTEL_METRICS_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("metering has been disabled with OTEL_METRICS_ENABLED=%s", enabled)
         return None
