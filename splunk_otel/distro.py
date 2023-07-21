@@ -21,6 +21,7 @@ from pkg_resources import EntryPoint
 
 from splunk_otel.options import _Options
 from splunk_otel.tracing import _configure_tracing, _is_truthy
+from splunk_otel.profiling import _start_profiling
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
@@ -30,6 +31,7 @@ class _SplunkDistro(BaseDistro):
     def __init__(self):
         tracing_enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
         self._tracing_enabled = _is_truthy(tracing_enabled)
+        self._profiling_enabled = True
         if not self._tracing_enabled:
             logger.info(
                 "tracing has been disabled with OTEL_TRACE_ENABLED=%s", tracing_enabled
@@ -38,6 +40,9 @@ class _SplunkDistro(BaseDistro):
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
         if self._tracing_enabled:
             _configure_tracing(_Options())
+
+        if self._profiling_enabled:
+            _start_profiling()
 
     def load_instrumentor(self, entry_point: EntryPoint, **kwargs):
         if self._tracing_enabled:
