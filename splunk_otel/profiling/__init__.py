@@ -160,6 +160,7 @@ def _profiler_loop(options: _Options):
 
         for thread_id, frame in frames.items():
             prof_stacktrace_frames = []
+            # TODO: This is potentially really slow due to code line lookups in the file
             stack = traceback.extract_stack(frame)
             for sf in stack:
                 prof_stacktrace_frames.append((sf.filename, sf.name, sf.lineno))
