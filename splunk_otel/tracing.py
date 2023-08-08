@@ -26,6 +26,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
+from splunk_otel.env import _EnvVarsABC, _OSEnvVars
 from splunk_otel.options import _Options, _SpanExporterFactory
 
 logger = logging.getLogger(__file__)
@@ -39,7 +40,24 @@ def start_tracing(
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
 ) -> TracerProvider:
-    enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
+    return _do_start_tracing(
+        _OSEnvVars(),
+        service_name,
+        span_exporter_factories,
+        access_token,
+        resource_attributes,
+        trace_response_header_enabled,
+    )
+
+def _do_start_tracing(
+    env: _EnvVarsABC,
+    service_name: Optional[str] = None,
+    span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
+    access_token: Optional[str] = None,
+    resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
+    trace_response_header_enabled: Optional[bool] = None,
+) -> TracerProvider | None:
+    enabled = env._get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return None
@@ -50,6 +68,7 @@ def start_tracing(
         access_token,
         resource_attributes,
         trace_response_header_enabled,
+        env,
     )
     try:
         provider = _configure_tracing(options)
@@ -58,13 +77,13 @@ def start_tracing(
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
-
 def _configure_tracing(options: _Options) -> TracerProvider:
     provider = TracerProvider(resource=options.resource)
     set_global_response_propagator(options.response_propagator)  # type: ignore
     trace.set_tracer_provider(provider)
     for factory in options.span_exporter_factories:
-        provider.add_span_processor(BatchSpanProcessor(factory(options)))
+        exporter = factory(options)
+        provider.add_span_processor(BatchSpanProcessor(exporter))
     return provider
 
 
@@ -79,7 +98,8 @@ def _load_instrumentors() -> None:
             if entry_point.name in package_to_exclude:
                 logger.debug("Instrumentation skipped for library %s", entry_point.name)
                 continue
-            entry_point.load()().instrument()
+            instrumentor_class = entry_point.load()
+            instrumentor_class().instrument()
             logger.debug("Instrumented %s", entry_point.name)
         except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Instrumenting of %s failed", entry_point.name)

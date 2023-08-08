@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-from functools import partial
 from os import environ
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
@@ -36,6 +35,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import SpanExporter
 from pkg_resources import iter_entry_points
 
+from splunk_otel.env import _EnvVarsABC, _OSEnvVars
 from splunk_otel.environment_variables import (
     _SPLUNK_ACCESS_TOKEN,
     _SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
@@ -81,31 +81,30 @@ class _Options:
         access_token: Optional[str] = None,
         resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
         trace_response_header_enabled: Optional[bool] = None,
+        env: Optional[_EnvVarsABC] = _OSEnvVars(),
     ):
-        self._set_default_env()
-        self.access_token = self._get_access_token(access_token)
-        self.response_propagator = self._get_trace_response_header_enabled(
-            trace_response_header_enabled
-        )
+        self._set_default_env(env)
+        self.access_token = self._get_access_token(env, access_token)
+        self.response_propagator = self._get_response_propagator(env, trace_response_header_enabled)
         self.resource = self._get_resource(service_name, resource_attributes)
         self.span_exporter_factories = self._get_span_exporter_factories(
+            env,
             span_exporter_factories
         )
 
     @staticmethod
-    def _get_access_token(access_token: Optional[str]) -> Optional[str]:
+    def _get_access_token(env: _EnvVarsABC, access_token: Optional[str]) -> Optional[str]:
         if not access_token:
-            access_token = environ.get(_SPLUNK_ACCESS_TOKEN)
+            access_token = env._get(_SPLUNK_ACCESS_TOKEN)
         return access_token or None
 
     @staticmethod
-    def _get_trace_response_header_enabled(
+    def _get_response_propagator(
+        env: _EnvVarsABC,
         enabled: Optional[bool],
     ) -> Optional[ResponsePropagator]:
         if enabled is None:
-            enabled = _Options._is_truthy(
-                environ.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
-            )
+            enabled = _Options._is_truthy(env._get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"))
         if enabled:
             return _ServerTimingResponsePropagator()
         return None
@@ -137,12 +136,13 @@ class _Options:
 
     @staticmethod
     def _get_span_exporter_factories(
+        env: _EnvVarsABC,
         factories: Optional[Collection[_SpanExporterFactory]],
     ) -> Collection[_SpanExporterFactory]:
         if factories:
             return factories
 
-        exporter_names = _Options._get_span_exporter_names_from_env()
+        exporter_names = _Options._get_span_exporter_names_from_env(env)
         return _Options._import_span_exporter_factories(exporter_names)
 
     @classmethod
@@ -158,7 +158,7 @@ class _Options:
         )
 
     @staticmethod
-    def _set_default_env() -> None:
+    def _set_default_env(env: Optional[_EnvVarsABC] = _OSEnvVars()) -> None:
         defaults = {
             OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
             OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
@@ -168,15 +168,12 @@ class _Options:
             OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
             OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
         }
-
-        for key, value in defaults.items():
-            if key not in environ:
-                environ[key] = value
+        env._set_all_unset(defaults)
 
     @classmethod
-    def _get_span_exporter_names_from_env(cls) -> Collection[Tuple[str, str]]:
+    def _get_span_exporter_names_from_env(cls, env: _EnvVarsABC) -> Collection[Tuple[str, str]]:
         exporters_env = (
-            environ.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
+            env._get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
         )
 
         exporters: List[Tuple[str, str]] = []
@@ -202,14 +199,14 @@ class _Options:
 
     @staticmethod
     def _import_span_exporter_factories(
-        exporter_names: Collection[Tuple[str, str]],
+        requested_exporter_names: Collection[Tuple[str, str]],
     ) -> Collection[_SpanExporterFactory]:
         factories = []
         entry_points = {
             ep.name: ep for ep in iter_entry_points("opentelemetry_traces_exporter")
         }
 
-        for name, internal_name in exporter_names:
+        for name, internal_name in requested_exporter_names:
             if internal_name not in entry_points:
                 package = _KNOWN_EXPORTER_PACKAGES.get(internal_name)
                 if package:
@@ -224,42 +221,37 @@ class _Options:
 
             exporter_class: _SpanExporterClass = entry_points[internal_name].load()
             if name == _EXPORTER_JAEGER_SPLUNK:
-                factory = _Options._splunk_jaeger_factory
+                factory = _Options._mk_splunk_jaeger_factory(exporter_class)
             elif internal_name == _EXPORTER_JAEGER_THRIFT:
-                factory = _Options._jaeger_factory
+                factory = _Options._mk_jaeger_factory(exporter_class)
             elif internal_name == _EXPORTER_OTLP_GRPC:
-                factory = _Options._otlp_factory
+                factory = _Options._mk_otlp_factory(exporter_class)
             else:
-                factory = _Options._generic_exporter
-            factories.append(partial(factory, exporter_class))
+                factory = _Options._mk_generic_exporter(exporter_class)
+            factories.append(factory)
         return factories
 
     @staticmethod
-    def _generic_exporter(
-        exporter: _SpanExporterClass,
-        options: "_Options",  # pylint: disable=unused-argument
-    ) -> SpanExporter:
-        return exporter()
+    def _mk_splunk_jaeger_factory(exporter: _SpanExporterClass):
+        def f(options: "_Options"):
+            kwargs = _Options._get_jaeger_kwargs(options)
+            endpt = environ.get(OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT)
+            kwargs.update({"collector_endpoint": endpt})
+            return exporter(**kwargs)
+
+        return f
 
     @staticmethod
-    def _splunk_jaeger_factory(
-        exporter: _SpanExporterClass, options: "_Options"
-    ) -> SpanExporter:
-        kwargs = _Options._get_jaeger_kwargs(options)
-        kwargs.update(
-            {
-                "collector_endpoint": environ.get(
-                    OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT
-                ),
-            }
-        )
-        return exporter(**kwargs)
+    def _mk_jaeger_factory(exporter: _SpanExporterClass):
+        return lambda options: exporter(**_Options._get_jaeger_kwargs(options))
 
     @staticmethod
-    def _jaeger_factory(
-        exporter: _SpanExporterClass, options: "_Options"
-    ) -> SpanExporter:
-        return exporter(**_Options._get_jaeger_kwargs(options))
+    def _mk_otlp_factory(exporter: _SpanExporterClass):
+        return lambda options: exporter(headers=(("x-sf-token", options.access_token),))
+
+    @staticmethod
+    def _mk_generic_exporter(exporter: _SpanExporterClass):
+        return lambda options: exporter()
 
     @staticmethod
     def _get_jaeger_kwargs(options: "_Options") -> Dict[str, str]:
@@ -269,7 +261,3 @@ class _Options:
                 "password": options.access_token,
             }
         return {}
-
-    @staticmethod
-    def _otlp_factory(exporter: _SpanExporterClass, options: "_Options") -> SpanExporter:
-        return exporter(headers=(("x-sf-token", options.access_token),))
