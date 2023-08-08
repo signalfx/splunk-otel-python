@@ -33,6 +33,7 @@ from splunk_otel.symbols import (
 )
 
 
+# A base class to abstract environment variable i/o.
 class _EnvVarsABC(ABC):
     @abstractmethod
     def get(self, name: str, default: Optional[any] = None):
@@ -47,9 +48,9 @@ class _EnvVarsABC(ABC):
         pass
 
 
+# The standard/production implementation for reading from and writing to environment variables.
 class _OSEnvVars(_EnvVarsABC):
     def get(self, name, default: Optional[any] = None):
-        # todo check if explicit None is ok
         return environ.get(name, default)
 
     def set(self, name, value):
@@ -61,6 +62,7 @@ class _OSEnvVars(_EnvVarsABC):
                 environ[name] = value
 
 
+# A test/fake implementation for accessing environment variables. Just uses a dictionary instead of env vars.
 class _FakeEnvVars(_EnvVarsABC):
     def __init__(self, starting_env=None):
         self._env = starting_env or {}
@@ -81,10 +83,10 @@ class _FakeEnvVars(_EnvVarsABC):
         self._written[name] = value
         self._env[value] = value
 
-    def _get_env_vars_written(self):
+    def get_env_vars_written(self):
         return self._written
 
-    def _get_env_vars_read(self):
+    def get_env_vars_read(self):
         return self._read
 
 

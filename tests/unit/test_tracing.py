@@ -33,7 +33,7 @@ class TestTracing(TestCase):
         env = _FakeEnvVars()
         tracer_provider = _do_start_tracing(env)
         self.assertIsNotNone(tracer_provider)
-        env_vars = env._get_env_vars_written()  # pylint:disable=protected-access
+        env_vars = env.get_env_vars_written()
         expected_written = {
             "OTEL_ATTRIBUTE_COUNT_LIMIT": "",
             "OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT": "",
@@ -44,7 +44,7 @@ class TestTracing(TestCase):
             "OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT": "12000",
         }
         self.assertDictEqual(expected_written, env_vars)
-        read = env._get_env_vars_read()  # pylint:disable=protected-access
+        read = env.get_env_vars_read()
         expected_read = [
             "OTEL_TRACE_ENABLED",
             "SPLUNK_ACCESS_TOKEN",
