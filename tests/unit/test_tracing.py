@@ -1,13 +1,12 @@
 from unittest import TestCase
-from unittest.mock import patch
 
-import splunk_otel
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.propagators import get_global_response_propagator
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
 from splunk_otel.env import _FakeEnvVars
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.tracing import _do_start_tracing
-from opentelemetry.instrumentation.propagators import get_global_response_propagator
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 
 class TestTracing(TestCase):

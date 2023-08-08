@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from os import environ
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from opentelemetry.sdk.environment_variables import (
     OTEL_ATTRIBUTE_COUNT_LIMIT,
