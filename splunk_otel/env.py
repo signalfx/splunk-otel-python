@@ -20,7 +20,6 @@ from splunk_otel.symbols import (
 
 
 class _EnvVarsABC(ABC):
-
     @abstractmethod
     def _get(self, k: str, default: Optional[any] = None):
         pass
@@ -35,7 +34,6 @@ class _EnvVarsABC(ABC):
 
 
 class _OSEnvVars(_EnvVarsABC):
-
     def _get(self, k, default: Optional[any] = None):
         # todo check if explicit None is ok
         return environ.get(k, default)
@@ -50,7 +48,6 @@ class _OSEnvVars(_EnvVarsABC):
 
 
 class _FakeEnvVars(_EnvVarsABC):
-
     def __init__(self, starting_env=None):
         self._env = starting_env or {}
         self._written = {}
@@ -76,13 +73,16 @@ class _FakeEnvVars(_EnvVarsABC):
     def _get_env_vars_read(self):
         return self._read
 
+
 def _set_default_env(env: _EnvVarsABC) -> None:
-    env._set_all_unset({
-        OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
-        OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
-    })
+    env._set_all_unset(
+        {
+            OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
+            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
+        }
+    )

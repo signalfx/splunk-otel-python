@@ -85,11 +85,12 @@ class _Options:
     ):
         self._set_default_env(env)
         self.access_token = self._get_access_token(env, access_token)
-        self.response_propagator = self._get_response_propagator(env, trace_response_header_enabled)
+        self.response_propagator = self._get_response_propagator(
+            env, trace_response_header_enabled
+        )
         self.resource = self._get_resource(service_name, resource_attributes)
         self.span_exporter_factories = self._get_span_exporter_factories(
-            env,
-            span_exporter_factories
+            env, span_exporter_factories
         )
 
     @staticmethod
@@ -104,7 +105,9 @@ class _Options:
         enabled: Optional[bool],
     ) -> Optional[ResponsePropagator]:
         if enabled is None:
-            enabled = _Options._is_truthy(env._get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"))
+            enabled = _Options._is_truthy(
+                env._get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
+            )
         if enabled:
             return _ServerTimingResponsePropagator()
         return None
@@ -171,10 +174,10 @@ class _Options:
         env._set_all_unset(defaults)
 
     @classmethod
-    def _get_span_exporter_names_from_env(cls, env: _EnvVarsABC) -> Collection[Tuple[str, str]]:
-        exporters_env = (
-            env._get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
-        )
+    def _get_span_exporter_names_from_env(
+        cls, env: _EnvVarsABC
+    ) -> Collection[Tuple[str, str]]:
+        exporters_env = env._get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
 
         exporters: List[Tuple[str, str]] = []
         if not cls._is_truthy(exporters_env):

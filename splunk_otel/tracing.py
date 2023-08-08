@@ -49,6 +49,7 @@ def start_tracing(
         trace_response_header_enabled,
     )
 
+
 def _do_start_tracing(
     env: _EnvVarsABC,
     service_name: Optional[str] = None,
@@ -76,6 +77,7 @@ def _do_start_tracing(
         return provider
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
+
 
 def _configure_tracing(options: _Options) -> TracerProvider:
     provider = TracerProvider(resource=options.resource)
