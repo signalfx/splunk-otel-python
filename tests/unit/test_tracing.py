@@ -1,3 +1,17 @@
+# Copyright Splunk Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from unittest import TestCase
 
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -19,7 +33,7 @@ class TestTracing(TestCase):
         env = _FakeEnvVars()
         tracer_provider = _do_start_tracing(env)
         self.assertIsNotNone(tracer_provider)
-        env_vars = env._get_env_vars_written()
+        env_vars = env._get_env_vars_written()  # pylint:disable=protected-access
         expected_written = {
             "OTEL_ATTRIBUTE_COUNT_LIMIT": "",
             "OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT": "",
@@ -30,7 +44,7 @@ class TestTracing(TestCase):
             "OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT": "12000",
         }
         self.assertDictEqual(expected_written, env_vars)
-        read = env._get_env_vars_read()
+        read = env._get_env_vars_read()  # pylint:disable=protected-access
         expected_read = [
             "OTEL_TRACE_ENABLED",
             "SPLUNK_ACCESS_TOKEN",
@@ -51,12 +65,14 @@ class TestTracing(TestCase):
             "service.name": "unnamed-python-service",
         }
         self.assertDictEqual(expected_attrs, dict(tracer_provider.resource.attributes))
+        # pylint:disable=protected-access
         batch_span_processor = tracer_provider._active_span_processor._span_processors[0]
         self.assertIsInstance(batch_span_processor.span_exporter, OTLPSpanExporter)
 
     def test_do_start_tracing_with_access_token(self):
         env = _FakeEnvVars({"SPLUNK_ACCESS_TOKEN": "abc123"})
         tracer_provider = _do_start_tracing(env)
+        # pylint:disable=protected-access
         otlp_span_exporter = tracer_provider._active_span_processor._span_processors[
             0
         ].span_exporter
@@ -83,6 +99,7 @@ class TestTracing(TestCase):
             _FakeEnvVars(),
             span_exporter_factories=[lambda options: InMemorySpanExporter()],
         )
+        # pylint:disable=protected-access
         exporter = tracer_provider._active_span_processor._span_processors[
             0
         ].span_exporter

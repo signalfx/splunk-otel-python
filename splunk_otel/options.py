@@ -96,7 +96,7 @@ class _Options:
     @staticmethod
     def _get_access_token(env: _EnvVarsABC, access_token: Optional[str]) -> Optional[str]:
         if not access_token:
-            access_token = env._get(_SPLUNK_ACCESS_TOKEN)
+            access_token = env.get(_SPLUNK_ACCESS_TOKEN)
         return access_token or None
 
     @staticmethod
@@ -106,7 +106,7 @@ class _Options:
     ) -> Optional[ResponsePropagator]:
         if enabled is None:
             enabled = _Options._is_truthy(
-                env._get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
+                env.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
             )
         if enabled:
             return _ServerTimingResponsePropagator()
@@ -171,13 +171,13 @@ class _Options:
             OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
             OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
         }
-        env._set_all_unset(defaults)
+        env.set_all_unset(defaults)
 
     @classmethod
     def _get_span_exporter_names_from_env(
         cls, env: _EnvVarsABC
     ) -> Collection[Tuple[str, str]]:
-        exporters_env = env._get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
+        exporters_env = env.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
 
         exporters: List[Tuple[str, str]] = []
         if not cls._is_truthy(exporters_env):
@@ -236,13 +236,13 @@ class _Options:
 
     @staticmethod
     def _mk_splunk_jaeger_factory(exporter: _SpanExporterClass):
-        def f(options: "_Options"):
+        def func(options: "_Options"):
             kwargs = _Options._get_jaeger_kwargs(options)
             endpt = environ.get(OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT)
             kwargs.update({"collector_endpoint": endpt})
             return exporter(**kwargs)
 
-        return f
+        return func
 
     @staticmethod
     def _mk_jaeger_factory(exporter: _SpanExporterClass):
