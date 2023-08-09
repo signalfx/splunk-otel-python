@@ -57,12 +57,11 @@ def _do_start_tracing(
     access_token: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
-) -> TracerProvider | None:
+) -> TracerProvider:
     enabled = env.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return None
-
     options = _Options(
         service_name,
         span_exporter_factories,
