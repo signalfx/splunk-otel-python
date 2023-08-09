@@ -62,34 +62,6 @@ class _OSEnvVars(_EnvVarsABC):
                 environ[name] = value
 
 
-# A test/fake implementation for accessing environment variables. Just uses a dictionary instead of env vars.
-class _FakeEnvVars(_EnvVarsABC):
-    def __init__(self, starting_env=None):
-        self._env = starting_env or {}
-        self._written = {}
-        self._read = []
-
-    def get(self, name: str, default: Optional[any] = None) -> any:
-        self._read.append(name)
-        out = self._env.get(name)
-        return default if out is None else out
-
-    def set_all_unset(self, pairs: Dict):
-        for name, value in pairs.items():
-            if name not in self._written:
-                self.set(name, value)
-
-    def set(self, name: str, value: str):
-        self._written[name] = value
-        self._env[value] = value
-
-    def get_env_vars_written(self):
-        return self._written
-
-    def get_env_vars_read(self):
-        return self._read
-
-
 def _set_default_env(env: _EnvVarsABC) -> None:
     env.set_all_unset(
         {

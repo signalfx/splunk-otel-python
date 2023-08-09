@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Dict, Optional
 from unittest import TestCase
 
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.propagators import get_global_response_propagator
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from splunk_otel.env import _FakeEnvVars
+from splunk_otel.env import _EnvVarsABC
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.tracing import _do_start_tracing
 
@@ -119,3 +119,31 @@ class TestTracing(TestCase):
             "my.attr": 42,
         }
         self.assertDictEqual(expected_attrs, dict(tracer_provider.resource.attributes))
+
+
+# A test/fake implementation for accessing environment variables. Just uses a dictionary instead of env vars.
+class _FakeEnvVars(_EnvVarsABC):
+    def __init__(self, starting_env=None):
+        self._env = starting_env or {}
+        self._written = {}
+        self._read = []
+
+    def get(self, name: str, default: Optional[any] = None) -> any:
+        self._read.append(name)
+        out = self._env.get(name)
+        return default if out is None else out
+
+    def set_all_unset(self, pairs: Dict):
+        for name, value in pairs.items():
+            if name not in self._written:
+                self.set(name, value)
+
+    def set(self, name: str, value: str):
+        self._written[name] = value
+        self._env[value] = value
+
+    def get_env_vars_written(self):
+        return self._written
+
+    def get_env_vars_read(self):
+        return self._read
