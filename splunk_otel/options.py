@@ -146,7 +146,7 @@ class _Options:
             return factories
 
         exporter_names = _Options._get_span_exporter_names_from_env(env)
-        return _Options._import_span_exporter_factories(exporter_names)
+        return _Options._import_span_exporter_factories(env, exporter_names)
 
     @classmethod
     def _is_truthy(cls, value: Optional[str]) -> bool:
@@ -177,31 +177,23 @@ class _Options:
     def _get_span_exporter_names_from_env(
         cls, env: _EnvVarsABC
     ) -> Collection[Tuple[str, str]]:
+        out: List[Tuple[str, str]] = []
         exporters_env = env.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
-
-        exporters: List[Tuple[str, str]] = []
-        if not cls._is_truthy(exporters_env):
-            return exporters
-
         # exporters are known by different names internally by Python Otel SDK.
         # Here we create a mapping of user provided names to internal names so
         # that we can provide helpful error messages later.
         for name in exporters_env.split(","):
             if name == _EXPORTER_OTLP:
-                exporters.append((_EXPORTER_OTLP, _EXPORTER_OTLP_GRPC))
+                out.append((_EXPORTER_OTLP, _EXPORTER_OTLP_GRPC))
             elif name == _EXPORTER_JAEGER_SPLUNK:
-                exporters.append((_EXPORTER_JAEGER_SPLUNK, _EXPORTER_JAEGER_THRIFT))
+                out.append((_EXPORTER_JAEGER_SPLUNK, _EXPORTER_JAEGER_THRIFT))
             else:
-                exporters.append(
-                    (
-                        name,
-                        name,
-                    )
-                )
-        return exporters
+                out.append((name, name))
+        return out
 
     @staticmethod
     def _import_span_exporter_factories(
+        env: _EnvVarsABC,
         requested_exporter_names: Collection[Tuple[str, str]],
     ) -> Collection[_SpanExporterFactory]:
         factories = []
@@ -215,30 +207,35 @@ class _Options:
                 if package:
                     help_msg = f"please make sure {package} is installed"
                 else:
-                    help_msg = (
-                        "please make sure the relevant exporter package is installed."
-                    )
+                    help_msg = "please make sure the relevant exporter package is installed."
                 raise ValueError(
                     f'exporter "{name} ({internal_name})" not found. {help_msg}'
                 )
 
             exporter_class: _SpanExporterClass = entry_points[internal_name].load()
             if name == _EXPORTER_JAEGER_SPLUNK:
-                factory = _Options._mk_splunk_jaeger_factory(exporter_class)
-            elif internal_name == _EXPORTER_JAEGER_THRIFT:
-                factory = _Options._mk_jaeger_factory(exporter_class)
+                factory = _Options._mk_splunk_jaeger_factory(env, exporter_class)
             elif internal_name == _EXPORTER_OTLP_GRPC:
                 factory = _Options._mk_otlp_factory(exporter_class)
+            elif internal_name == _EXPORTER_JAEGER_THRIFT:
+                factory = _Options._mk_jaeger_factory(exporter_class)
             else:
                 factory = _Options._mk_generic_exporter(exporter_class)
             factories.append(factory)
         return factories
 
     @staticmethod
-    def _mk_splunk_jaeger_factory(exporter: _SpanExporterClass):
+    def _mk_otlp_factory(exporter: _SpanExporterClass):
+        return lambda options: exporter(headers=(("x-sf-token", options.access_token),))
+
+    @staticmethod
+    def _mk_splunk_jaeger_factory(
+        env: _EnvVarsABC,
+        exporter: _SpanExporterClass,
+    ):
         def func(options: "_Options"):
             kwargs = _Options._get_jaeger_kwargs(options)
-            endpt = environ.get(OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT)
+            endpt = env.get(OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT)
             kwargs.update({"collector_endpoint": endpt})
             return exporter(**kwargs)
 
@@ -247,10 +244,6 @@ class _Options:
     @staticmethod
     def _mk_jaeger_factory(exporter: _SpanExporterClass):
         return lambda options: exporter(**_Options._get_jaeger_kwargs(options))
-
-    @staticmethod
-    def _mk_otlp_factory(exporter: _SpanExporterClass):
-        return lambda options: exporter(headers=(("x-sf-token", options.access_token),))
 
     @staticmethod
     def _mk_generic_exporter(exporter: _SpanExporterClass):
