@@ -14,11 +14,11 @@
 from typing import Dict, Optional
 from unittest import TestCase
 
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.propagators import get_global_response_propagator
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from splunk_otel.env import _EnvVarsABC
 from splunk_otel.propagators import _ServerTimingResponsePropagator
@@ -75,7 +75,9 @@ class TestTracing(TestCase):
         env = _FakeEnvVars({"SPLUNK_ACCESS_TOKEN": "abc123"})
         tracer_provider = _do_start_tracing(env)
         # pylint:disable=protected-access
-        otlp_span_exporter = tracer_provider._active_span_processor._span_processors[0].span_exporter
+        otlp_span_exporter = tracer_provider._active_span_processor._span_processors[
+            0
+        ].span_exporter
         self.assertIn(("x-sf-token", "abc123"), otlp_span_exporter._headers)
 
     def test_do_start_tracing_with_svc_name(self):
@@ -123,52 +125,77 @@ class TestTracing(TestCase):
     def test_jaeger_exporter_defaults(self):
         env = _FakeEnvVars({"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
         tracer_provider = _do_start_tracing(env)
-        exporter = tracer_provider._active_span_processor._span_processors[0].span_exporter
+        # pylint:disable=protected-access
+        exporter = tracer_provider._active_span_processor._span_processors[
+            0
+        ].span_exporter
         self.assertIsInstance(exporter, JaegerExporter)
         self.assertEqual("http://localhost:9080/v1/trace", exporter.collector_endpoint)
 
     def test_jaeger_exporter_explicit_endpoint(self):
         endpt = "http://example.com:4200"
-        env = _FakeEnvVars({
-            "OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk",
-            "OTEL_EXPORTER_JAEGER_ENDPOINT": endpt,
-        })
+        env = _FakeEnvVars(
+            {
+                "OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk",
+                "OTEL_EXPORTER_JAEGER_ENDPOINT": endpt,
+            }
+        )
+        # pylint:disable=protected-access
         tracer_provider = _do_start_tracing(env)
-        exporter = tracer_provider._active_span_processor._span_processors[0].span_exporter
+        exporter = tracer_provider._active_span_processor._span_processors[
+            0
+        ].span_exporter
         self.assertIsInstance(exporter, JaegerExporter)
         self.assertEqual(endpt, exporter.collector_endpoint)
 
     def test_jaeger_thrift_defaults(self):
-        env = _FakeEnvVars({
-            "OTEL_TRACES_EXPORTER": "jaeger_thrift",
-        })
+        env = _FakeEnvVars(
+            {
+                "OTEL_TRACES_EXPORTER": "jaeger_thrift",
+            }
+        )
+        # pylint:disable=protected-access
         tracer_provider = _do_start_tracing(env)
-        exporter = tracer_provider._active_span_processor._span_processors[0].span_exporter
+        exporter = tracer_provider._active_span_processor._span_processors[
+            0
+        ].span_exporter
         self.assertIsInstance(exporter, JaegerExporter)
 
     def test_jaeger_thrift_with_access_token(self):
-        env = _FakeEnvVars({
-            "OTEL_TRACES_EXPORTER": "jaeger_thrift",
-            "SPLUNK_ACCESS_TOKEN": "abc123",
-        })
+        env = _FakeEnvVars(
+            {
+                "OTEL_TRACES_EXPORTER": "jaeger_thrift",
+                "SPLUNK_ACCESS_TOKEN": "abc123",
+            }
+        )
+        # pylint:disable=protected-access
         tracer_provider = _do_start_tracing(env)
-        exporter = tracer_provider._active_span_processor._span_processors[0].span_exporter
+        exporter = tracer_provider._active_span_processor._span_processors[
+            0
+        ].span_exporter
         self.assertIsInstance(exporter, JaegerExporter)
         self.assertEqual("auth", exporter.username)
         self.assertEqual("abc123", exporter.password)
 
     def test_console_exporter(self):
-        env = _FakeEnvVars({
-            "OTEL_TRACES_EXPORTER": "console",
-        })
+        env = _FakeEnvVars(
+            {
+                "OTEL_TRACES_EXPORTER": "console",
+            }
+        )
         tracer_provider = _do_start_tracing(env)
-        exporter = tracer_provider._active_span_processor._span_processors[0].span_exporter
+        # pylint:disable=protected-access
+        exporter = tracer_provider._active_span_processor._span_processors[
+            0
+        ].span_exporter
         self.assertIsInstance(exporter, ConsoleSpanExporter)
 
     def test_bad_exporter_name(self):
-        env = _FakeEnvVars({
-            "OTEL_TRACES_EXPORTER": "foo",
-        })
+        env = _FakeEnvVars(
+            {
+                "OTEL_TRACES_EXPORTER": "foo",
+            }
+        )
         with self.assertRaises(ValueError) as context:
             _do_start_tracing(env)
         self.assertEqual(

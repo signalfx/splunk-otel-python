@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import logging
-from os import environ
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 from opentelemetry.environment_variables import OTEL_TRACES_EXPORTER
@@ -207,7 +206,9 @@ class _Options:
                 if package:
                     help_msg = f"please make sure {package} is installed"
                 else:
-                    help_msg = "please make sure the relevant exporter package is installed."
+                    help_msg = (
+                        "please make sure the relevant exporter package is installed."
+                    )
                 raise ValueError(
                     f'exporter "{name} ({internal_name})" not found. {help_msg}'
                 )
