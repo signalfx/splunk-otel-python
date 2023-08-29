@@ -58,7 +58,6 @@ def start_tracing(
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
-
 def _configure_tracing(options: _Options) -> TracerProvider:
     provider = TracerProvider(resource=options.resource)
     set_global_response_propagator(options.response_propagator)  # type: ignore
