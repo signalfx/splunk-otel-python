@@ -19,9 +19,9 @@ from typing import Any, Dict
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 from pkg_resources import EntryPoint
 
+from splunk_otel.metrics import _configure_metrics
 from splunk_otel.options import _Options
 from splunk_otel.tracing import _configure_tracing
-from splunk_otel.metrics import _configure_metrics
 from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__file__)

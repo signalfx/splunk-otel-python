@@ -56,8 +56,8 @@ from splunk_otel.symbols import (
     _LIMIT_UNSET_VALUE,
     _NO_SERVICE_NAME_WARNING,
     _SERVICE_NAME_ATTR,
-    _SPLUNK_SERVICE_NAME_ATTR,
     _SPLUNK_DISTRO_VERSION_ATTR,
+    _SPLUNK_SERVICE_NAME_ATTR,
     _TELEMETRY_VERSION_ATTR,
 )
 from splunk_otel.version import __version__
