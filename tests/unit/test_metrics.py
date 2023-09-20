@@ -15,12 +15,9 @@
 import os
 from unittest import TestCase, mock
 
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
 from splunk_otel.metrics import _configure_metrics, start_metrics
-from splunk_otel.symbols import _DEFAULT_JAEGER_ENDPOINT
 from splunk_otel.version import __version__
 
 # pylint: disable=protected-access
@@ -35,7 +32,6 @@ class TestMetrics(TestCase):
         meter_provider = start_metrics()
         self.assertNotIsInstance(meter_provider, MeterProvider)
 
-
     @mock.patch.dict(
         os.environ,
         {"OTEL_METRICS_ENABLED": "True"},
@@ -47,4 +43,3 @@ class TestMetrics(TestCase):
     def test_configure_metrics(self):
         meter_provider = _configure_metrics()
         self.assertIsInstance(meter_provider, MeterProvider)
-

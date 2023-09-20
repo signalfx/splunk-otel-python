@@ -26,6 +26,7 @@ from splunk_otel.util import _is_truthy
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
+
 def start_metrics() -> MeterProvider:
     enabled = os.environ.get("OTEL_METRICS_ENABLED", True)
     if not _is_truthy(enabled):
@@ -41,6 +42,7 @@ def start_metrics() -> MeterProvider:
     except Exception as exc:  # pylint:disable=broad-except
         logger.exception("Instrumenting of runtime metrics failed")
         raise exc
+
 
 def _configure_metrics() -> MeterProvider:
     metrcs_exporter = OTLPMetricExporter()

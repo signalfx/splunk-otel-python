@@ -67,6 +67,7 @@ _SpanExporterClass = Callable[..., SpanExporter]
 
 logger = logging.getLogger("options")
 
+
 class _Options:
     span_exporter_factories: Collection[_SpanExporterFactory]
     access_token: Optional[str]

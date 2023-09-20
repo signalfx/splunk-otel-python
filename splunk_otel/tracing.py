@@ -32,6 +32,7 @@ from splunk_otel.util import _is_truthy
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
+
 def start_tracing(
     service_name: Optional[str] = None,
     span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
@@ -57,6 +58,7 @@ def start_tracing(
         return provider
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
+
 
 def _configure_tracing(options: _Options) -> TracerProvider:
     provider = TracerProvider(resource=options.resource)
