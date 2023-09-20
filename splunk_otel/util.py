@@ -14,6 +14,7 @@
 
 from typing import Any
 
+
 def _is_truthy(value: Any) -> bool:
     if isinstance(value, str):
         value = value.lower().strip()
