@@ -41,7 +41,7 @@ class _SplunkDistro(BaseDistro):
         self._metrics_enabled = _is_truthy(metrics_enabled)
         if not self._metrics_enabled:
             logger.info(
-                "metrics has been disabled with OTEL_METRICS_ENABLED=%s", metrics_enabled
+                "metering has been disabled with OTEL_METRICS_ENABLED=%s", metrics_enabled
             )
 
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
