@@ -47,7 +47,7 @@ def start_metrics() -> MeterProvider:
 
 
 def _configure_metrics() -> MeterProvider:
-    metrcs_exporter = OTLPMetricExporter()
-    meter_provider = MeterProvider([PeriodicExportingMetricReader(metrcs_exporter)])
+    metrics_exporter = OTLPMetricExporter()
+    meter_provider = MeterProvider([PeriodicExportingMetricReader(metrics_exporter)])
     set_meter_provider(meter_provider)
     return meter_provider
