@@ -15,7 +15,7 @@
 import os
 from unittest import TestCase, mock
 
-from opentelemetry.metrics import get_meter_provider
+from opentelemetry.metrics import NoOpMeterProvider, get_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
 
 from splunk_otel.metrics import _configure_metrics, start_metrics
@@ -46,6 +46,6 @@ class TestMetrics(TestCase):
         self.assertIsInstance(meter_provider, MeterProvider)
 
     def test_configure_metrics_global_provider(self):
-        _configure_metrics()
-        meter_provider = get_meter_provider()
-        self.assertIsInstance(meter_provider, MeterProvider)
+        global_meter_provider = get_meter_provider()
+        self.assertNotIsInstance(global_meter_provider, NoOpMeterProvider)
+        self.assertIsInstance(global_meter_provider, MeterProvider)
