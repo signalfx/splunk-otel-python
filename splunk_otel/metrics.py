@@ -23,8 +23,10 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
 from splunk_otel.util import _is_truthy
 
+otel_log_level = os.environ.get("OTEL_LOG_LEVEL", logging.INFO)
+
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.INFO)
+logger.setLevel(otel_log_level)
 
 
 def start_metrics() -> MeterProvider:
