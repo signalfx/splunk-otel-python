@@ -57,7 +57,6 @@ from splunk_otel.symbols import (
     _NO_SERVICE_NAME_WARNING,
     _SERVICE_NAME_ATTR,
     _SPLUNK_DISTRO_VERSION_ATTR,
-    _SPLUNK_SERVICE_NAME_ATTR,
     _TELEMETRY_VERSION_ATTR,
 )
 from splunk_otel.version import __version__
@@ -119,7 +118,6 @@ class _Options:
         attributes = attributes or {}
         if service_name:
             attributes[_SERVICE_NAME_ATTR] = service_name
-            attributes[_SPLUNK_SERVICE_NAME_ATTR] = service_name
         attributes.update(
             {
                 _TELEMETRY_VERSION_ATTR: auto_instrumentation_version,
