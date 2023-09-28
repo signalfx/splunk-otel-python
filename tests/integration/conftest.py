@@ -52,7 +52,7 @@ def integration_local(pytestconfig):
 
 def is_responsive(url) -> bool:
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             return True
     except ConnectionError:
