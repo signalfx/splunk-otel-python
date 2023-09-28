@@ -15,7 +15,7 @@
 import logging
 import os
 import sys
-from typing import Any, Collection, Dict, Optional, Union
+from typing import Collection, Dict, Optional, Union
 
 from opentelemetry import trace
 from opentelemetry.instrumentation.environment_variables import (
@@ -27,9 +27,12 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.options import _Options, _SpanExporterFactory
+from splunk_otel.util import _is_truthy
+
+otel_log_level = os.environ.get("OTEL_LOG_LEVEL", logging.INFO)
 
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.INFO)
+logger.setLevel(otel_log_level)
 
 
 def start_tracing(
@@ -84,9 +87,3 @@ def _load_instrumentors() -> None:
         except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Instrumenting of %s failed", entry_point.name)
             raise exc
-
-
-def _is_truthy(value: Any) -> bool:
-    if isinstance(value, str):
-        value = value.lower().strip()
-    return value in [True, 1, "true", "yes"]

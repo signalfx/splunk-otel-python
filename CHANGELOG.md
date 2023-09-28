@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added support for metrics autoinstrumentation
 
 ## 1.13.0 - 2023-09-28
 - Upgraded Otel dependencies to 1.20.0 and 0.41b0
