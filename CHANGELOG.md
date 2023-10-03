@@ -3,7 +3,8 @@
 ## Unreleased
 
 ## 1.14.1 - 2023-10-03
-- Updating cryptography to 41.0.3
+- Dependencies bump, updating cryptography to 41.0.3
+
 ## 1.14.0 - 2023-10-02
 - Added support for metrics autoinstrumentation
 
