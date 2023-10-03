@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "splunk-opentelemetry"
-version = "1.14.0"
+version = "1.14.1"
 description = "The Splunk distribution of OpenTelemetry Python Instrumentation provides a Python agent that automatically instruments your Python application to capture and report distributed traces to SignalFx APM."
 authors = ["Splunk <splunk-oss@splunk.com>"]
 license = "Apache-2.0"
@@ -26,7 +26,7 @@ splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run_deprecated'
 splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
-cryptography=">=2.0,<=40.0.2"
+cryptography=">=2.0,<=41.0.3"
 python = "^3.7.2"
 opentelemetry-api = "1.20.0"
 opentelemetry-sdk = "1.20.0"
@@ -47,26 +47,26 @@ jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 backoff = ">=2.1.2,<2.2.0"
 flake8 = "~3.7"
 mypy = "0.971"
-black = {version = "22.6.0", python = ">=3.7.0"}
-isort = {version = "5.9.3", python = ">=3.7.0"}
-pytest = "7.0.1"
+black = {version = "23.3.0", python = ">=3.7.0"}
+isort = {version = "5.11.5", python = ">=3.7.0"}
+pytest = "7.4.0"
 coverage = "6.1.1"
 pytest-cov = "2.12.1"
 pylint = "2.17.6"
 pylintfileheader = "0.3.2"
-pytest-docker = {version = "1.0.0", platform = "linux"}
+pytest-docker = {version = "2.0.0", platform = "linux"}
 requests-futures = "1.0.0"
 githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
 click = "8.0.4"
-types-setuptools = "65.3.0"
+types-setuptools = "68.2.0.0"
 urllib3 = "2.0.4"
 wrapt = ">=1.15.0"
 
 [tool.black]
 line-length = 90
-requires = ["poetry>=1.1.11"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 minversion = "6.2"
