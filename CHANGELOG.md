@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 1.14.0 - 2023-10-02
 - Added support for metrics autoinstrumentation
 
 ## 1.13.0 - 2023-09-28
