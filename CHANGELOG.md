@@ -3,6 +3,8 @@
 ## Unreleased
 
 ## 1.14.1 - 2023-10-03
+
+## 1.14.1 - 2023-10-03
 - Dependencies bump, updating cryptography to 41.0.3
 
 ## 1.14.0 - 2023-10-02
