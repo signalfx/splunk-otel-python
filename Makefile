@@ -10,7 +10,9 @@ install-tox:
 	pip install tox==3.24.3 tox-factor==0.1.2
 
 .PHONY: install-tools
-install-tools: install-poetry install-tox
+install-tools: 
+	pip install --upgrade pip setuptools wheel
+	install-poetry install-tox
 
 .PHONY: deps
 deps:
