@@ -9,10 +9,12 @@ install-poetry:
 install-tox:
 	pip install tox==3.24.3 tox-factor==0.1.2
 
-.PHONY: install-tools
-install-tools: 
+.PHONY: install-setuptools
+install-setuptools:
 	pip install --upgrade pip setuptools wheel
-	install-poetry install-tox
+
+.PHONY: install-tools
+install-tools: install-setuptools install-poetry install-tox
 
 .PHONY: deps
 deps:
