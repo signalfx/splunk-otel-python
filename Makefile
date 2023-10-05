@@ -4,6 +4,7 @@ VERSION?=""
 .PHONY: install-poetry
 install-poetry:
 	pip install poetry==1.5.1
+	poetry config installer.max-workers 1
 
 .PHONY: install-tox
 install-tox:
