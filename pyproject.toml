@@ -55,7 +55,7 @@ pytest-cov = "2.12.1"
 pylint = "2.17.6"
 pylintfileheader = "0.3.2"
 pytest-docker = {version = "2.0.0", platform = "linux"}
-requests-futures = "1.0.0"
+requests-futures = "1.0.1"
 githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
 click = "8.0.4"
