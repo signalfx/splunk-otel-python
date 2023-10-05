@@ -3,7 +3,7 @@ VERSION?=""
 
 .PHONY: install-poetry
 install-poetry:
-	pip install poetry==1.5.1
+	pip install poetry==1.6.1
 
 .PHONY: install-tox
 install-tox:
