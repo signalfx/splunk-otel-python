@@ -4,13 +4,18 @@ VERSION?=""
 .PHONY: install-poetry
 install-poetry:
 	pip install poetry==1.5.1
+	poetry config installer.max-workers 1
 
 .PHONY: install-tox
 install-tox:
 	pip install tox==3.24.3 tox-factor==0.1.2
 
+.PHONY: install-setuptools
+install-setuptools:
+	pip install --upgrade pip setuptools wheel
+
 .PHONY: install-tools
-install-tools: install-poetry install-tox
+install-tools: install-setuptools install-poetry install-tox
 
 .PHONY: deps
 deps:
