@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-_SPLUNK_ACCESS_TOKEN = "SPLUNK_ACCESS_TOKEN"
-_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED = "SPLUNK_TRACE_RESPONSE_HEADER_ENABLED"
-_OTEL_METRICS_ENABLED = "OTEL_METRICS_ENABLED"
-_OTEL_LOG_LEVEL = "OTEL_LOG_LEVEL"
+from typing import Any
+
+
+def _is_truthy(value: Any) -> bool:
+    if isinstance(value, str):
+        value = value.lower().strip()
+    return value in [True, 1, "true", "yes"]

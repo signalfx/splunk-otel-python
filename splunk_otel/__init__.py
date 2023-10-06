@@ -24,5 +24,6 @@ from .defaults import _set_otel_defaults
 _set_otel_defaults()
 
 # pylint: disable=wrong-import-position
+from .metrics import start_metrics  # noqa: E402
 from .tracing import start_tracing  # noqa: E402
 from .version import __version__  # noqa: E402

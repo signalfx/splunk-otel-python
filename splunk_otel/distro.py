@@ -19,13 +19,18 @@ from typing import Any, Dict
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 from pkg_resources import EntryPoint
 
+from splunk_otel.metrics import _configure_metrics
 from splunk_otel.options import _Options
 from splunk_otel.profiling import _start_profiling
 from splunk_otel.profiling.options import _Options as ProfilingOptions
-from splunk_otel.tracing import _configure_tracing, _is_truthy
+from splunk_otel.tracing import _configure_tracing
+from splunk_otel.util import _is_truthy
+
+
+otel_log_level = os.environ.get("OTEL_LOG_LEVEL", logging.INFO)
 
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.INFO)
+logger.setLevel(otel_log_level)
 
 
 class _SplunkDistro(BaseDistro):
@@ -39,6 +44,13 @@ class _SplunkDistro(BaseDistro):
                 "tracing has been disabled with OTEL_TRACE_ENABLED=%s", tracing_enabled
             )
 
+        metrics_enabled = os.environ.get("OTEL_METRICS_ENABLED", True)
+        self._metrics_enabled = _is_truthy(metrics_enabled)
+        if not self._metrics_enabled:
+            logger.info(
+                "metering has been disabled with OTEL_METRICS_ENABLED=%s", metrics_enabled
+            )
+
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
         options = _Options()
 
@@ -47,6 +59,9 @@ class _SplunkDistro(BaseDistro):
 
         if self._profiling_enabled:
             _start_profiling(ProfilingOptions(options.resource))
+
+        if self._metrics_enabled:
+            _configure_metrics()
 
     def load_instrumentor(self, entry_point: EntryPoint, **kwargs):
         if self._tracing_enabled:
