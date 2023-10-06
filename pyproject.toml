@@ -58,7 +58,7 @@ pytest-docker = {version = "2.0.0", platform = "linux"}
 requests-futures = "1.0.1"
 githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
-click = "8.0.4"
+click = "8.1.7"
 types-setuptools = "68.2.0.0"
 urllib3 = "2.0.6"
 wrapt = ">=1.15.0"
