@@ -19,6 +19,7 @@ import threading
 import time
 import traceback
 from collections import OrderedDict
+from typing import Dict, Optional, Union
 
 import wrapt
 from opentelemetry._logs import SeverityNumber
@@ -31,11 +32,13 @@ from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
+import splunk_otel
 from splunk_otel.profiling import profile_pb2
 from splunk_otel.profiling.options import _Options
 from splunk_otel.version import __version__
 
 thread_states = {}
+batch_processor = None
 
 
 class StringTable:
@@ -68,7 +71,7 @@ def _encode_cpu_profile(stacktraces, interval):
         if fun is None:
             name_id = str_table.index(function_name)
             fun = profile_pb2.Function()
-            fun.id = len(functions_table) + 1
+            fun.id = len(functions_table)
             fun.name = name_id
             fun.system_name = name_id
             fun.filename = str_table.index(file_name)
@@ -89,7 +92,7 @@ def _encode_cpu_profile(stacktraces, interval):
 
         if location is None:
             location = profile_pb2.Location()
-            location.id = len(locations_table) + 1
+            location.id = len(locations_table)
             location.line.append(get_line(file_name, function_name, line_no))
             locations_table[key] = location
 
@@ -98,6 +101,7 @@ def _encode_cpu_profile(stacktraces, interval):
     timestamp_key = str_table.index("source.event.time")
     trace_id_key = str_table.index("trace_id")
     span_id_key = str_table.index("span_id")
+    thread_id_key = str_table.index("thread.id")
     event_period_key = str_table.index("source.event.period")
 
     pb_profile = profile_pb2.Profile()
@@ -108,12 +112,19 @@ def _encode_cpu_profile(stacktraces, interval):
 
     samples = []
     for stacktrace in stacktraces:
+        thread_id = stacktrace["tid"]
+
         timestamp_label = profile_pb2.Label()
         timestamp_label.key = timestamp_key
         timestamp_label.num = int(stacktrace["timestamp"] / 1e6)
-        labels = [timestamp_label, event_period_label]
 
-        trace_context = thread_states.get(stacktrace["tid"])
+        thread_id_label = profile_pb2.Label()
+        thread_id_label.key = thread_id_key
+        thread_id_label.num = thread_id
+
+        labels = [timestamp_label, event_period_label, thread_id_label]
+
+        trace_context = thread_states.get(thread_id)
         if trace_context:
             (trace_id, span_id) = trace_context
 
@@ -151,6 +162,8 @@ def _profiler_loop(options: _Options):
     interval = options.call_stack_interval
 
     exporter = OTLPLogExporter(options.endpoint)
+    # pylint: disable-next=global-statement
+    global batch_processor
     batch_processor = BatchLogRecordProcessor(exporter)
 
     while True:
@@ -228,14 +241,34 @@ def _wrapped_context_detach(wrapped, _instance, args, kwargs):
     return wrapped(*args, **kwargs)
 
 
-def _start_profiling(options: _Options):
+def _force_flush():
+    if batch_processor:
+        batch_processor.force_flush()
+
+
+def _start_profiling(options):
     wrapt.wrap_function_wrapper(
         "opentelemetry.context", "attach", _wrapped_context_attach
     )
     wrapt.wrap_function_wrapper(
         "opentelemetry.context", "detach", _wrapped_context_detach
     )
+
     profiler_thread = threading.Thread(
         name="splunk-otel-profiler", target=_profiler_loop, args=[options], daemon=True
     )
     profiler_thread.start()
+
+
+def start_profiling(
+    service_name: Optional[str] = None,
+    resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
+    endpoint: Optional[str] = None,
+    call_stack_interval: Optional[int] = None,
+):
+    # pylint: disable-next=protected-access
+    resource = splunk_otel.options._Options._get_resource(
+        service_name, resource_attributes
+    )
+    options = _Options(resource, endpoint, call_stack_interval)
+    _start_profiling(options)

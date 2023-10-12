@@ -51,4 +51,6 @@ class _Options:
             if interval:
                 return int(interval)
 
-        return 1_000
+            return 1_000
+
+        return interval

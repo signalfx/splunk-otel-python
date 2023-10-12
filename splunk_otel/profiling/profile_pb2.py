@@ -21,7 +21,6 @@ _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "profile_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS is False:
-
     DESCRIPTOR._options = None
     DESCRIPTOR._serialized_options = (
         b"\n\035com.google.perftools.profilesB\014ProfileProto"
