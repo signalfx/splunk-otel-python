@@ -81,6 +81,7 @@ class TestProfiling(unittest.TestCase):
                 "profiling.data.format": "pprof-gzip-base64",
                 "profiling.data.type": "cpu",
                 "com.splunk.sourcetype": "otel.profiling",
+                "profiling.data.total.frame.count": 5,
             },
         )
 
@@ -113,8 +114,8 @@ class TestProfiling(unittest.TestCase):
 
         for sample in main_thread_samples:
             for location_id in sample.location_id:
-                location = locations[location_id]
-                function = functions[location.line[0].function_id]
+                location = locations[location_id - 1]
+                function = functions[location.line[0].function_id - 1]
                 function_name = strings[function.name]
                 file_name = strings[function.filename]
                 self.assertGreater(len(file_name), 0)

@@ -82,7 +82,7 @@ def _encode_cpu_profile(stacktraces, interval):
         if fun is None:
             name_id = str_table.index(function_name)
             fun = profile_pb2.Function()
-            fun.id = len(functions_table)
+            fun.id = len(functions_table) + 1
             fun.name = name_id
             fun.system_name = name_id
             fun.filename = str_table.index(file_name)
@@ -103,7 +103,7 @@ def _encode_cpu_profile(stacktraces, interval):
 
         if location is None:
             location = profile_pb2.Location()
-            location.id = len(locations_table)
+            location.id = len(locations_table) + 1
             location.line.append(get_line(file_name, function_name, line_no))
             locations_table[key] = location
 
@@ -210,6 +210,7 @@ def _profiler_loop(options: _Options):
                     "profiling.data.format": "pprof-gzip-base64",
                     "profiling.data.type": "cpu",
                     "com.splunk.sourcetype": "otel.profiling",
+                    "profiling.data.total.frame.count": len(profiling_stacktraces)
                 },
             ),
             instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
