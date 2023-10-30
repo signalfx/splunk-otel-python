@@ -36,10 +36,8 @@ def _get_log_level(level):
     return levels[level.lower()]
 
 
-def _get_logger(name):
+def _init_logger(name):
     level = _get_log_level(os.environ.get("OTEL_LOG_LEVEL", "info"))
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.addHandler(logging.StreamHandler())
-
-    return logger

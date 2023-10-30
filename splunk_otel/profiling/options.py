@@ -12,10 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from os import environ
 from typing import Optional
 
 from opentelemetry.sdk.resources import Resource
+
+logger = logging.getLogger(__name__)
+_DEFAULT_CALL_STACK_INTERVAL = 1_000
+
+
+def _sanitize_interval(interval):
+    if isinstance(interval, int):
+        if interval < 1:
+            logger.warning(
+                "call stack interval has to be positive, got %s, defaulting to %s",
+                interval,
+                _DEFAULT_CALL_STACK_INTERVAL,
+            )
+            return _DEFAULT_CALL_STACK_INTERVAL
+
+        return interval
+
+    logger.warning(
+        "call stack interval not an integer, defaulting to %s",
+        _DEFAULT_CALL_STACK_INTERVAL,
+    )
+    return _DEFAULT_CALL_STACK_INTERVAL
 
 
 class _Options:
@@ -49,8 +72,8 @@ class _Options:
             interval = environ.get("SPLUNK_PROFILER_CALL_STACK_INTERVAL")
 
             if interval:
-                return int(interval)
+                return _sanitize_interval(int(interval))
 
-            return 1_000
+            return _DEFAULT_CALL_STACK_INTERVAL
 
-        return interval
+        return _sanitize_interval(interval)

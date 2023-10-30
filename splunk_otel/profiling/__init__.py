@@ -14,6 +14,7 @@
 
 import base64
 import gzip
+import logging
 import os
 import sys
 import threading
@@ -36,13 +37,19 @@ from opentelemetry.trace.propagation import _SPAN_KEY
 import splunk_otel
 from splunk_otel.profiling import profile_pb2
 from splunk_otel.profiling.options import _Options
-from splunk_otel.util import _get_logger
 from splunk_otel.version import __version__
 
-logger = _get_logger(__name__)
+logger = logging.getLogger(__name__)
 
-thread_states = {}
-batch_processor = None
+
+class Profiler:
+    def __init__(self):
+        self.running = False
+        self.thread_states = {}
+        self.batch_processor = None
+
+
+profiler = Profiler()
 
 
 class StringTable:
@@ -128,7 +135,7 @@ def _encode_cpu_profile(stacktraces, interval):
 
         labels = [timestamp_label, event_period_label, thread_id_label]
 
-        trace_context = thread_states.get(thread_id)
+        trace_context = profiler.thread_states.get(thread_id)
         if trace_context:
             (trace_id, span_id) = trace_context
 
@@ -167,8 +174,7 @@ def _profiler_loop(options: _Options):
 
     exporter = OTLPLogExporter(options.endpoint)
     # pylint: disable-next=global-statement
-    global batch_processor
-    batch_processor = BatchLogRecordProcessor(exporter)
+    profiler.batch_processor = BatchLogRecordProcessor(exporter)
 
     while True:
         profiling_stacktraces = []
@@ -208,7 +214,7 @@ def _profiler_loop(options: _Options):
             ),
             instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
         )
-        batch_processor.emit(log_data)
+        profiler.batch_processor.emit(log_data)
         time.sleep(interval / 1e3)
 
 
@@ -222,7 +228,10 @@ def _wrapped_context_attach(wrapped, _instance, args, kwargs):
 
         if span:
             thread_id = threading.get_ident()
-            thread_states[thread_id] = (span.context.trace_id, span.context.span_id)
+            profiler.thread_states[thread_id] = (
+                span.context.trace_id,
+                span.context.span_id,
+            )
 
     return token
 
@@ -237,20 +246,28 @@ def _wrapped_context_detach(wrapped, _instance, args, kwargs):
             span = prev.get(_SPAN_KEY)
 
             if span:
-                thread_states[thread_id] = (span.context.trace_id, span.context.span_id)
+                profiler.thread_states[thread_id] = (
+                    span.context.trace_id,
+                    span.context.span_id,
+                )
             else:
-                thread_states[thread_id] = None
+                profiler.thread_states[thread_id] = None
         else:
-            thread_states[thread_id] = None
+            profiler.thread_states[thread_id] = None
     return wrapped(*args, **kwargs)
 
 
 def _force_flush():
-    if batch_processor:
-        batch_processor.force_flush()
+    if profiler.batch_processor:
+        profiler.batch_processor.force_flush()
 
 
 def _start_profiling(options):
+    if profiler.running:
+        logger.warning("profiler already running")
+        return
+
+    profiler.running = True
     logger.debug(
         "starting profiling call_stack_interval=%s endpoint=%s",
         options.call_stack_interval,
