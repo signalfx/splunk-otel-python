@@ -173,7 +173,6 @@ def _profiler_loop(options: _Options):
     interval = options.call_stack_interval
 
     exporter = OTLPLogExporter(options.endpoint)
-    # pylint: disable-next=global-statement
     profiler.batch_processor = BatchLogRecordProcessor(exporter)
 
     while True:
@@ -210,7 +209,7 @@ def _profiler_loop(options: _Options):
                     "profiling.data.format": "pprof-gzip-base64",
                     "profiling.data.type": "cpu",
                     "com.splunk.sourcetype": "otel.profiling",
-                    "profiling.data.total.frame.count": len(profiling_stacktraces)
+                    "profiling.data.total.frame.count": len(profiling_stacktraces),
                 },
             ),
             instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
