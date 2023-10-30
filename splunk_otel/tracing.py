@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 import sys
 from typing import Collection, Dict, Optional, Union
@@ -27,12 +26,9 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
 from splunk_otel.options import _Options, _SpanExporterFactory
-from splunk_otel.util import _is_truthy
+from splunk_otel.util import _get_logger, _is_truthy
 
-otel_log_level = os.environ.get("OTEL_LOG_LEVEL", logging.INFO)
-
-logger = logging.getLogger(__file__)
-logger.setLevel(otel_log_level)
+logger = _get_logger(__name__)
 
 
 def start_tracing(

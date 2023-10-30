@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from typing import Any, Dict
 
@@ -24,12 +23,9 @@ from splunk_otel.options import _Options
 from splunk_otel.profiling import _start_profiling
 from splunk_otel.profiling.options import _Options as ProfilingOptions
 from splunk_otel.tracing import _configure_tracing
-from splunk_otel.util import _is_truthy
+from splunk_otel.util import _get_logger, _is_truthy
 
-otel_log_level = os.environ.get("OTEL_LOG_LEVEL", logging.INFO)
-
-logger = logging.getLogger(__file__)
-logger.setLevel(otel_log_level)
+logger = _get_logger(__name__)
 
 
 class _SplunkDistro(BaseDistro):

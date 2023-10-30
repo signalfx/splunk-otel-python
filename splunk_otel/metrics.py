@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -21,12 +20,9 @@ from opentelemetry.metrics import set_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
-from splunk_otel.util import _is_truthy
+from splunk_otel.util import _get_logger, _is_truthy
 
-otel_log_level = os.environ.get("OTEL_LOG_LEVEL", logging.INFO)
-
-logger = logging.getLogger(__file__)
-logger.setLevel(otel_log_level)
+logger = _get_logger(__name__)
 
 
 def start_metrics() -> MeterProvider:

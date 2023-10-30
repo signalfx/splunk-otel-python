@@ -14,6 +14,7 @@
 
 import base64
 import gzip
+import os
 import sys
 import threading
 import time
@@ -35,7 +36,10 @@ from opentelemetry.trace.propagation import _SPAN_KEY
 import splunk_otel
 from splunk_otel.profiling import profile_pb2
 from splunk_otel.profiling.options import _Options
+from splunk_otel.util import _get_logger
 from splunk_otel.version import __version__
+
+logger = _get_logger(__name__)
 
 thread_states = {}
 batch_processor = None
@@ -247,6 +251,11 @@ def _force_flush():
 
 
 def _start_profiling(options):
+    logger.debug(
+        "starting profiling call_stack_interval=%s endpoint=%s",
+        options.call_stack_interval,
+        options.endpoint,
+    )
     wrapt.wrap_function_wrapper(
         "opentelemetry.context", "attach", _wrapped_context_attach
     )
