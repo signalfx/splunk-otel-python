@@ -15,7 +15,6 @@
 import base64
 import gzip
 import logging
-import os
 import sys
 import threading
 import time
@@ -30,14 +29,12 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LogData, LogRecord
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.util.instrumentation import InstrumentationScope
-from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 import splunk_otel
 from splunk_otel.profiling import profile_pb2
 from splunk_otel.profiling.options import _Options
-from splunk_otel.version import __version__
 
 logger = logging.getLogger(__name__)
 
