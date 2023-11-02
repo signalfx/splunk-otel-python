@@ -22,10 +22,12 @@ import traceback
 from collections import OrderedDict
 from typing import Dict, Optional, Union
 
+import opentelemetry.context
 import wrapt
 from opentelemetry._logs import SeverityNumber
-from opentelemetry.context import Context
+from opentelemetry.context import Context, attach, detach
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.instrumentation.utils import unwrap
 from opentelemetry.sdk._logs import LogData, LogRecord
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.util.instrumentation import InstrumentationScope
@@ -41,12 +43,13 @@ logger = logging.getLogger(__name__)
 
 class Profiler:
     def __init__(self):
+        self.condition = threading.Condition(threading.Lock())
         self.running = False
         self.thread_states = {}
         self.batch_processor = None
 
 
-profiler = Profiler()
+_profiler = Profiler()
 
 
 class StringTable:
@@ -67,7 +70,7 @@ class StringTable:
         return list(self.strings.keys())
 
 
-def _encode_cpu_profile(stacktraces, interval):
+def _encode_cpu_profile(stacktraces, timestamp_unix_nanos, interval):
     str_table = StringTable()
     locations_table = OrderedDict()
     functions_table = OrderedDict()
@@ -106,6 +109,8 @@ def _encode_cpu_profile(stacktraces, interval):
 
         return location
 
+    timestamp_unix_millis = int(timestamp_unix_nanos / 1e6)
+
     timestamp_key = str_table.index("source.event.time")
     trace_id_key = str_table.index("trace_id")
     span_id_key = str_table.index("span_id")
@@ -124,7 +129,7 @@ def _encode_cpu_profile(stacktraces, interval):
 
         timestamp_label = profile_pb2.Label()
         timestamp_label.key = timestamp_key
-        timestamp_label.num = int(stacktrace["timestamp"] / 1e6)
+        timestamp_label.num = timestamp_unix_millis
 
         thread_id_label = profile_pb2.Label()
         thread_id_label.key = thread_id_key
@@ -132,7 +137,7 @@ def _encode_cpu_profile(stacktraces, interval):
 
         labels = [timestamp_label, event_period_label, thread_id_label]
 
-        trace_context = profiler.thread_states.get(thread_id)
+        trace_context = _profiler.thread_states.get(thread_id)
         if trace_context:
             (trace_id, span_id) = trace_context
 
@@ -166,53 +171,105 @@ def _encode_cpu_profile(stacktraces, interval):
     return gzip.compress(pb_profile.SerializeToString())
 
 
+def _extract_log_processor_thread_id(processor):
+    if hasattr(processor, "_worker_thread"):
+        # pylint: disable-next=protected-access
+        worker_thread = processor._worker_thread
+
+        if isinstance(worker_thread, threading.Thread):
+            return worker_thread.ident
+
+    return None
+
+
+def _get_ignored_thread_ids(profiler, include_internal_stacks=False):
+    if include_internal_stacks:
+        return []
+
+    ignored_ids = [threading.get_ident()]
+
+    log_processor_thread_id = _extract_log_processor_thread_id(profiler.batch_processor)
+
+    if log_processor_thread_id:
+        ignored_ids.append(log_processor_thread_id)
+
+    return ignored_ids
+
+
+def _collect_stacktraces(ignored_thread_ids):
+    stacktraces = []
+
+    frames = sys._current_frames()
+
+    for thread_id, frame in frames.items():
+        if thread_id in ignored_thread_ids:
+            continue
+
+        stacktrace_frames = []
+        # TODO: This is potentially really slow due to code line lookups in the file
+        stack = traceback.extract_stack(frame)
+        for sf in stack:
+            stacktrace_frames.append((sf.filename, sf.name, sf.lineno))
+        stacktrace = {
+            "stacktrace": stacktrace_frames,
+            "tid": thread_id,
+        }
+        stacktraces.append(stacktrace)
+    return stacktraces
+
+
+def _to_log_data(stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource):
+    encoded_profile = base64.b64encode(
+        _encode_cpu_profile(stacktraces, timestamp_unix_nanos, call_stack_interval_millis)
+    ).decode()
+
+    return LogData(
+        log_record=LogRecord(
+            timestamp=timestamp_unix_nanos,
+            trace_id=0,
+            span_id=0,
+            trace_flags=TraceFlags(0x01),
+            severity_number=SeverityNumber.UNSPECIFIED,
+            body=encoded_profile,
+            resource=resource,
+            attributes={
+                "profiling.data.format": "pprof-gzip-base64",
+                "profiling.data.type": "cpu",
+                "com.splunk.sourcetype": "otel.profiling",
+                "profiling.data.total.frame.count": len(stacktraces),
+            },
+        ),
+        instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
+    )
+
+
 def _profiler_loop(options: _Options):
-    interval = options.call_stack_interval
+    call_stack_interval_millis = options.call_stack_interval
 
     exporter = OTLPLogExporter(options.endpoint)
-    profiler.batch_processor = BatchLogRecordProcessor(exporter)
+    _profiler.batch_processor = BatchLogRecordProcessor(exporter)
 
-    while True:
-        profiling_stacktraces = []
-        frames = sys._current_frames()
+    ignored_thread_ids = _get_ignored_thread_ids(
+        _profiler, include_internal_stacks=options.include_internal_stacks
+    )
+
+    while _profiler.running:
         timestamp = int(time.time() * 1e9)
 
-        for thread_id, frame in frames.items():
-            prof_stacktrace_frames = []
-            # TODO: This is potentially really slow due to code line lookups in the file
-            stack = traceback.extract_stack(frame)
-            for sf in stack:
-                prof_stacktrace_frames.append((sf.filename, sf.name, sf.lineno))
-            prof_stacktrace = {
-                "timestamp": timestamp,
-                "stacktrace": prof_stacktrace_frames,
-                "tid": thread_id,
-            }
-            profiling_stacktraces.append(prof_stacktrace)
+        stacktraces = _collect_stacktraces(ignored_thread_ids)
 
-        encoded_profile = base64.b64encode(
-            _encode_cpu_profile(profiling_stacktraces, interval)
-        ).decode()
-        log_data = LogData(
-            log_record=LogRecord(
-                timestamp=timestamp,
-                trace_id=0,
-                span_id=0,
-                trace_flags=TraceFlags(0x01),
-                severity_number=SeverityNumber.UNSPECIFIED,
-                body=encoded_profile,
-                resource=options.resource,
-                attributes={
-                    "profiling.data.format": "pprof-gzip-base64",
-                    "profiling.data.type": "cpu",
-                    "com.splunk.sourcetype": "otel.profiling",
-                    "profiling.data.total.frame.count": len(profiling_stacktraces),
-                },
-            ),
-            instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
+        log_data = _to_log_data(
+            stacktraces, timestamp, call_stack_interval_millis, options.resource
         )
-        profiler.batch_processor.emit(log_data)
-        time.sleep(interval / 1e3)
+
+        _profiler.batch_processor.emit(log_data)
+
+        with _profiler.condition:
+            _profiler.condition.wait(call_stack_interval_millis / 1e3)
+
+    _profiler.batch_processor.shutdown()
+    with _profiler.condition:
+        _profiler.condition.notify_all()
 
 
 def _wrapped_context_attach(wrapped, _instance, args, kwargs):
@@ -225,7 +282,7 @@ def _wrapped_context_attach(wrapped, _instance, args, kwargs):
 
         if span:
             thread_id = threading.get_ident()
-            profiler.thread_states[thread_id] = (
+            _profiler.thread_states[thread_id] = (
                 span.context.trace_id,
                 span.context.span_id,
             )
@@ -243,39 +300,35 @@ def _wrapped_context_detach(wrapped, _instance, args, kwargs):
             span = prev.get(_SPAN_KEY)
 
             if span:
-                profiler.thread_states[thread_id] = (
+                _profiler.thread_states[thread_id] = (
                     span.context.trace_id,
                     span.context.span_id,
                 )
             else:
-                profiler.thread_states[thread_id] = None
+                _profiler.thread_states[thread_id] = None
         else:
-            profiler.thread_states[thread_id] = None
+            _profiler.thread_states[thread_id] = None
     return wrapped(*args, **kwargs)
 
 
 def _force_flush():
-    if profiler.batch_processor:
-        profiler.batch_processor.force_flush()
+    if _profiler.batch_processor:
+        _profiler.batch_processor.force_flush()
 
 
 def _start_profiling(options):
-    if profiler.running:
+    if _profiler.running:
         logger.warning("profiler already running")
         return
 
-    profiler.running = True
+    _profiler.running = True
     logger.debug(
         "starting profiling call_stack_interval=%s endpoint=%s",
         options.call_stack_interval,
         options.endpoint,
     )
-    wrapt.wrap_function_wrapper(
-        "opentelemetry.context", "attach", _wrapped_context_attach
-    )
-    wrapt.wrap_function_wrapper(
-        "opentelemetry.context", "detach", _wrapped_context_detach
-    )
+    wrapt.wrap_function_wrapper(opentelemetry.context, "attach", _wrapped_context_attach)
+    wrapt.wrap_function_wrapper(opentelemetry.context, "detach", _wrapped_context_detach)
 
     profiler_thread = threading.Thread(
         name="splunk-otel-profiler", target=_profiler_loop, args=[options], daemon=True
@@ -295,3 +348,18 @@ def start_profiling(
     )
     options = _Options(resource, endpoint, call_stack_interval)
     _start_profiling(options)
+
+
+def stop_profiling():
+    if not _profiler.running:
+        return
+
+    _profiler.running = False
+    with _profiler.condition:
+        # Wake up the profiler thread
+        _profiler.condition.notify_all()
+        # Wait for the profiler thread to exit
+        _profiler.condition.wait()
+
+    unwrap(opentelemetry.context, "attach")
+    unwrap(opentelemetry.context, "detach")

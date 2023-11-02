@@ -18,8 +18,11 @@ from typing import Optional
 
 from opentelemetry.sdk.resources import Resource
 
+from splunk_otel.util import _is_truthy
+
 logger = logging.getLogger(__name__)
 _DEFAULT_CALL_STACK_INTERVAL = 1_000
+_DEFAULT_INCLUDE_INTERNAL_STACKS = False
 
 
 def _sanitize_interval(interval):
@@ -51,10 +54,14 @@ class _Options:
         resource: Resource,
         endpoint: Optional[str] = None,
         call_stack_interval: Optional[int] = None,
+        include_internal_stacks: Optional[bool] = None,
     ):
         self.resource = resource
         self.endpoint = _Options._get_endpoint(endpoint)
         self.call_stack_interval = _Options._get_call_stack_interval(call_stack_interval)
+        self.include_internal_stacks = _Options._include_internal_stacks(
+            include_internal_stacks
+        )
 
     @staticmethod
     def _get_endpoint(endpoint: Optional[str]) -> str:
@@ -77,3 +84,10 @@ class _Options:
             return _DEFAULT_CALL_STACK_INTERVAL
 
         return _sanitize_interval(interval)
+
+    @staticmethod
+    def _include_internal_stacks(include: Optional[bool]) -> bool:
+        if include is None:
+            return _is_truthy(environ.get("SPLUNK_PROFILER_INCLUDE_INTERNAL_STACKS"))
+
+        return include
