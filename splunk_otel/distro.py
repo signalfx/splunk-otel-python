@@ -33,6 +33,7 @@ class _SplunkDistro(BaseDistro):
     def __init__(self):
         tracing_enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
         profiling_enabled = os.environ.get("SPLUNK_PROFILER_ENABLED", False)
+        print("Profiling", profiling_enabled)
         self._tracing_enabled = _is_truthy(tracing_enabled)
         self._profiling_enabled = _is_truthy(profiling_enabled)
         if not self._tracing_enabled:

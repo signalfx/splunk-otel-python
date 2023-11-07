@@ -15,6 +15,7 @@
 import base64
 import gzip
 import logging
+import os
 import sys
 import threading
 import time
@@ -28,7 +29,7 @@ from opentelemetry._logs import SeverityNumber
 from opentelemetry.context import Context, attach, detach
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.utils import unwrap
-from opentelemetry.sdk._logs import LogData, LogRecord
+from opentelemetry.sdk._logs import LogData, LoggerProvider, LogRecord
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.util.instrumentation import InstrumentationScope
 from opentelemetry.trace import TraceFlags
@@ -46,7 +47,9 @@ class Profiler:
         self.condition = threading.Condition(threading.Lock())
         self.running = False
         self.thread_states = {}
+        self.logger_provider = None
         self.batch_processor = None
+        self.options = None
 
 
 _profiler = Profiler()
@@ -182,13 +185,13 @@ def _extract_log_processor_thread_id(processor):
     return None
 
 
-def _get_ignored_thread_ids(profiler, include_internal_stacks=False):
+def _get_ignored_thread_ids(batch_processor, include_internal_stacks=False):
     if include_internal_stacks:
         return []
 
     ignored_ids = [threading.get_ident()]
 
-    log_processor_thread_id = _extract_log_processor_thread_id(profiler.batch_processor)
+    log_processor_thread_id = _extract_log_processor_thread_id(batch_processor)
 
     if log_processor_thread_id:
         ignored_ids.append(log_processor_thread_id)
@@ -218,58 +221,57 @@ def _collect_stacktraces(ignored_thread_ids):
     return stacktraces
 
 
-def _to_log_data(stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource):
+def _to_log_record(
+    stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource
+):
     encoded_profile = base64.b64encode(
         _encode_cpu_profile(stacktraces, timestamp_unix_nanos, call_stack_interval_millis)
     ).decode()
 
-    return LogData(
-        log_record=LogRecord(
-            timestamp=timestamp_unix_nanos,
-            trace_id=0,
-            span_id=0,
-            trace_flags=TraceFlags(0x01),
-            severity_number=SeverityNumber.UNSPECIFIED,
-            body=encoded_profile,
-            resource=resource,
-            attributes={
-                "profiling.data.format": "pprof-gzip-base64",
-                "profiling.data.type": "cpu",
-                "com.splunk.sourcetype": "otel.profiling",
-                "profiling.data.total.frame.count": len(stacktraces),
-            },
-        ),
-        instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
+    return LogRecord(
+        timestamp=timestamp_unix_nanos,
+        trace_id=0,
+        span_id=0,
+        trace_flags=TraceFlags(0x01),
+        severity_number=SeverityNumber.UNSPECIFIED,
+        body=encoded_profile,
+        resource=resource,
+        attributes={
+            "profiling.data.format": "pprof-gzip-base64",
+            "profiling.data.type": "cpu",
+            "com.splunk.sourcetype": "otel.profiling",
+            "profiling.data.total.frame.count": len(stacktraces),
+        },
     )
 
 
-def _profiler_loop(options: _Options):
+def _profiler_loop(profiler: Profiler):
+    options = profiler.options
     call_stack_interval_millis = options.call_stack_interval
 
-    exporter = OTLPLogExporter(options.endpoint)
-    _profiler.batch_processor = BatchLogRecordProcessor(exporter)
-
     ignored_thread_ids = _get_ignored_thread_ids(
-        _profiler, include_internal_stacks=options.include_internal_stacks
+        profiler.batch_processor, include_internal_stacks=options.include_internal_stacks
     )
 
-    while _profiler.running:
+    profiling_logger = profiler.logger_provider.get_logger("otel.profiling", "0.1.0")
+
+    while profiler.running:
         timestamp = int(time.time() * 1e9)
 
         stacktraces = _collect_stacktraces(ignored_thread_ids)
 
-        log_data = _to_log_data(
+        log_record = _to_log_record(
             stacktraces, timestamp, call_stack_interval_millis, options.resource
         )
 
-        _profiler.batch_processor.emit(log_data)
+        profiling_logger.emit(log_record)
 
-        with _profiler.condition:
-            _profiler.condition.wait(call_stack_interval_millis / 1e3)
+        with profiler.condition:
+            profiler.condition.wait(call_stack_interval_millis / 1e3)
 
-    _profiler.batch_processor.shutdown()
-    with _profiler.condition:
-        _profiler.condition.notify_all()
+    profiler.logger_provider.shutdown()
+    with profiler.condition:
+        profiler.condition.notify_all()
 
 
 def _wrapped_context_attach(wrapped, _instance, args, kwargs):
@@ -311,9 +313,16 @@ def _wrapped_context_detach(wrapped, _instance, args, kwargs):
     return wrapped(*args, **kwargs)
 
 
+def _start_profiler_thread():
+    profiler_thread = threading.Thread(
+        name="splunk-otel-profiler", target=_profiler_loop, args=[_profiler], daemon=True
+    )
+    profiler_thread.start()
+
+
 def _force_flush():
-    if _profiler.batch_processor:
-        _profiler.batch_processor.force_flush()
+    if _profiler.logger_provider:
+        _profiler.logger_provider.force_flush()
 
 
 def _start_profiling(options):
@@ -321,7 +330,12 @@ def _start_profiling(options):
         logger.warning("profiler already running")
         return
 
+    _profiler.options = options
+    _profiler.logger_provider = LoggerProvider(resource=options.resource)
+    _profiler.batch_processor = BatchLogRecordProcessor(OTLPLogExporter(options.endpoint))
+    _profiler.logger_provider.add_log_record_processor(_profiler.batch_processor)
     _profiler.running = True
+
     logger.debug(
         "starting profiling call_stack_interval=%s endpoint=%s",
         options.call_stack_interval,
@@ -330,10 +344,9 @@ def _start_profiling(options):
     wrapt.wrap_function_wrapper(opentelemetry.context, "attach", _wrapped_context_attach)
     wrapt.wrap_function_wrapper(opentelemetry.context, "detach", _wrapped_context_detach)
 
-    profiler_thread = threading.Thread(
-        name="splunk-otel-profiler", target=_profiler_loop, args=[options], daemon=True
-    )
-    profiler_thread.start()
+    os.register_at_fork(after_in_child=_start_profiler_thread)
+
+    _start_profiler_thread()
 
 
 def start_profiling(
