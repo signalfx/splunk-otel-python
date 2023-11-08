@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import atexit
 import base64
 import gzip
 import logging
@@ -361,6 +362,7 @@ def _start_profiling(options):
     wrapt.wrap_function_wrapper(opentelemetry.context, "detach", _wrapped_context_detach)
 
     os.register_at_fork(after_in_child=_start_profiler_thread)
+    atexit.register(stop_profiling)
 
     _start_profiler_thread()
 
