@@ -48,6 +48,7 @@ class Profiler:
         self.condition = threading.Condition(threading.Lock())
         self.running = False
         self.thread_states = {}
+        self.exporter = None
         self.logger_provider = None
         self.batch_processor = None
         self.options = None
@@ -349,7 +350,8 @@ def _start_profiling(options):
 
     _profiler.options = options
     _profiler.logger_provider = LoggerProvider(resource=options.resource)
-    _profiler.batch_processor = BatchLogRecordProcessor(OTLPLogExporter(options.endpoint))
+    _profiler.exporter = OTLPLogExporter(options.endpoint)
+    _profiler.batch_processor = BatchLogRecordProcessor(_profiler.exporter)
     _profiler.logger_provider.add_log_record_processor(_profiler.batch_processor)
     _profiler.running = True
 
@@ -386,6 +388,9 @@ def stop_profiling():
         return
 
     _profiler.running = False
+    # Hack around batch log processor getting stuck on application exits when the profiling endpoint is not reachable.
+    # Could be related: https://github.com/open-telemetry/opentelemetry-python/issues/2284
+    _profiler.exporter.shutdown(timeout_millis=0)
     with _profiler.condition:
         # Wake up the profiler thread
         _profiler.condition.notify_all()
