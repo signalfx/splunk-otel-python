@@ -262,8 +262,12 @@ def _profiler_loop(profiler: Profiler):
 
     profiling_logger = profiler.logger_provider.get_logger("otel.profiling", "0.1.0")
 
+    call_stack_interval_seconds = call_stack_interval_millis / 1e3
+    # In case the processing takes more than the given interval, default to the smallest allowed interval
+    min_call_stack_interval_seconds = 1 / 1e3
     while profiler.running:
-        timestamp = int(time.time() * 1e9)
+        time_begin = time.time()
+        timestamp = int(time_begin * 1e9)
 
         stacktraces = _collect_stacktraces(ignored_thread_ids)
 
@@ -273,8 +277,13 @@ def _profiler_loop(profiler: Profiler):
 
         profiling_logger.emit(log_record)
 
+        processing_time = time.time() - time_begin
+        wait_for = max(
+            call_stack_interval_seconds - processing_time, min_call_stack_interval_seconds
+        )
+
         with profiler.condition:
-            profiler.condition.wait(call_stack_interval_millis / 1e3)
+            profiler.condition.wait(wait_for)
 
     profiler.logger_provider.shutdown()
     with profiler.condition:
