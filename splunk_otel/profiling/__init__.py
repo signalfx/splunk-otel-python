@@ -21,6 +21,7 @@ import threading
 import time
 import traceback
 from collections import OrderedDict
+from traceback import StackSummary
 from typing import Dict, Optional, Union
 
 import opentelemetry.context
@@ -198,6 +199,14 @@ def _get_ignored_thread_ids(batch_processor, include_internal_stacks=False):
     return ignored_ids
 
 
+def extract_stack(frame):
+    stack = StackSummary.extract(
+        traceback.walk_stack(frame), limit=None, lookup_lines=False
+    )
+    stack.reverse()
+    return stack
+
+
 def _collect_stacktraces(ignored_thread_ids):
     stacktraces = []
 
@@ -208,8 +217,7 @@ def _collect_stacktraces(ignored_thread_ids):
             continue
 
         stacktrace_frames = []
-        # TODO: This is potentially really slow due to code line lookups in the file
-        stack = traceback.extract_stack(frame)
+        stack = extract_stack(frame)
         for sf in stack:
             stacktrace_frames.append((sf.filename, sf.name, sf.lineno))
         stacktrace = {
