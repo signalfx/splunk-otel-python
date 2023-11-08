@@ -31,8 +31,9 @@ from opentelemetry._logs import SeverityNumber
 from opentelemetry.context import Context
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.utils import unwrap
-from opentelemetry.sdk._logs import LoggerProvider, LogRecord
+from opentelemetry.sdk._logs import LogData, LogRecord
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.util.instrumentation import InstrumentationScope
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
@@ -49,7 +50,6 @@ class Profiler:
         self.running = False
         self.thread_states = {}
         self.exporter = None
-        self.logger_provider = None
         self.batch_processor = None
         self.options = None
 
@@ -230,27 +230,28 @@ def _collect_stacktraces(ignored_thread_ids):
     return stacktraces
 
 
-def _to_log_record(
-    stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource
-):
+def _to_log_data(stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource):
     encoded_profile = base64.b64encode(
         _encode_cpu_profile(stacktraces, timestamp_unix_nanos, call_stack_interval_millis)
     ).decode()
 
-    return LogRecord(
-        timestamp=timestamp_unix_nanos,
-        trace_id=0,
-        span_id=0,
-        trace_flags=TraceFlags(0x01),
-        severity_number=SeverityNumber.UNSPECIFIED,
-        body=encoded_profile,
-        resource=resource,
-        attributes={
-            "profiling.data.format": "pprof-gzip-base64",
-            "profiling.data.type": "cpu",
-            "com.splunk.sourcetype": "otel.profiling",
-            "profiling.data.total.frame.count": len(stacktraces),
-        },
+    return LogData(
+        LogRecord(
+            timestamp=timestamp_unix_nanos,
+            trace_id=0,
+            span_id=0,
+            trace_flags=TraceFlags(0x01),
+            severity_number=SeverityNumber.UNSPECIFIED,
+            body=encoded_profile,
+            resource=resource,
+            attributes={
+                "profiling.data.format": "pprof-gzip-base64",
+                "profiling.data.type": "cpu",
+                "com.splunk.sourcetype": "otel.profiling",
+                "profiling.data.total.frame.count": len(stacktraces),
+            },
+        ),
+        instrumentation_scope=InstrumentationScope("otel.profiling", "0.1.0"),
     )
 
 
@@ -262,8 +263,6 @@ def _profiler_loop(profiler: Profiler):
         profiler.batch_processor, include_internal_stacks=options.include_internal_stacks
     )
 
-    profiling_logger = profiler.logger_provider.get_logger("otel.profiling", "0.1.0")
-
     call_stack_interval_seconds = call_stack_interval_millis / 1e3
     # In case the processing takes more than the given interval, default to the smallest allowed interval
     min_call_stack_interval_seconds = 1 / 1e3
@@ -273,11 +272,11 @@ def _profiler_loop(profiler: Profiler):
 
         stacktraces = _collect_stacktraces(ignored_thread_ids)
 
-        log_record = _to_log_record(
+        log_data = _to_log_data(
             stacktraces, timestamp, call_stack_interval_millis, options.resource
         )
 
-        profiling_logger.emit(log_record)
+        profiler.batch_processor.emit(log_data)
 
         processing_time = time.time() - time_begin
         wait_for = max(
@@ -291,7 +290,7 @@ def _profiler_loop(profiler: Profiler):
     # Could be related: https://github.com/open-telemetry/opentelemetry-python/issues/2284
     # pylint: disable-next=protected-access
     _profiler.exporter._shutdown = True
-    profiler.logger_provider.shutdown()
+    profiler.batch_processor.shutdown()
     with profiler.condition:
         profiler.condition.notify_all()
 
@@ -343,8 +342,8 @@ def _start_profiler_thread():
 
 
 def _force_flush():
-    if _profiler.logger_provider:
-        _profiler.logger_provider.force_flush()
+    if _profiler.batch_processor:
+        _profiler.batch_processor.force_flush()
 
 
 def _start_profiling(options):
@@ -353,10 +352,8 @@ def _start_profiling(options):
         return
 
     _profiler.options = options
-    _profiler.logger_provider = LoggerProvider(resource=options.resource)
     _profiler.exporter = OTLPLogExporter(options.endpoint)
     _profiler.batch_processor = BatchLogRecordProcessor(_profiler.exporter)
-    _profiler.logger_provider.add_log_record_processor(_profiler.batch_processor)
     _profiler.running = True
 
     logger.debug(
