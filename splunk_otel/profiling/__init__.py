@@ -364,7 +364,9 @@ def _start_profiling(options):
     wrapt.wrap_function_wrapper(opentelemetry.context, "attach", _wrapped_context_attach)
     wrapt.wrap_function_wrapper(opentelemetry.context, "detach", _wrapped_context_detach)
 
-    os.register_at_fork(after_in_child=_start_profiler_thread)
+    # Windows does not have register_at_fork
+    if hasattr(os, "register_at_fork"):
+        os.register_at_fork(after_in_child=_start_profiler_thread)
     atexit.register(stop_profiling)
 
     _start_profiler_thread()
