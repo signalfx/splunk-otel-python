@@ -287,6 +287,10 @@ def _profiler_loop(profiler: Profiler):
         with profiler.condition:
             profiler.condition.wait(wait_for)
 
+    # Hack around batch log processor getting stuck on application exits when the profiling endpoint is not reachable
+    # Could be related: https://github.com/open-telemetry/opentelemetry-python/issues/2284
+    # pylint: disable-next=protected-access
+    _profiler.exporter._shutdown = True
     profiler.logger_provider.shutdown()
     with profiler.condition:
         profiler.condition.notify_all()
@@ -388,9 +392,6 @@ def stop_profiling():
         return
 
     _profiler.running = False
-    # Hack around batch log processor getting stuck on application exits when the profiling endpoint is not reachable.
-    # Could be related: https://github.com/open-telemetry/opentelemetry-python/issues/2284
-    _profiler.exporter.shutdown(timeout_millis=0)
     with _profiler.condition:
         # Wake up the profiler thread
         _profiler.condition.notify_all()
