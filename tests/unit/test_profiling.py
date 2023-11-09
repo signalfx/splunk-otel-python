@@ -72,6 +72,8 @@ def log_record_to_profile(log_record):
 class TestProfiling(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Tracing is set up to correlate active spans with stacktraces.
+        # When the profiler takes a sample while a span is active, it stores the trace context into the stacktrace.
         provider = TracerProvider()
         processor = SimpleSpanProcessor(ConsoleSpanExporter())
         provider.add_span_processor(processor)
