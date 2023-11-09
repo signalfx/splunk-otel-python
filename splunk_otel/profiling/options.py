@@ -21,8 +21,7 @@ from opentelemetry.sdk.resources import Resource
 from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__name__)
-_DEFAULT_CALL_STACK_INTERVAL = 1_000
-_DEFAULT_INCLUDE_INTERNAL_STACKS = False
+_DEFAULT_CALL_STACK_INTERVAL_MILLIS = 1_000
 
 
 def _sanitize_interval(interval):
@@ -31,34 +30,36 @@ def _sanitize_interval(interval):
             logger.warning(
                 "call stack interval has to be positive, got %s, defaulting to %s",
                 interval,
-                _DEFAULT_CALL_STACK_INTERVAL,
+                _DEFAULT_CALL_STACK_INTERVAL_MILLIS,
             )
-            return _DEFAULT_CALL_STACK_INTERVAL
+            return _DEFAULT_CALL_STACK_INTERVAL_MILLIS
 
         return interval
 
     logger.warning(
         "call stack interval not an integer, defaulting to %s",
-        _DEFAULT_CALL_STACK_INTERVAL,
+        _DEFAULT_CALL_STACK_INTERVAL_MILLIS,
     )
-    return _DEFAULT_CALL_STACK_INTERVAL
+    return _DEFAULT_CALL_STACK_INTERVAL_MILLIS
 
 
 class _Options:
     resource: Resource
     endpoint: str
-    call_stack_interval: int
+    call_stack_interval_millis: int
 
     def __init__(
         self,
         resource: Resource,
         endpoint: Optional[str] = None,
-        call_stack_interval: Optional[int] = None,
+        call_stack_interval_millis: Optional[int] = None,
         include_internal_stacks: Optional[bool] = None,
     ):
         self.resource = resource
         self.endpoint = _Options._get_endpoint(endpoint)
-        self.call_stack_interval = _Options._get_call_stack_interval(call_stack_interval)
+        self.call_stack_interval_millis = _Options._get_call_stack_interval(
+            call_stack_interval_millis
+        )
         self.include_internal_stacks = _Options._include_internal_stacks(
             include_internal_stacks
         )
@@ -81,7 +82,7 @@ class _Options:
             if interval:
                 return _sanitize_interval(int(interval))
 
-            return _DEFAULT_CALL_STACK_INTERVAL
+            return _DEFAULT_CALL_STACK_INTERVAL_MILLIS
 
         return _sanitize_interval(interval)
 

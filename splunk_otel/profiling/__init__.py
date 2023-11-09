@@ -257,7 +257,7 @@ def _to_log_record(
 
 def _profiler_loop(profiler: Profiler):
     options = profiler.options
-    call_stack_interval_millis = options.call_stack_interval
+    call_stack_interval_millis = options.call_stack_interval_millis
 
     ignored_thread_ids = _get_ignored_thread_ids(
         profiler.batch_processor, include_internal_stacks=options.include_internal_stacks
@@ -361,8 +361,8 @@ def _start_profiling(options):
     _profiler.running = True
 
     logger.debug(
-        "starting profiling call_stack_interval=%s endpoint=%s",
-        options.call_stack_interval,
+        "starting profiling call_stack_interval_millis=%s endpoint=%s",
+        options.call_stack_interval_millis,
         options.endpoint,
     )
     wrapt.wrap_function_wrapper(opentelemetry.context, "attach", _wrapped_context_attach)
@@ -380,13 +380,13 @@ def start_profiling(
     service_name: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     endpoint: Optional[str] = None,
-    call_stack_interval: Optional[int] = None,
+    call_stack_interval_millis: Optional[int] = None,
 ):
     # pylint: disable-next=protected-access
     resource = splunk_otel.options._Options._get_resource(
         service_name, resource_attributes
     )
-    options = _Options(resource, endpoint, call_stack_interval)
+    options = _Options(resource, endpoint, call_stack_interval_millis)
     _start_profiling(options)
 
 

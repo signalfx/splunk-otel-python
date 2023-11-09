@@ -93,7 +93,7 @@ class TestProfiling(unittest.TestCase):
     def profile_capture_thread_ids(self):
         start_profiling(
             service_name="prof-thread-filter",
-            call_stack_interval=10,
+            call_stack_interval_millis=10,
         )
 
         do_work(100)
@@ -180,7 +180,7 @@ class TestProfiling(unittest.TestCase):
         start_profiling(
             service_name="prof-export-test",
             resource_attributes={"foo": "bar"},
-            call_stack_interval=100,
+            call_stack_interval_millis=100,
         )
 
         with tracer.start_as_current_span("add-some-numbers") as span:
