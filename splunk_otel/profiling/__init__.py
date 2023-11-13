@@ -75,7 +75,7 @@ class StringTable:
         return list(self.strings.keys())
 
 
-def _encode_cpu_profile(stacktraces, timestamp_unix_nanos, interval):
+def _encode_cpu_profile(thread_states, stacktraces, timestamp_unix_nanos, interval):
     str_table = StringTable()
     locations_table = OrderedDict()
     functions_table = OrderedDict()
@@ -142,7 +142,7 @@ def _encode_cpu_profile(stacktraces, timestamp_unix_nanos, interval):
 
         labels = [timestamp_label, event_period_label, thread_id_label]
 
-        trace_context = _profiler.thread_states.get(thread_id)
+        trace_context = thread_states.get(thread_id)
         if trace_context:
             (trace_id, span_id) = trace_context
 
@@ -231,10 +231,12 @@ def _collect_stacktraces(ignored_thread_ids):
 
 
 def _to_log_record(
-    stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource
+    thread_states, stacktraces, timestamp_unix_nanos, call_stack_interval_millis, resource
 ):
     encoded_profile = base64.b64encode(
-        _encode_cpu_profile(stacktraces, timestamp_unix_nanos, call_stack_interval_millis)
+        _encode_cpu_profile(
+            thread_states, stacktraces, timestamp_unix_nanos, call_stack_interval_millis
+        )
     ).decode()
 
     return LogRecord(
@@ -274,7 +276,11 @@ def _profiler_loop(profiler: Profiler):
         stacktraces = _collect_stacktraces(ignored_thread_ids)
 
         log_record = _to_log_record(
-            stacktraces, timestamp, call_stack_interval_millis, options.resource
+            profiler.thread_states,
+            stacktraces,
+            timestamp,
+            call_stack_interval_millis,
+            options.resource,
         )
 
         profiling_logger.emit(log_record)
