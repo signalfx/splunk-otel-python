@@ -341,9 +341,9 @@ def _wrapped_context_detach(wrapped, _instance, args, kwargs):
     return wrapped(*args, **kwargs)
 
 
-def _start_profiler_thread():
+def _start_profiler_thread(profiler):
     profiler_thread = threading.Thread(
-        name="splunk-otel-profiler", target=_profiler_loop, args=[_profiler], daemon=True
+        name="splunk-otel-profiler", target=_profiler_loop, args=[profiler], daemon=True
     )
     profiler_thread.start()
 
@@ -375,10 +375,10 @@ def _start_profiling(options):
 
     # Windows does not have register_at_fork
     if hasattr(os, "register_at_fork"):
-        os.register_at_fork(after_in_child=_start_profiler_thread)
+        os.register_at_fork(after_in_child=lambda: _start_profiler_thread(_profiler))
     atexit.register(stop_profiling)
 
-    _start_profiler_thread()
+    _start_profiler_thread(_profiler)
 
 
 def start_profiling(
