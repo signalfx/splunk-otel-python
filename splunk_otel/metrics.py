@@ -15,11 +15,10 @@
 import logging
 import os
 
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.metrics import set_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, MetricExporter
 
 from splunk_otel.util import _is_truthy
 
@@ -47,7 +46,7 @@ def start_metrics() -> MeterProvider:
 
 
 def _configure_metrics() -> MeterProvider:
-    metrics_exporter = OTLPMetricExporter()
+    metrics_exporter = MetricExporter()
     meter_provider = MeterProvider([PeriodicExportingMetricReader(metrics_exporter)])
     set_meter_provider(meter_provider)
     return meter_provider
