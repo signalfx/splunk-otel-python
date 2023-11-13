@@ -26,7 +26,7 @@ splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run_deprecated'
 splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
-cryptography=">=2.0,<=41.0.3"
+cryptography=">=2.0,<=41.0.4"
 python = "^3.7.2"
 opentelemetry-api = "1.21.0"
 opentelemetry-sdk = "1.21.0"
@@ -45,22 +45,22 @@ jaeger = ["opentelemetry-exporter-jaeger-thrift"]
 
 [tool.poetry.dev-dependencies]
 backoff = ">=2.1.2,<2.2.0"
-flake8 = "~3.7"
-mypy = "0.971"
+flake8 = "~3.9"
+mypy = "1.4.1"
 black = {version = "23.3.0", python = ">=3.7.0"}
 isort = {version = "5.11.5", python = ">=3.7.0"}
-pytest = "7.4.0"
-coverage = "6.1.1"
-pytest-cov = "2.12.1"
-pylint = "2.17.6"
+pytest = "7.4.2"
+coverage = "7.2.7"
+pytest-cov = "4.1.0"
+pylint = "2.17.7"
 pylintfileheader = "0.3.2"
-pytest-docker = {version = "2.0.0", platform = "linux"}
-requests-futures = "1.0.0"
+pytest-docker = {version = "2.0.1", platform = "linux"}
+requests-futures = "1.0.1"
 githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
-click = "8.0.4"
+click = "8.1.7"
 types-setuptools = "68.2.0.0"
-urllib3 = "2.0.4"
+urllib3 = "2.0.6"
 wrapt = ">=1.15.0"
 
 [tool.black]
