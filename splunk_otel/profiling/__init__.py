@@ -302,43 +302,49 @@ def _profiler_loop(profiler: Profiler):
         profiler.condition.notify_all()
 
 
-def _wrapped_context_attach(wrapped, _instance, args, kwargs):
-    token = wrapped(*args, **kwargs)
+def _make_wrapped_context_attach(profiler):
+    def _wrapped_context_attach(wrapped, _instance, args, kwargs):
+        token = wrapped(*args, **kwargs)
 
-    maybe_context = args[0] if args else None
+        maybe_context = args[0] if args else None
 
-    if maybe_context:
-        span = maybe_context.get(_SPAN_KEY)
-
-        if span:
-            thread_id = threading.get_ident()
-            _profiler.thread_states[thread_id] = (
-                span.context.trace_id,
-                span.context.span_id,
-            )
-
-    return token
-
-
-def _wrapped_context_detach(wrapped, _instance, args, kwargs):
-    token = args[0] if args else None
-
-    if token:
-        prev = token.old_value
-        thread_id = threading.get_ident()
-        if isinstance(prev, Context):
-            span = prev.get(_SPAN_KEY)
+        if maybe_context:
+            span = maybe_context.get(_SPAN_KEY)
 
             if span:
-                _profiler.thread_states[thread_id] = (
+                thread_id = threading.get_ident()
+                profiler.thread_states[thread_id] = (
                     span.context.trace_id,
                     span.context.span_id,
                 )
+
+        return token
+
+    return _wrapped_context_attach
+
+
+def _make_wrapped_context_detach(profiler):
+    def _wrapped_context_detach(wrapped, _instance, args, kwargs):
+        token = args[0] if args else None
+
+        if token:
+            prev = token.old_value
+            thread_id = threading.get_ident()
+            if isinstance(prev, Context):
+                span = prev.get(_SPAN_KEY)
+
+                if span:
+                    profiler.thread_states[thread_id] = (
+                        span.context.trace_id,
+                        span.context.span_id,
+                    )
+                else:
+                    profiler.thread_states[thread_id] = None
             else:
-                _profiler.thread_states[thread_id] = None
-        else:
-            _profiler.thread_states[thread_id] = None
-    return wrapped(*args, **kwargs)
+                profiler.thread_states[thread_id] = None
+        return wrapped(*args, **kwargs)
+
+    return _wrapped_context_detach
 
 
 def _start_profiler_thread(profiler):
@@ -370,8 +376,12 @@ def _start_profiling(options):
         options.call_stack_interval_millis,
         options.endpoint,
     )
-    wrapt.wrap_function_wrapper(opentelemetry.context, "attach", _wrapped_context_attach)
-    wrapt.wrap_function_wrapper(opentelemetry.context, "detach", _wrapped_context_detach)
+    wrapt.wrap_function_wrapper(
+        opentelemetry.context, "attach", _make_wrapped_context_attach(_profiler)
+    )
+    wrapt.wrap_function_wrapper(
+        opentelemetry.context, "detach", _make_wrapped_context_detach(_profiler)
+    )
 
     # Windows does not have register_at_fork
     if hasattr(os, "register_at_fork"):
