@@ -44,7 +44,6 @@ logger = logging.getLogger(__name__)
 
 
 class Profiler:
-
     def __init__(self):
         self.condition = threading.Condition(threading.Lock())
         self.thread_states = {}
@@ -58,7 +57,9 @@ class Profiler:
         self.exporter = None
         self.batch_processor = None
 
-    def setup(self, resource, endpoint, call_stack_interval_millis, include_internal_stacks):
+    def setup(
+        self, resource, endpoint, call_stack_interval_millis, include_internal_stacks
+    ):
         self.resource = resource
         self.call_stack_interval_millis = call_stack_interval_millis
         self.include_internal_stacks = include_internal_stacks
@@ -92,7 +93,8 @@ class Profiler:
 
             processing_time = time.time() - time_begin
             wait_for = max(
-                call_stack_interval_seconds - processing_time, min_call_stack_interval_seconds
+                call_stack_interval_seconds - processing_time,
+                min_call_stack_interval_seconds,
             )
 
             with self.condition:
@@ -373,7 +375,12 @@ def _start_profiling(opts):
         logger.warning("profiler already running")
         return
 
-    profiler.setup(opts.resource, opts.endpoint, opts.call_stack_interval_millis, opts.include_internal_stacks)
+    profiler.setup(
+        opts.resource,
+        opts.endpoint,
+        opts.call_stack_interval_millis,
+        opts.include_internal_stacks,
+    )
 
     logger.debug(
         "starting profiling call_stack_interval_millis=%s endpoint=%s",
