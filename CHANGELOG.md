@@ -4,6 +4,9 @@
 
 ## 1.15.0 - 2023-11-15
 
+- Add support for CPU profiling
+  [#327](https://github.com/signalfx/splunk-otel-python/pull/327)
+
 ## 1.14.1 - 2023-10-03
 - Dependencies bump, updating cryptography to 41.0.3
 
