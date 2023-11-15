@@ -1125,14 +1125,17 @@ testutils = ["gitpython (>3)"]
 
 [[package]]
 name = "pylintfileheader"
-version = "0.3.2"
+version = "0.3.3"
 description = "Enables pylint to force a consistent file header."
 optional = false
 python-versions = ">=2.7"
 files = [
-    {file = "pylintfileheader-0.3.2-py3-none-any.whl", hash = "sha256:77a991cc07611c99f8cb75b83a8b85189070152ce55b64f746a9a5e741b9643c"},
-    {file = "pylintfileheader-0.3.2.tar.gz", hash = "sha256:fb46995d4d84809be23b98310734a920322b3fff387d13ba23230c6f21bda4b9"},
+    {file = "pylintfileheader-0.3.3-py3-none-any.whl", hash = "sha256:4cd4877565feb37bd79d484caa78867bff86653ba72d20931be7872aa3adde02"},
+    {file = "pylintfileheader-0.3.3.tar.gz", hash = "sha256:e08c0aeb882257e6875bad32ed5fd4efa84eb1234abb12e096f916596db01689"},
 ]
+
+[package.dependencies]
+pylint = "<3.0"
 
 [[package]]
 name = "pytest"
@@ -1496,4 +1499,4 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7.2"
-content-hash = "efa2c0cd69584f69fae60c3bb0541daf204dbfa2c4581e65fc7600db88486679"
+content-hash = "51210b632fa038c171e988846e24f74239c7301150fdecdb011a4540f56675cc"
