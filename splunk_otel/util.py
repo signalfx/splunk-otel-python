@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import os
 from typing import Any
 
 
@@ -19,3 +21,23 @@ def _is_truthy(value: Any) -> bool:
     if isinstance(value, str):
         value = value.lower().strip()
     return value in [True, 1, "true", "yes"]
+
+
+def _get_log_level(level):
+    levels = {
+        "none": logging.NOTSET,
+        "debug": logging.DEBUG,
+        "info": logging.INFO,
+        "warn": logging.WARNING,
+        "error": logging.ERROR,
+        "fatal": logging.CRITICAL,
+    }
+
+    return levels[level.lower()]
+
+
+def _init_logger(name):
+    level = _get_log_level(os.environ.get("OTEL_LOG_LEVEL", "info"))
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(logging.StreamHandler())

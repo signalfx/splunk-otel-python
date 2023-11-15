@@ -169,7 +169,7 @@ contextmanager-decorators=contextlib.contextmanager
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members=zipkin_pb2.*
+generated-members=zipkin_pb2.*,profile_pb2.*
 
 # Tells whether missing members accessed in mixin class should be ignored. A
 # mixin class is detected if its name ends with "mixin" (case insensitive).
@@ -439,7 +439,8 @@ exclude-protected=_asdict,
                   _replace,
                   _source,
                   _make,
-                  _Span
+                  _Span,
+                  _current_frames
 
 # List of valid names for the first argument in a class method.
 valid-classmethod-first-arg=cls
@@ -463,7 +464,7 @@ max-bool-expr=5
 max-branches=12
 
 # Maximum number of locals for function / method body.
-max-locals=15
+max-locals=32
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7
@@ -475,7 +476,7 @@ max-public-methods=20
 max-returns=6
 
 # Maximum number of statements in function / method body.
-max-statements=50
+max-statements=100
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
