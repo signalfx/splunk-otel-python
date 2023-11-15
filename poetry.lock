@@ -901,13 +901,13 @@ test = ["opentelemetry-instrumentation-system-metrics[instruments]", "openteleme
 
 [[package]]
 name = "opentelemetry-propagator-b3"
-version = "1.20.0"
+version = "1.21.0"
 description = "OpenTelemetry B3 Propagator"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "opentelemetry_propagator_b3-1.20.0-py3-none-any.whl", hash = "sha256:7a339a071f4c70e64cae0a319554f6035b2eb1c56db2c128742f3aa11d571ef5"},
-    {file = "opentelemetry_propagator_b3-1.20.0.tar.gz", hash = "sha256:85f612df125aa8bca9ef9b33da607f188b76166440dfe0d9f6723029b64475fc"},
+    {file = "opentelemetry_propagator_b3-1.21.0-py3-none-any.whl", hash = "sha256:ba2a6637140450632de6e8f02ac26807d27672bd014adcff228049582f13b550"},
+    {file = "opentelemetry_propagator_b3-1.21.0.tar.gz", hash = "sha256:cca8ef3aedb0ba35f2a12b2e250b3d0b6d12ab0d2f4fe3be76795cc58f63f11d"},
 ]
 
 [package.dependencies]
@@ -1499,4 +1499,4 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7.2"
-content-hash = "345b30c113f4ced4d8e3e417f8a8cc265e694eaeb7cf17c3bf56a8b0954f7e8d"
+content-hash = "e8095a6749ee5bcaec0ec52b4b556b8730b1d90f61bd12be577342ef06324d7e"
