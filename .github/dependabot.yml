@@ -7,6 +7,7 @@ updates:
       interval: "daily"
     labels:
       - "Skip Changelog"
+      - "dependencies"
     allowed_updates:
       - match:
           update_type: "security"
