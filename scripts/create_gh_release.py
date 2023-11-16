@@ -18,6 +18,8 @@ from time import sleep
 import backoff
 import click
 import keepachangelog
+import requests
+import urllib3
 from github_release import gh_release_create
 from splunk_packaging import changelog_path, get_versions, root_path
 
