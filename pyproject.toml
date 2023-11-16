@@ -35,7 +35,7 @@ opentelemetry-instrumentation = "0.41b0"
 opentelemetry-instrumentation-system-metrics = "0.41b0"
 opentelemetry-semantic-conventions = "0.41b0"
 opentelemetry-propagator-b3 = "1.21.0" 
-opentelemetry-exporter-jaeger-thrift = "1.20.0"
+opentelemetry-exporter-jaeger-thrift = "1.21.0"
 opentelemetry-exporter-otlp-proto-grpc = "1.20.0"
 
 [tool.poetry.extras]
