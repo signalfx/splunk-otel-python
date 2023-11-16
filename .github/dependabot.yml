@@ -5,6 +5,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    labels:
+      - "Skip Changelog"
     allowed_updates:
       - match:
           update_type: "security"
