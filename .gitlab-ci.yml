@@ -40,12 +40,6 @@ build:
       - dist/
     when: always
 
-lint:
-  extends: .tox
-  variables:
-    PY_VERSION: "3.9"
-    TOX_ENV: lint
-
 test-py37:
   extends: .tox
   variables:

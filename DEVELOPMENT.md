@@ -26,7 +26,7 @@ the test project's environment. Assuming the test project environment lives at
 version of package in the test project.
 
 ```
-make develop DEV_ENV=/path/to/test/project/venv
+make develop DEV_VENV=/path/to/test/project/venv
 ```
 
 This will install an editable version of the package in the test project. Any

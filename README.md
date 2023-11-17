@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <span class="otel-version-badge"><a href="https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.19.0"><img alt="OpenTelemetry Python Version" src="https://img.shields.io/badge/otel-1.19.0-blueviolet?style=for-the-badge"/></a></span>
+  <span class="otel-version-badge"><a href="https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.20.0"><img alt="OpenTelemetry Python Version" src="https://img.shields.io/badge/otel-1.20.0-blueviolet?style=for-the-badge"/></a></span>
   <a href="https://github.com/signalfx/splunk-otel-python/releases">
     <img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/signalfx/splunk-otel-python?style=for-the-badge">
   </a>

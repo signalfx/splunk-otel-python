@@ -36,7 +36,7 @@ def integration(pytestconfig, docker_ip, docker_services):
         timeout=10, pause=0.1, check=lambda: is_responsive(url)
     )
     return IntegrationSession(
-        poll_url=f"http://{docker_ip}:8378",
+        poll_url=f"http://{docker_ip}:8378/spans",
         rootdir=path.join(str(pytestconfig.rootdir), "tests", "integration"),
     )
 
@@ -45,16 +45,16 @@ def integration(pytestconfig, docker_ip, docker_services):
 def integration_local(pytestconfig):
     """Local non-docer based replacement for `integration` fixture"""
     return IntegrationSession(
-        poll_url="http://localhost:8378",
+        poll_url="http://localhost:8378/spans",
         rootdir=path.join(str(pytestconfig.rootdir), "tests", "integration"),
     )
 
 
 def is_responsive(url) -> bool:
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             return True
-    except ConnectionError:
+    except requests.exceptions.ConnectionError:
         pass
     return False

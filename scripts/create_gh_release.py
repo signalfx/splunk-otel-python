@@ -14,11 +14,12 @@
 
 from os import path
 from time import sleep
-from urllib3.exceptions import HTTPError
 
 import backoff
 import click
 import keepachangelog
+import requests
+import urllib3
 from github_release import gh_release_create
 from splunk_packaging import changelog_path, get_versions, root_path
 
@@ -58,7 +59,7 @@ Run with --dry-run=false to create the following release
     default=True,
     help="Print out the release details instead of actually creating one",
 )
-@backoff.on_exception(backoff.expo, HTTPError, max_time=60)
+@backoff.on_exception(backoff.expo, (requests.exceptions.HTTPError, urllib3.exceptions.HTTPError), max_time=60)
 def main(dry_run):
     versions = get_versions()
 

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 1.15.0 - 2023-11-15
+
+- Add support for CPU profiling
+  [#327](https://github.com/signalfx/splunk-otel-python/pull/327)
+
+## 1.14.1 - 2023-10-03
+- Dependencies bump, updating cryptography to 41.0.3
+
+## 1.14.0 - 2023-10-02
+- Added support for metrics autoinstrumentation
+
+## 1.13.0 - 2023-09-28
+- Upgraded Otel dependencies to 1.20.0 and 0.41b0
+
 ## 1.12.0 - 2023-07-17
 - Upgraded Otel dependencies to 1.19.0 and 0.40b0
 
@@ -28,7 +42,7 @@
 
 - Upgraded Otel dependencies to 1.11.1 and 0.30b1
   [#226](https://github.com/signalfx/splunk-otel-python/pull/226)
-  
+
 
 ## 1.5.0 - 2022-03-14
 
@@ -151,7 +165,7 @@
 
 ### Breaking Changes
 
-- Removed support for `SPLK_` prefixed env var. 
+- Removed support for `SPLK_` prefixed env var.
   [#65](https://github.com/signalfx/splunk-otel-python/pull/65)
 - Removed `opentelemetry-propagator-b3` as a depedency. It can be installed direclty or by using
   the new `b3` extras options e.g, `pip install splunk-opentelemetry[b3]`.

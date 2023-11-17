@@ -91,3 +91,14 @@ start_tracing()
 
 # rest of your python application's entrypoint script
 ```
+
+Same for metrics:
+
+```python
+from splunk_otel.metrics import start_metrics
+
+start_metrics()
+
+# rest of your python application's entrypoint script
+```
+
