@@ -61,9 +61,9 @@ class TestTracing(TestCase):
         expected_attrs = {
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
-            "telemetry.sdk.version": "1.19.0",
-            "telemetry.auto.version": "0.40b0",
-            "splunk.distro.version": "1.12.0",
+            "telemetry.sdk.version": "1.20.0",
+            "telemetry.auto.version": "0.41b0",
+            "splunk.distro.version": "1.14.1",
             "service.name": "unnamed-python-service",
         }
         self.assertDictEqual(expected_attrs, dict(tracer_provider.resource.attributes))
@@ -85,9 +85,9 @@ class TestTracing(TestCase):
         expected_attrs = {
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
-            "telemetry.sdk.version": "1.19.0",
-            "telemetry.auto.version": "0.40b0",
-            "splunk.distro.version": "1.12.0",
+            "telemetry.sdk.version": "1.20.0",
+            "telemetry.auto.version": "0.41b0",
+            "splunk.distro.version": "1.14.1",
             "service.name": "my.service",
         }
         self.assertDictEqual(expected_attrs, dict(tracer_provider.resource.attributes))
@@ -114,9 +114,9 @@ class TestTracing(TestCase):
         expected_attrs = {
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
-            "telemetry.sdk.version": "1.19.0",
-            "telemetry.auto.version": "0.40b0",
-            "splunk.distro.version": "1.12.0",
+            "telemetry.sdk.version": "1.20.0",
+            "telemetry.auto.version": "0.41b0",
+            "splunk.distro.version": "1.14.1",
             "service.name": "unnamed-python-service",
             "my.attr": 42,
         }
