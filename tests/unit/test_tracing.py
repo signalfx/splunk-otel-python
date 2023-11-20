@@ -20,19 +20,19 @@ from opentelemetry.instrumentation.propagators import get_global_response_propag
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from splunk_otel.env import _EnvVarsABC
+from splunk_otel.env import _EnvLoaderABC
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.tracing import _do_start_tracing
 
 
 class TestTracing(TestCase):
     def test_do_start_with_tracing_disabled(self):
-        env = _FakeEnvVars({"OTEL_TRACE_ENABLED": False})
+        env = _FakeEnvLoader({"OTEL_TRACE_ENABLED": False})
         res = _do_start_tracing(env)
         self.assertIsNone(res)
 
     def test_do_start_tracing_with_defaults(self):
-        env = _FakeEnvVars()
+        env = _FakeEnvLoader()
         tracer_provider = _do_start_tracing(env)
         self.assertIsNotNone(tracer_provider)
         env_vars = env.get_env_vars_written()
@@ -73,7 +73,7 @@ class TestTracing(TestCase):
         self.assertIsInstance(batch_span_processor.span_exporter, OTLPSpanExporter)
 
     def test_do_start_tracing_with_access_token(self):
-        env = _FakeEnvVars({"SPLUNK_ACCESS_TOKEN": "abc123"})
+        env = _FakeEnvLoader({"SPLUNK_ACCESS_TOKEN": "abc123"})
         tracer_provider = _do_start_tracing(env)
         # pylint:disable=protected-access
         otlp_span_exporter = tracer_provider._active_span_processor._span_processors[
@@ -82,7 +82,7 @@ class TestTracing(TestCase):
         self.assertIn(("x-sf-token", "abc123"), otlp_span_exporter._headers)
 
     def test_do_start_tracing_with_svc_name(self):
-        tracer_provider = _do_start_tracing(_FakeEnvVars(), service_name="my.service")
+        tracer_provider = _do_start_tracing(_FakeEnvLoader(), service_name="my.service")
         expected_attrs = {
             "telemetry.sdk.language": "python",
             "telemetry.sdk.name": "opentelemetry",
@@ -94,12 +94,12 @@ class TestTracing(TestCase):
         self.assertDictEqual(expected_attrs, dict(tracer_provider.resource.attributes))
 
     def test_do_start_tracing_with_response_header_disabled(self):
-        _do_start_tracing(_FakeEnvVars(), trace_response_header_enabled=False)
+        _do_start_tracing(_FakeEnvLoader(), trace_response_header_enabled=False)
         self.assertIsNone(get_global_response_propagator())
 
     def test_do_start_tracing_with_span_exporter_factory(self):
         tracer_provider = _do_start_tracing(
-            _FakeEnvVars(),
+            _FakeEnvLoader(),
             span_exporter_factories=[lambda options: InMemorySpanExporter()],
         )
         # pylint:disable=protected-access
@@ -110,7 +110,7 @@ class TestTracing(TestCase):
 
     def test_do_start_tracing_with_resource_attrs(self):
         tracer_provider = _do_start_tracing(
-            _FakeEnvVars(), resource_attributes={"my.attr": 42}
+            _FakeEnvLoader(), resource_attributes={"my.attr": 42}
         )
         expected_attrs = {
             "telemetry.sdk.language": "python",
@@ -124,7 +124,7 @@ class TestTracing(TestCase):
         self.assertDictEqual(expected_attrs, dict(tracer_provider.resource.attributes))
 
     def test_jaeger_exporter_defaults(self):
-        env = _FakeEnvVars({"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
+        env = _FakeEnvLoader({"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
         tracer_provider = _do_start_tracing(env)
         # pylint:disable=protected-access
         exporter = tracer_provider._active_span_processor._span_processors[
@@ -135,7 +135,7 @@ class TestTracing(TestCase):
 
     def test_jaeger_exporter_explicit_endpoint(self):
         endpt = "http://example.com:4200"
-        env = _FakeEnvVars(
+        env = _FakeEnvLoader(
             {
                 "OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk",
                 "OTEL_EXPORTER_JAEGER_ENDPOINT": endpt,
@@ -150,7 +150,7 @@ class TestTracing(TestCase):
         self.assertEqual(endpt, exporter.collector_endpoint)
 
     def test_jaeger_thrift_defaults(self):
-        env = _FakeEnvVars(
+        env = _FakeEnvLoader(
             {
                 "OTEL_TRACES_EXPORTER": "jaeger_thrift",
             }
@@ -163,7 +163,7 @@ class TestTracing(TestCase):
         self.assertIsInstance(exporter, JaegerExporter)
 
     def test_jaeger_thrift_with_access_token(self):
-        env = _FakeEnvVars(
+        env = _FakeEnvLoader(
             {
                 "OTEL_TRACES_EXPORTER": "jaeger_thrift",
                 "SPLUNK_ACCESS_TOKEN": "abc123",
@@ -179,7 +179,7 @@ class TestTracing(TestCase):
         self.assertEqual("abc123", exporter.password)
 
     def test_console_exporter(self):
-        env = _FakeEnvVars(
+        env = _FakeEnvLoader(
             {
                 "OTEL_TRACES_EXPORTER": "console",
             }
@@ -192,7 +192,7 @@ class TestTracing(TestCase):
         self.assertIsInstance(exporter, ConsoleSpanExporter)
 
     def test_bad_exporter_name(self):
-        env = _FakeEnvVars(
+        env = _FakeEnvLoader(
             {
                 "OTEL_TRACES_EXPORTER": "foo",
             }
@@ -206,7 +206,7 @@ class TestTracing(TestCase):
 
 
 # A test/fake implementation for accessing environment variables. Just uses a dictionary instead of env vars.
-class _FakeEnvVars(_EnvVarsABC):
+class _FakeEnvLoader(_EnvLoaderABC):
     def __init__(self, starting_env=None):
         self.env = starting_env or {}
         self.written = {}

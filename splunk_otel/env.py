@@ -16,25 +16,9 @@ from abc import ABC, abstractmethod
 from os import environ
 from typing import Dict, Optional
 
-from opentelemetry.sdk.environment_variables import (
-    OTEL_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
-    OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_LINK_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_SPAN_EVENT_COUNT_LIMIT,
-    OTEL_SPAN_LINK_COUNT_LIMIT,
-)
-
-from splunk_otel.symbols import (
-    _DEFAULT_MAX_ATTR_LENGTH,
-    _DEFAULT_SPAN_LINK_COUNT_LIMIT,
-    _LIMIT_UNSET_VALUE,
-)
-
 
 # A base class to abstract environment variable i/o.
-class _EnvVarsABC(ABC):
+class _EnvLoaderABC(ABC):
     @abstractmethod
     def get(self, name: str, default: Optional[any] = None):
         pass
@@ -49,7 +33,7 @@ class _EnvVarsABC(ABC):
 
 
 # The standard/production implementation for reading from and writing to environment variables.
-class _OSEnvVars(_EnvVarsABC):
+class _OSEnvLoader(_EnvLoaderABC):
     def get(self, name, default: Optional[any] = None):
         return environ.get(name, default)
 
@@ -60,17 +44,3 @@ class _OSEnvVars(_EnvVarsABC):
         for name, value in pairs.items():
             if name not in environ:
                 environ[name] = value
-
-
-def _set_default_env(env: _EnvVarsABC) -> None:
-    env.set_all_unset(
-        {
-            OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-            OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-            OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-            OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-            OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-            OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
-            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
-        }
-    )

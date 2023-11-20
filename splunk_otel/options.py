@@ -34,7 +34,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import SpanExporter
 from pkg_resources import iter_entry_points
 
-from splunk_otel.env import _EnvVarsABC, _OSEnvVars
+from splunk_otel.env import _EnvLoaderABC, _OSEnvLoader
 from splunk_otel.environment_variables import (
     _SPLUNK_ACCESS_TOKEN,
     _SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
@@ -80,9 +80,8 @@ class _Options:
         access_token: Optional[str] = None,
         resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
         trace_response_header_enabled: Optional[bool] = None,
-        env: Optional[_EnvVarsABC] = _OSEnvVars(),
+        env: Optional[_EnvLoaderABC] = _OSEnvLoader(),
     ):
-        _set_default_env(env)
         self.access_token = _get_access_token(env, access_token)
         self.response_propagator = _get_response_propagator(
             env, trace_response_header_enabled
@@ -94,12 +93,12 @@ class _Options:
 
 
 def _get_response_propagator(
-    env: _EnvVarsABC,
+    env_loader: _EnvLoaderABC,
     enabled: Optional[bool],
 ) -> Optional[ResponsePropagator]:
     if enabled is None:
         enabled = _is_truthy(
-            env.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
+            env_loader.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
         )
     if enabled:
         return _ServerTimingResponsePropagator()
@@ -132,14 +131,14 @@ def _get_resource(
 
 
 def _get_span_exporter_factories(
-    env: _EnvVarsABC,
+    env_loader: _EnvLoaderABC,
     factories: Optional[Collection[_SpanExporterFactory]],
 ) -> Collection[_SpanExporterFactory]:
     if factories:
         return factories
 
-    exporter_names = _get_span_exporter_names_from_env(env)
-    return _import_span_exporter_factories(env, exporter_names)
+    exporter_names = _get_span_exporter_names_from_env(env_loader)
+    return _import_span_exporter_factories(env_loader, exporter_names)
 
 
 def _is_truthy(value: Optional[str]) -> bool:
@@ -154,22 +153,9 @@ def _is_truthy(value: Optional[str]) -> bool:
     )
 
 
-def _set_default_env(env: Optional[_EnvVarsABC] = _OSEnvVars()) -> None:
-    defaults = {
-        OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
-        OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
-        OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
-    }
-    env.set_all_unset(defaults)
-
-
-def _get_span_exporter_names_from_env(env: _EnvVarsABC) -> Collection[Tuple[str, str]]:
+def _get_span_exporter_names_from_env(env_loader: _EnvLoaderABC) -> Collection[Tuple[str, str]]:
     out: List[Tuple[str, str]] = []
-    exporters_env = env.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
+    exporters_env = env_loader.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
     # exporters are known by different names internally by Python Otel SDK.
     # Here we create a mapping of user provided names to internal names so
     # that we can provide helpful error messages later.
@@ -184,7 +170,7 @@ def _get_span_exporter_names_from_env(env: _EnvVarsABC) -> Collection[Tuple[str,
 
 
 def _import_span_exporter_factories(
-    env: _EnvVarsABC,
+    env_loader: _EnvLoaderABC,
     requested_exporter_names: Collection[Tuple[str, str]],
 ) -> Collection[_SpanExporterFactory]:
     factories = []
@@ -207,7 +193,7 @@ def _import_span_exporter_factories(
 
         exporter_class: _SpanExporterClass = entry_points[internal_name].load()
         if name == _EXPORTER_JAEGER_SPLUNK:
-            factory = _mk_splunk_jaeger_factory(env, exporter_class)
+            factory = _mk_splunk_jaeger_factory(env_loader, exporter_class)
         elif internal_name == _EXPORTER_OTLP_GRPC:
             factory = _mk_otlp_factory(exporter_class)
         elif internal_name == _EXPORTER_JAEGER_THRIFT:
@@ -223,12 +209,12 @@ def _mk_otlp_factory(exporter: _SpanExporterClass):
 
 
 def _mk_splunk_jaeger_factory(
-    env: _EnvVarsABC,
+    env_loader: _EnvLoaderABC,
     exporter: _SpanExporterClass,
 ):
     def func(options: "_Options"):
         kwargs = _get_jaeger_kwargs(options)
-        endpt = env.get(OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT)
+        endpt = env_loader.get(OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT)
         kwargs.update({"collector_endpoint": endpt})
         return exporter(**kwargs)
 
@@ -252,7 +238,21 @@ def _get_jaeger_kwargs(options: "_Options") -> Dict[str, str]:
     return {}
 
 
-def _get_access_token(env: _EnvVarsABC, access_token: Optional[str]) -> Optional[str]:
+def _get_access_token(env: _EnvLoaderABC, access_token: Optional[str]) -> Optional[str]:
     if not access_token:
         access_token = env.get(_SPLUNK_ACCESS_TOKEN)
     return access_token or None
+
+
+def _set_default_env(env_loader: _EnvLoaderABC) -> None:
+    env_loader.set_all_unset(
+        {
+            OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_EVENT_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
+            OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
+            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
+        }
+    )

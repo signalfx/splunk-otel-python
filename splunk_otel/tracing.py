@@ -26,8 +26,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
-from splunk_otel.env import _EnvVarsABC, _OSEnvVars
-from splunk_otel.options import _Options, _SpanExporterFactory
+from splunk_otel.env import _EnvLoaderABC, _OSEnvLoader
+from splunk_otel.options import _Options, _SpanExporterFactory, _set_default_env
 from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ def start_tracing(
     trace_response_header_enabled: Optional[bool] = None,
 ) -> TracerProvider:
     return _do_start_tracing(
-        _OSEnvVars(),
+        _OSEnvLoader(),
         service_name,
         span_exporter_factories,
         access_token,
@@ -51,28 +51,31 @@ def start_tracing(
 
 
 def _do_start_tracing(
-    env: _EnvVarsABC,
+    env_loader: _EnvLoaderABC,
     service_name: Optional[str] = None,
     span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
     access_token: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
 ) -> TracerProvider:
-    enabled = env.get("OTEL_TRACE_ENABLED", True)
+    enabled = env_loader.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return None
+
+    _set_default_env(env_loader)
+
     options = _Options(
         service_name,
         span_exporter_factories,
         access_token,
         resource_attributes,
         trace_response_header_enabled,
-        env,
+        env_loader,
     )
     try:
         provider = _configure_tracing(options)
-        _load_instrumentors(env)
+        _load_instrumentors(env_loader)
         return provider
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
@@ -88,7 +91,7 @@ def _configure_tracing(options: _Options) -> TracerProvider:
     return provider
 
 
-def _load_instrumentors(env: _EnvVarsABC) -> None:
+def _load_instrumentors(env: _EnvLoaderABC) -> None:
     disabled_instrumentations = env.get(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, "")
     package_to_exclude = disabled_instrumentations.split(",")
     package_to_exclude = [p.strip() for p in package_to_exclude]
