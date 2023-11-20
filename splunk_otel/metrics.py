@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def start_metrics() -> MeterProvider:
+    # pylint disable=import-outside-toplevel
     from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 
     enabled = os.environ.get("OTEL_METRICS_ENABLED", True)
@@ -42,6 +43,7 @@ def start_metrics() -> MeterProvider:
 
 
 def _configure_metrics() -> MeterProvider:
+    # pylint disable=import-outside-toplevel
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
         OTLPMetricExporter,
     )
