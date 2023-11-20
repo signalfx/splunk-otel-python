@@ -52,6 +52,7 @@ class TestTracing(TestCase):
             "SPLUNK_ACCESS_TOKEN",
             "SPLUNK_TRACE_RESPONSE_HEADER_ENABLED",
             "OTEL_TRACES_EXPORTER",
+            "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS",
         ]
         self.assertListEqual(expected_read, read)
         self.assertIsInstance(
@@ -207,26 +208,26 @@ class TestTracing(TestCase):
 # A test/fake implementation for accessing environment variables. Just uses a dictionary instead of env vars.
 class _FakeEnvVars(_EnvVarsABC):
     def __init__(self, starting_env=None):
-        self._env = starting_env or {}
-        self._written = {}
-        self._read = []
+        self.env = starting_env or {}
+        self.written = {}
+        self.read = []
 
     def get(self, name: str, default: Optional[any] = None) -> any:
-        self._read.append(name)
-        out = self._env.get(name)
+        self.read.append(name)
+        out = self.env.get(name)
         return default if out is None else out
 
     def set_all_unset(self, pairs: Dict):
         for name, value in pairs.items():
-            if name not in self._written:
+            if name not in self.written:
                 self.set(name, value)
 
     def set(self, name: str, value: str):
-        self._written[name] = value
-        self._env[value] = value
+        self.written[name] = value
+        self.env[value] = value
 
     def get_env_vars_written(self):
-        return self._written
+        return self.written
 
     def get_env_vars_read(self):
-        return self._read
+        return self.read

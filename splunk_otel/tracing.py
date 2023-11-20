@@ -72,7 +72,7 @@ def _do_start_tracing(
     )
     try:
         provider = _configure_tracing(options)
-        _load_instrumentors()
+        _load_instrumentors(env)
         return provider
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
@@ -88,10 +88,9 @@ def _configure_tracing(options: _Options) -> TracerProvider:
     return provider
 
 
-def _load_instrumentors() -> None:
-    package_to_exclude = os.environ.get(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, "").split(
-        ","
-    )
+def _load_instrumentors(env: _EnvVarsABC) -> None:
+    disabled_instrumentations = env.get(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, "")
+    package_to_exclude = disabled_instrumentations.split(",")
     package_to_exclude = [p.strip() for p in package_to_exclude]
 
     for entry_point in iter_entry_points("opentelemetry_instrumentor"):
