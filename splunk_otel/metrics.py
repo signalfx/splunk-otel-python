@@ -15,11 +15,7 @@
 import logging
 import os
 
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
-from opentelemetry.metrics import set_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
 from splunk_otel.util import _is_truthy
 
@@ -27,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 def start_metrics() -> MeterProvider:
+    # pylint: disable=import-outside-toplevel
+    from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
+
     enabled = os.environ.get("OTEL_METRICS_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("metering has been disabled with OTEL_METRICS_ENABLED=%s", enabled)
@@ -44,6 +43,13 @@ def start_metrics() -> MeterProvider:
 
 
 def _configure_metrics() -> MeterProvider:
+    # pylint: disable=import-outside-toplevel
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+        OTLPMetricExporter,
+    )
+    from opentelemetry.metrics import set_meter_provider
+    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
     metrics_exporter = OTLPMetricExporter()
     meter_provider = MeterProvider([PeriodicExportingMetricReader(metrics_exporter)])
     set_meter_provider(meter_provider)
