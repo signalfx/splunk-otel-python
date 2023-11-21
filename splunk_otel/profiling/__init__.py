@@ -29,7 +29,6 @@ import opentelemetry.context
 import wrapt
 from opentelemetry._logs import SeverityNumber
 from opentelemetry.context import Context
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.utils import unwrap
 from opentelemetry.sdk._logs import LoggerProvider, LogRecord
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
@@ -60,6 +59,9 @@ class Profiler:
     def setup(
         self, resource, endpoint, call_stack_interval_millis, include_internal_stacks
     ):
+        # pylint: disable=import-outside-toplevel
+        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+
         self.resource = resource
         self.call_stack_interval_millis = call_stack_interval_millis
         self.include_internal_stacks = include_internal_stacks
