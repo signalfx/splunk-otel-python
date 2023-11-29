@@ -164,10 +164,12 @@ class TestProfiling(unittest.TestCase):
                 self.assertGreater(len(file_name), 0)
 
                 if function_name == "do_work":
-                    span_id = int(strings[find_label(sample, "span_id", strings).str], 16)
-                    trace_id = int(
-                        strings[find_label(sample, "trace_id", strings).str], 16
-                    )
+                    span_id_str = strings[find_label(sample, "span_id", strings).str]
+                    trace_id_str = strings[find_label(sample, "trace_id", strings).str]
+                    self.assertFalse(span_id_str.startswith("0x"))
+                    self.assertFalse(trace_id_str.startswith("0x"))
+                    span_id = int(span_id_str, 16)
+                    trace_id = int(trace_id_str, 16)
                     self.assertEqual(span_id, self.span_id)
                     self.assertEqual(trace_id, self.trace_id)
                     return True

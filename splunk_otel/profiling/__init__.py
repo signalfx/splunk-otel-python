@@ -226,12 +226,12 @@ class Profiler:
 
                 trace_id_label = profile_pb2.Label()
                 trace_id_label.key = trace_id_key
-                trace_id_label.str = str_table.index(f"{trace_id:#016x}")
+                trace_id_label.str = str_table.index(f"{trace_id:016x}")
                 labels.append(trace_id_label)
 
                 span_id_label = profile_pb2.Label()
                 span_id_label.key = span_id_key
-                span_id_label.str = str_table.index(f"{span_id:#08x}")
+                span_id_label.str = str_table.index(f"{span_id:08x}")
                 labels.append(span_id_label)
 
             sample = profile_pb2.Sample()
