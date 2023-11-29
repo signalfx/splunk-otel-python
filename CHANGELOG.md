@@ -2,6 +2,8 @@
 
 ## Unreleased
 - Upgraded Otel dependencies to 1.21.0 / 0.42b0
+- Fix trace and span id formatting for profiling
+  [#372](https://github.com/signalfx/splunk-otel-python/pull/372)
 
 ## 1.15.0 - 2023-11-15
 
