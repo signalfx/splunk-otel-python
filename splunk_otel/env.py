@@ -28,6 +28,10 @@ class _EnvLoaderABC(ABC):
         pass
 
     @abstractmethod
+    def set_if_unset(self, name: str, value: str):
+        pass
+
+    @abstractmethod
     def set_all_unset(self, pairs: Dict):
         pass
 
@@ -42,5 +46,9 @@ class _OSEnvLoader(_EnvLoaderABC):
 
     def set_all_unset(self, pairs: Dict):
         for name, value in pairs.items():
-            if name not in environ:
-                environ[name] = value
+            self.set_if_unset(name, value)
+
+    def set_if_unset(self, name: str, value: str):
+        if name not in environ:
+            environ[name] = value
+

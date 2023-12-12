@@ -63,6 +63,8 @@ def _do_start_tracing(
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return None
 
+    env_loader.set_if_unset("OTEL_TRACES_SAMPLER", "always_on")
+
     _set_default_env(env_loader)
 
     options = _Options(

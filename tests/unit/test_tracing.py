@@ -44,6 +44,7 @@ class TestTracing(TestCase):
             "OTEL_LINK_ATTRIBUTE_COUNT_LIMIT": "",
             "OTEL_SPAN_LINK_COUNT_LIMIT": "1000",
             "OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT": "12000",
+            "OTEL_TRACES_SAMPLER": "always_on",
         }
         self.assertDictEqual(expected_written, env_vars)
         read = env.get_env_vars_read()
@@ -204,6 +205,17 @@ class TestTracing(TestCase):
             'exporter "foo (foo)" not found. please make sure the relevant exporter package is installed.',
         )
 
+    def test_tracing_sampler_default(self):
+        env_loader = _FakeEnvLoader({})
+        _do_start_tracing(env_loader)
+        written = env_loader.get_env_vars_written()
+        self.assertEqual("always_on", written.get("OTEL_TRACES_SAMPLER"))
+
+    def test_tracing_sampler_preset(self):
+        env_loader = _FakeEnvLoader({"OTEL_TRACES_SAMPLER": "parentbased_always_on"})
+        _do_start_tracing(env_loader)
+        self.assertEqual("parentbased_always_on", env_loader.get("OTEL_TRACES_SAMPLER"))
+
 
 # A test/fake implementation for accessing environment variables. Just uses a dictionary instead of env vars.
 class _FakeEnvLoader(_EnvLoaderABC):
@@ -219,8 +231,11 @@ class _FakeEnvLoader(_EnvLoaderABC):
 
     def set_all_unset(self, pairs: Dict):
         for name, value in pairs.items():
-            if name not in self.written:
-                self.set(name, value)
+            self.set_if_unset(name, value)
+
+    def set_if_unset(self, name, value):
+        if name not in self.written:
+            self.set(name, value)
 
     def set(self, name: str, value: str):
         self.written[name] = value

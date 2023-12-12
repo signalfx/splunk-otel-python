@@ -80,15 +80,15 @@ class _Options:
         access_token: Optional[str] = None,
         resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
         trace_response_header_enabled: Optional[bool] = None,
-        env: Optional[_EnvLoaderABC] = _OSEnvLoader(),
+        env_loader: Optional[_EnvLoaderABC] = _OSEnvLoader(),
     ):
-        self.access_token = _get_access_token(env, access_token)
+        self.access_token = _get_access_token(env_loader, access_token)
         self.response_propagator = _get_response_propagator(
-            env, trace_response_header_enabled
+            env_loader, trace_response_header_enabled
         )
         self.resource = _get_resource(service_name, resource_attributes)
         self.span_exporter_factories = _get_span_exporter_factories(
-            env, span_exporter_factories
+            env_loader, span_exporter_factories
         )
 
 
