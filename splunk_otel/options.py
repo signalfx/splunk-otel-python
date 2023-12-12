@@ -29,6 +29,7 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_EVENT_COUNT_LIMIT,
     OTEL_SPAN_LINK_COUNT_LIMIT,
+    OTEL_TRACES_SAMPLER,
 )
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import SpanExporter
@@ -57,8 +58,10 @@ from splunk_otel.symbols import (
     _SERVICE_NAME_ATTR,
     _SPLUNK_DISTRO_VERSION_ATTR,
     _TELEMETRY_VERSION_ATTR,
+    _DEFAULT_TRACES_SAMPLER,
 )
 from splunk_otel.version import __version__
+
 
 _SpanExporterFactory = Callable[["_Options"], SpanExporter]
 _SpanExporterClass = Callable[..., SpanExporter]
@@ -254,5 +257,6 @@ def _set_default_env(env_loader: _EnvLoaderABC) -> None:
             OTEL_LINK_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
             OTEL_SPAN_LINK_COUNT_LIMIT: str(_DEFAULT_SPAN_LINK_COUNT_LIMIT),
             OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: str(_DEFAULT_MAX_ATTR_LENGTH),
+            OTEL_TRACES_SAMPLER: _DEFAULT_TRACES_SAMPLER,
         }
     )

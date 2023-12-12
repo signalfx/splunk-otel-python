@@ -63,10 +63,6 @@ def _do_start_tracing(
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
         return None
 
-    env_loader.set_if_unset("OTEL_TRACES_SAMPLER", "always_on")
-
-    _set_default_env(env_loader)
-
     options = _Options(
         service_name,
         span_exporter_factories,
@@ -76,14 +72,16 @@ def _do_start_tracing(
         env_loader,
     )
     try:
-        provider = _configure_tracing(options)
+        provider = _configure_tracing(options, env_loader)
         _load_instrumentors(env_loader)
         return provider
     except Exception:  # pylint:disable=broad-except
         sys.exit(2)
 
 
-def _configure_tracing(options: _Options) -> TracerProvider:
+def _configure_tracing(options: _Options, env_loader: _EnvLoaderABC) -> TracerProvider:
+    _set_default_env(env_loader)
+
     provider = TracerProvider(resource=options.resource)
     set_global_response_propagator(options.response_propagator)  # type: ignore
     trace.set_tracer_provider(provider)

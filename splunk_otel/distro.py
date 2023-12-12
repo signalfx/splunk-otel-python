@@ -14,11 +14,12 @@
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 from pkg_resources import EntryPoint
 
+from splunk_otel.env import _EnvLoaderABC, _OSEnvLoader
 from splunk_otel.metrics import _configure_metrics
 from splunk_otel.options import _Options
 from splunk_otel.profiling import _start_profiling
@@ -30,9 +31,11 @@ logger = logging.getLogger(__name__)
 
 
 class _SplunkDistro(BaseDistro):
-    def __init__(self):
-        tracing_enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
-        profiling_enabled = os.environ.get("SPLUNK_PROFILER_ENABLED", False)
+    def __init__(self, env_loader: Optional[_EnvLoaderABC]):
+        self._env_loader = env_loader if env_loader is not None else _OSEnvLoader()
+
+        tracing_enabled = self._env_loader.get("OTEL_TRACE_ENABLED", True)
+        profiling_enabled = self._env_loader.get("SPLUNK_PROFILER_ENABLED", False)
         self._tracing_enabled = _is_truthy(tracing_enabled)
         self._profiling_enabled = _is_truthy(profiling_enabled)
         if not self._tracing_enabled:
@@ -40,7 +43,7 @@ class _SplunkDistro(BaseDistro):
                 "tracing has been disabled with OTEL_TRACE_ENABLED=%s", tracing_enabled
             )
 
-        metrics_enabled = os.environ.get("OTEL_METRICS_ENABLED", True)
+        metrics_enabled = self._env_loader.get("OTEL_METRICS_ENABLED", True)
         self._metrics_enabled = _is_truthy(metrics_enabled)
         if not self._metrics_enabled:
             logger.info(
@@ -51,7 +54,7 @@ class _SplunkDistro(BaseDistro):
         options = _Options()
 
         if self._tracing_enabled:
-            _configure_tracing(options)
+            _configure_tracing(options, self._env_loader)
 
         if self._profiling_enabled:
             _start_profiling(ProfilingOptions(options.resource))
