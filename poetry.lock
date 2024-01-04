@@ -881,13 +881,13 @@ wrapt = ">=1.0.0,<2.0.0"
 
 [[package]]
 name = "opentelemetry-instrumentation-system-metrics"
-version = "0.42b0"
+version = "0.43b0"
 description = "OpenTelemetry System Metrics Instrumentation"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "opentelemetry_instrumentation_system_metrics-0.42b0-py3-none-any.whl", hash = "sha256:cfdff0e787bba2c096f28aca13c68a83d64136dd968003b2c4ed7663b8676dde"},
-    {file = "opentelemetry_instrumentation_system_metrics-0.42b0.tar.gz", hash = "sha256:4bf217095c99958378587d6a38298474d3e620ca161756b30ebfae649abb8dfb"},
+    {file = "opentelemetry_instrumentation_system_metrics-0.43b0-py3-none-any.whl", hash = "sha256:ace26921b3bcb0026add04975b0dd7728e022507b10b74a318a3532691bd7661"},
+    {file = "opentelemetry_instrumentation_system_metrics-0.43b0.tar.gz", hash = "sha256:0363a84fdbd243cb78937f7d7b6f0b68447171610031fb17e0d021be4ef52180"},
 ]
 
 [package.dependencies]
@@ -897,7 +897,7 @@ psutil = ">=5.9,<6.0"
 
 [package.extras]
 instruments = ["psutil (>=5)"]
-test = ["opentelemetry-instrumentation-system-metrics[instruments]", "opentelemetry-test-utils (==0.42b0)"]
+test = ["opentelemetry-instrumentation-system-metrics[instruments]", "opentelemetry-test-utils (==0.43b0)"]
 
 [[package]]
 name = "opentelemetry-propagator-b3"
@@ -1496,4 +1496,4 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7.2"
-content-hash = "9563ece14a84b4be8d52855c47aea3c749cb2df704a38b0ab934b452f37afa12"
+content-hash = "04a9acd0b9934f2234f806644957ad5c9b7e2032929ec9bb152e9ee82f77f1d8"
