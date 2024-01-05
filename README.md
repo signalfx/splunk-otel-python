@@ -86,3 +86,4 @@ The Splunk distribution of OpenTelemetry Python Instrumentation is a
 distribution of [OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python).
 It is licensed under the terms of the Apache Software License version 2.0.
 See [the license file](./LICENSE) for more details.
+
