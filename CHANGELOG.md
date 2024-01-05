@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking Changes
+
+- Removed support for Jaeger as it has been removed from otel python as well
+
 ## 1.16.0 - 2023-12-04
 - Upgraded Otel dependencies to 1.21.0 / 0.42b0
 - Fix trace and span id formatting for profiling

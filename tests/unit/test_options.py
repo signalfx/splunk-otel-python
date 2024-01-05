@@ -15,13 +15,11 @@
 import os
 from unittest import TestCase, mock
 
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
 from splunk_otel.options import _Options
-from splunk_otel.symbols import _DEFAULT_JAEGER_ENDPOINT
 from splunk_otel.version import __version__
 
 # pylint: disable=protected-access
@@ -101,33 +99,6 @@ class TestOptions(TestCase):
         self.assertIsInstance(
             options.span_exporter_factories[1](options), ConsoleSpanExporter
         )
-
-    @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk"})
-    def test_exporters_jaeger_defaults(self):
-        options = _Options()
-        self.assertEqual(len(options.span_exporter_factories), 1)
-        factory = options.span_exporter_factories[0]
-        exporter = factory(options)
-        self.assertIsInstance(exporter, JaegerExporter)
-        self.assertEqual(exporter.collector_endpoint, _DEFAULT_JAEGER_ENDPOINT)
-
-    @mock.patch.dict(
-        os.environ,
-        {
-            "OTEL_TRACES_EXPORTER": "jaeger-thrift-splunk",
-            "OTEL_EXPORTER_JAEGER_ENDPOINT": "localhost:1234",
-            "SPLUNK_ACCESS_TOKEN": "12345",
-        },
-    )
-    def test_exporters_jaeger_custom(self):
-        options = _Options()
-        self.assertEqual(len(options.span_exporter_factories), 1)
-        factory = options.span_exporter_factories[0]
-        exporter = factory(options)
-        self.assertIsInstance(exporter, JaegerExporter)
-        self.assertEqual(exporter.collector_endpoint, "localhost:1234")
-        self.assertEqual(exporter.username, "auth")
-        self.assertEqual(exporter.password, "12345")
 
     @mock.patch.dict(os.environ, {"OTEL_TRACES_EXPORTER": "otlp"})
     def test_exporters_otlp_defaults(self):
