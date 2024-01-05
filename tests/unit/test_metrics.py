@@ -40,6 +40,7 @@ class TestMetrics(TestCase):
     def test_metrics_enabled(self):
         meter_provider = start_metrics()
         self.assertIsInstance(meter_provider, MeterProvider)
+        meter_provider.shutdown(1)
 
     def test_configure_metrics(self):
         meter_provider = _configure_metrics()
