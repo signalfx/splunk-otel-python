@@ -35,7 +35,7 @@ from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
-import splunk_otel
+from splunk_otel.options import _get_resource
 from splunk_otel.profiling import profile_pb2
 from splunk_otel.profiling.options import _Options
 
@@ -410,8 +410,7 @@ def start_profiling(
     endpoint: Optional[str] = None,
     call_stack_interval_millis: Optional[int] = None,
 ):
-    # pylint: disable-next=protected-access
-    resource = splunk_otel.options._Options._get_resource(
+    resource = _get_resource(
         service_name, resource_attributes
     )
     opts = _Options(resource, endpoint, call_stack_interval_millis)
