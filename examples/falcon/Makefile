@@ -1,14 +1,14 @@
 all: venv install
 
-.PHONY: venv 
+.PHONY: venv
 venv:
 	python -m venv venv
 
-.PHONY: install 
+.PHONY: install
 install:
 	./venv/bin/pip install -r requirements.txt
 	./venv/bin/splunk-py-trace-bootstrap
 
-.PHONY: run 
+.PHONY: run
 run:
-	OTEL_EXPORTER_JAEGER_ENDPOINT='http://localhost:14268/api/traces' ./venv/bin/splunk-py-trace python main.py	
+	./venv/bin/splunk-py-trace python main.py

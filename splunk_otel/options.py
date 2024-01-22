@@ -26,7 +26,6 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_ATTRIBUTE_COUNT_LIMIT,
     OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
     OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_EXPORTER_JAEGER_ENDPOINT,
     OTEL_LINK_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_EVENT_COUNT_LIMIT,
@@ -43,13 +42,10 @@ from splunk_otel.environment_variables import (
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.symbols import (
     _DEFAULT_EXPORTERS,
-    _DEFAULT_JAEGER_ENDPOINT,
     _DEFAULT_MAX_ATTR_LENGTH,
     _DEFAULT_OTEL_SERVICE_NAME,
     _DEFAULT_SERVICE_NAME,
     _DEFAULT_SPAN_LINK_COUNT_LIMIT,
-    _EXPORTER_JAEGER_SPLUNK,
-    _EXPORTER_JAEGER_THRIFT,
     _EXPORTER_OTLP,
     _EXPORTER_OTLP_GRPC,
     _KNOWN_EXPORTER_PACKAGES,
@@ -189,8 +185,6 @@ class _Options:
         for name in exporters_env.split(","):
             if name == _EXPORTER_OTLP:
                 exporters.append((_EXPORTER_OTLP, _EXPORTER_OTLP_GRPC))
-            elif name == _EXPORTER_JAEGER_SPLUNK:
-                exporters.append((_EXPORTER_JAEGER_SPLUNK, _EXPORTER_JAEGER_THRIFT))
             else:
                 exporters.append(
                     (
@@ -223,11 +217,7 @@ class _Options:
                 )
 
             exporter_class: _SpanExporterClass = entry_points[internal_name].load()
-            if name == _EXPORTER_JAEGER_SPLUNK:
-                factory = _Options._splunk_jaeger_factory
-            elif internal_name == _EXPORTER_JAEGER_THRIFT:
-                factory = _Options._jaeger_factory
-            elif internal_name == _EXPORTER_OTLP_GRPC:
+            if internal_name == _EXPORTER_OTLP_GRPC:
                 factory = _Options._otlp_factory
             else:
                 factory = _Options._generic_exporter
@@ -240,35 +230,6 @@ class _Options:
         options: "_Options",  # pylint: disable=unused-argument
     ) -> SpanExporter:
         return exporter()
-
-    @staticmethod
-    def _splunk_jaeger_factory(
-        exporter: _SpanExporterClass, options: "_Options"
-    ) -> SpanExporter:
-        kwargs = _Options._get_jaeger_kwargs(options)
-        kwargs.update(
-            {
-                "collector_endpoint": environ.get(
-                    OTEL_EXPORTER_JAEGER_ENDPOINT, _DEFAULT_JAEGER_ENDPOINT
-                ),
-            }
-        )
-        return exporter(**kwargs)
-
-    @staticmethod
-    def _jaeger_factory(
-        exporter: _SpanExporterClass, options: "_Options"
-    ) -> SpanExporter:
-        return exporter(**_Options._get_jaeger_kwargs(options))
-
-    @staticmethod
-    def _get_jaeger_kwargs(options: "_Options") -> Dict[str, str]:
-        if options.access_token:
-            return {
-                "username": "auth",
-                "password": options.access_token,
-            }
-        return {}
 
     @staticmethod
     def _otlp_factory(exporter: _SpanExporterClass, options: "_Options") -> SpanExporter:
