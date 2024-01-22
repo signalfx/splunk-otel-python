@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.17.0 - 2024-01-22
+
 ## 1.17 - 2024-01-22
 - Dependencies bump, removed Jaeger
 
