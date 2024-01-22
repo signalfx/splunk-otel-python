@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 1.17 - 2024-01-22
+- Dependencies bump, removed Jaeger
+
 ### Breaking Changes
 
 - Removed support for Jaeger as it has been removed from otel python as well
