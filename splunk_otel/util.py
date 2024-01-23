@@ -43,11 +43,11 @@ def _is_truthy(value: Any) -> bool:
     return value in [True, 1, "true", "yes"]
 
 
-def _is_truthy_str(s: Optional[str]) -> bool:
-    if not s:
+def _is_truthy_str(value: Optional[str]) -> bool:
+    if not value:
         return False
 
-    return s.strip().lower() not in (
+    return value.strip().lower() not in (
         "false",
         "no",
         "f",

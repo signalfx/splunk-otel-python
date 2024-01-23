@@ -410,9 +410,7 @@ def start_profiling(
     endpoint: Optional[str] = None,
     call_stack_interval_millis: Optional[int] = None,
 ):
-    resource = _create_resource(
-        service_name, resource_attributes
-    )
+    resource = _create_resource(service_name, resource_attributes)
     opts = _Options(resource, endpoint, call_stack_interval_millis)
     _start_profiling(opts)
 
