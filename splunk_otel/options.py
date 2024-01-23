@@ -55,6 +55,7 @@ from splunk_otel.symbols import (
     _SPLUNK_DISTRO_VERSION_ATTR,
     _TELEMETRY_VERSION_ATTR,
 )
+from splunk_otel.util import _is_truthy_str
 from splunk_otel.version import __version__
 
 _SpanExporterFactory = Callable[["_Options"], SpanExporter]
@@ -78,28 +79,28 @@ class _Options:
         resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
         trace_response_header_enabled: Optional[bool] = None,
     ):
+        # todo: remove this side effect
         _set_default_env()
-        self.access_token = _get_access_token(access_token)
-        self.response_propagator = _get_trace_response_header_enabled(
-            trace_response_header_enabled
-        )
-        self.resource = _get_resource(service_name, resource_attributes)
+
+        self.access_token = _resolve_access_token(access_token)
+        self.response_propagator = _get_response_propagator(trace_response_header_enabled)
+        self.resource = _create_resource(service_name, resource_attributes)
         self.span_exporter_factories = _get_span_exporter_factories(
             span_exporter_factories
         )
 
 
-def _get_access_token(access_token: Optional[str]) -> Optional[str]:
+def _resolve_access_token(access_token: Optional[str]) -> Optional[str]:
     if not access_token:
         access_token = environ.get(_SPLUNK_ACCESS_TOKEN)
     return access_token or None
 
 
-def _get_trace_response_header_enabled(
+def _get_response_propagator(
     enabled: Optional[bool],
 ) -> Optional[ResponsePropagator]:
     if enabled is None:
-        enabled = _is_truthy(
+        enabled = _is_truthy_str(
             environ.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")
         )
     if enabled:
@@ -107,7 +108,7 @@ def _get_trace_response_header_enabled(
     return None
 
 
-def _get_resource(
+def _create_resource(
     service_name: Optional[str],
     attributes: Optional[Dict[str, Union[str, bool, int, float]]],
 ) -> Resource:
@@ -142,18 +143,6 @@ def _get_span_exporter_factories(
     return _import_span_exporter_factories(exporter_names)
 
 
-def _is_truthy(value: Optional[str]) -> bool:
-    if not value:
-        return False
-
-    return value.strip().lower() not in (
-        "false",
-        "no",
-        "f",
-        "0",
-    )
-
-
 def _set_default_env() -> None:
     defaults = {
         OTEL_ATTRIBUTE_COUNT_LIMIT: _LIMIT_UNSET_VALUE,
@@ -176,7 +165,7 @@ def _get_span_exporter_names_from_env() -> Collection[Tuple[str, str]]:
     )
 
     exporters: List[Tuple[str, str]] = []
-    if not _is_truthy(exporters_env):
+    if not _is_truthy_str(exporters_env):
         return exporters
 
     # exporters are known by different names internally by Python Otel SDK.
@@ -227,7 +216,7 @@ def _import_span_exporter_factories(
 
 def _generic_exporter(
     exporter: _SpanExporterClass,
-    options: "_Options",  # pylint: disable=unused-argument
+    options: _Options,  # pylint: disable=unused-argument
 ) -> SpanExporter:
     return exporter()
 

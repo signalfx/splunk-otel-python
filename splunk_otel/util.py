@@ -14,13 +14,7 @@
 
 import logging
 import os
-from typing import Any
-
-
-def _is_truthy(value: Any) -> bool:
-    if isinstance(value, str):
-        value = value.lower().strip()
-    return value in [True, 1, "true", "yes"]
+from typing import Any, Optional
 
 
 def _get_log_level(level):
@@ -41,3 +35,21 @@ def _init_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.addHandler(logging.StreamHandler())
+
+
+def _is_truthy(value: Any) -> bool:
+    if isinstance(value, str):
+        value = value.lower().strip()
+    return value in [True, 1, "true", "yes"]
+
+
+def _is_truthy_str(s: Optional[str]) -> bool:
+    if not s:
+        return False
+
+    return s.strip().lower() not in (
+        "false",
+        "no",
+        "f",
+        "0",
+    )
