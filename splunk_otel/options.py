@@ -127,9 +127,7 @@ def _create_resource(
         == _DEFAULT_OTEL_SERVICE_NAME
     ):
         logger.warning(_NO_SERVICE_NAME_WARNING)
-        resource = resource.merge(
-            Resource({_SERVICE_NAME_ATTR: _DEFAULT_SERVICE_NAME})
-        )
+        resource = resource.merge(Resource({_SERVICE_NAME_ATTR: _DEFAULT_SERVICE_NAME}))
     return resource
 
 
@@ -160,9 +158,7 @@ def _set_default_env() -> None:
 
 
 def _get_span_exporter_names_from_env() -> Collection[Tuple[str, str]]:
-    exporters_env = (
-        environ.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
-    )
+    exporters_env = environ.get(OTEL_TRACES_EXPORTER, "").strip() or _DEFAULT_EXPORTERS
 
     exporters: List[Tuple[str, str]] = []
     if not _is_truthy_str(exporters_env):
@@ -198,12 +194,8 @@ def _import_span_exporter_factories(
             if package:
                 help_msg = f"please make sure {package} is installed"
             else:
-                help_msg = (
-                    "please make sure the relevant exporter package is installed."
-                )
-            raise ValueError(
-                f'exporter "{name} ({internal_name})" not found. {help_msg}'
-            )
+                help_msg = "please make sure the relevant exporter package is installed."
+            raise ValueError(f'exporter "{name} ({internal_name})" not found. {help_msg}')
 
         exporter_class: _SpanExporterClass = entry_points[internal_name].load()
         if internal_name == _EXPORTER_OTLP_GRPC:
