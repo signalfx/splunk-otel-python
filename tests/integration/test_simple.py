@@ -20,14 +20,14 @@ from requests_futures.sessions import FuturesSession
 from .conftest import IntegrationSession
 
 
-def _test_simple(integration: IntegrationSession, exporter: str):
+def test_otlp_simple(integration: IntegrationSession):
     session = FuturesSession()
     # start polling collector for spans
     future = session.get(integration.poll_url)
 
     # execute instrumented program
     env = os.environ.copy()
-    env["OTEL_TRACES_EXPORTER"] = exporter
+    env["OTEL_TRACES_EXPORTER"] = "otlp"
     subprocess.check_call(
         ["python", f"{integration.rootdir}/simple/main.py"],
         stdout=subprocess.DEVNULL,
@@ -50,7 +50,3 @@ def _test_simple(integration: IntegrationSession, exporter: str):
     ]
     for tag in tags:
         assert tag in span["tags"]
-
-
-def test_otlp_simple(integration: IntegrationSession):
-    _test_simple(integration, exporter="otlp")
