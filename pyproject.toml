@@ -53,7 +53,7 @@ coverage = "7.2.7"
 pytest-cov = "4.1.0"
 pylint = "2.17.7"
 pylintfileheader = "0.3.3"
-pytest-docker = {version = "2.1.0", platform = "linux"}
+pytest-docker = {version = "2.2.0", platform = "linux"}
 requests-futures = "1.0.1"
 githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
