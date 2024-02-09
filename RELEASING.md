@@ -11,7 +11,7 @@ Release process:
 2. [Submit PR for review and merge to main](#3-submit-changes-for-review)
 3. [Release the package](#4-create-a-draft-github-release)
 4. [Create and push tag](#5-create-and-publish-a-version-git-tag)
-5. [Verify CircleCI and PYPI](#6-verify-circleci-job-and-pypi-package)
+5. [Verify release](#6-verify-release)
 6. [Publish the draft GitHub Release](#7-publish-the-draft-github-release)
 
 
@@ -37,17 +37,14 @@ This can be copied as is from the CHANGELOG file. Merge the PR back to main once
 Switch to `main` branch and pull the latest changes. Make sure your git head is on the release commit.
 Switch to the commit if it is not. 
 
-Create a new git tag for the release with the `v` prefix. For example, if you're releasing `1.1.0`:
+Go to the gitlab UI.  From there (and not from github or through your github cli), create
+a new tag for the release with the `v` prefix.  For example, if you're releasing `1.1.0`:
 
 ```
-git tag v1.1.0
+v1.1.0
 ```
 
-Push the tag to the Gitlab releaser project (not Github).
-
-```
-git push gitlab v1.1.0
-```
+Again, be sure that you are tagging in gitlab, not github.  The gitlab tag will trigger a pipeline there.
 
 ## 4. Monitor Gitlab release job 
 
