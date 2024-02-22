@@ -43,7 +43,7 @@ jobs:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
         uses: actions/checkout@v4
       - name: Set up Python ${{ env[matrix.python-version] }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env[matrix.python-version] }}
       - name: Cache Python
@@ -70,7 +70,7 @@ jobs:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
         uses: actions/checkout@v4
       - name: Set up Python ${{ env[matrix.python-version] }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.9
       - name: Cache tox environment
@@ -92,7 +92,7 @@ jobs:
       - name: Checkout Repo @ SHA - ${{ github.sha }}
         uses: actions/checkout@v4
       - name: Set up Python ${{ env[matrix.python-version] }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.9
       - name: Cache tox environment
