@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: ${{ env[matrix.python-version] }}
       - name: Cache Python
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             .tox
@@ -74,7 +74,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Cache tox environment
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             .tox
@@ -96,7 +96,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Cache tox environment
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             .tox
