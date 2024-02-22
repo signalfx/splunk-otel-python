@@ -8,3 +8,11 @@ updates:
     labels:
       - "Skip Changelog"
       - "dependencies"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "Skip Changelog"
+      - "dependencies"
+
