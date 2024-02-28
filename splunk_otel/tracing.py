@@ -14,7 +14,6 @@
 
 import logging
 import os
-import sys
 from typing import Collection, Dict, Optional, Union
 
 from opentelemetry import trace
