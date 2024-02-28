@@ -22,8 +22,7 @@ from opentelemetry.instrumentation.environment_variables import (
     OTEL_PYTHON_DISABLED_INSTRUMENTATIONS,
 )
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace import NoOpTracerProvider
+from opentelemetry.sdk.trace import NoOpTracerProvider, TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
