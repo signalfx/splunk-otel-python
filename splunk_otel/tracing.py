@@ -23,6 +23,7 @@ from opentelemetry.instrumentation.environment_variables import (
 )
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace import NoOpTracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
 
@@ -55,8 +56,9 @@ def start_tracing(
         provider = _configure_tracing(options)
         _load_instrumentors()
         return provider
-    except Exception:  # pylint:disable=broad-except
-        sys.exit(2)
+    except Exception as error:  # pylint:disable=broad-except
+        logger.error("tracing could not be enabled: %s", error)
+        return NoOpTracerProvider()
 
 
 def _configure_tracing(options: _Options) -> TracerProvider:
