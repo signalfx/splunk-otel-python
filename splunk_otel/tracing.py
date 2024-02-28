@@ -22,7 +22,6 @@ from opentelemetry.instrumentation.environment_variables import (
     OTEL_PYTHON_DISABLED_INSTRUMENTATIONS,
 )
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
-from opentelemetry import trace as trace_api
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pkg_resources import iter_entry_points
@@ -39,7 +38,7 @@ def start_tracing(
     access_token: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
-) -> trace_api.TracerProvider:
+) -> trace.TracerProvider:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
@@ -58,7 +57,7 @@ def start_tracing(
         return provider
     except Exception as error:  # pylint:disable=broad-except
         logger.error("tracing could not be enabled: %s", error)
-        return trace_api.NoOpTracerProvider()
+        return trace.NoOpTracerProvider()
 
 
 def _configure_tracing(options: _Options) -> TracerProvider:
