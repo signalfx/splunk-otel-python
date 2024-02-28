@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Changed the return type of start_tracing from sdk.TracerProvider to api.TracerProvider
+
 ## 1.17.0 - 2024-01-22
 - Dependencies bump, removed Jaeger
 
