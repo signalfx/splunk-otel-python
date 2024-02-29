@@ -14,7 +14,6 @@
 
 import logging
 import os
-import sys
 from typing import Collection, Dict, Optional, Union
 
 from opentelemetry import trace
@@ -38,7 +37,7 @@ def start_tracing(
     access_token: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
-) -> TracerProvider:
+) -> trace.TracerProvider:
     enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
     if not _is_truthy(enabled):
         logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
@@ -55,8 +54,9 @@ def start_tracing(
         provider = _configure_tracing(options)
         _load_instrumentors()
         return provider
-    except Exception:  # pylint:disable=broad-except
-        sys.exit(2)
+    except Exception as error:  # pylint:disable=broad-except
+        logger.error("tracing could not be enabled: %s", error)
+        return trace.NoOpTracerProvider()
 
 
 def _configure_tracing(options: _Options) -> TracerProvider:
