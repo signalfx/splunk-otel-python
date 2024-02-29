@@ -139,7 +139,7 @@ class Profiler:
 
         frame_count = 0
         for stacktrace in stacktraces:
-            frame_count = frame_count + len(stacktrace["frames"])
+            frame_count += len(stacktrace["frames"])
 
         return LogRecord(
             timestamp=timestamp_unix_nanos,
