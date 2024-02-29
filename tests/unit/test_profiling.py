@@ -129,8 +129,8 @@ class TestProfiling(unittest.TestCase):
         self.assertEqual(attributes["profiling.data.format"], "pprof-gzip-base64")
         self.assertEqual(attributes["profiling.data.type"], "cpu")
         self.assertEqual(attributes["com.splunk.sourcetype"], "otel.profiling")
-        # We should at least have the main thread
-        self.assertGreaterEqual(attributes["profiling.data.total.frame.count"], 1)
+        # We should at least have a few frames from the main thread
+        self.assertGreaterEqual(attributes["profiling.data.total.frame.count"], 10)
 
         resource = log_record.resource.attributes
 

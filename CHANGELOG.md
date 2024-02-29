@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Changed the return type of start_tracing from sdk.TracerProvider to api.TracerProvider
+- Profiling: fix the reported frame count when exporting stacktraces.
 
 ## 1.17.0 - 2024-01-22
 - Dependencies bump, removed Jaeger
