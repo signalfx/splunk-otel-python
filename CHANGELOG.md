@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Upgraded Otel dependencies to 1.23.0 / 0.44b0
 
 - Changed the return type of start_tracing from sdk.TracerProvider to api.TracerProvider
 - Profiling: fix the reported frame count when exporting stacktraces.
