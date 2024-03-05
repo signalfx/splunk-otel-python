@@ -27,15 +27,15 @@ splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
 [tool.poetry.dependencies]
 cryptography=">=2.0,<=42.0.5"
-python = "^3.7.2"
+python = ">=3.8"
 protobuf = "^4.23"
-opentelemetry-api = "1.22.0"
-opentelemetry-sdk = "1.22.0"
-opentelemetry-instrumentation = "0.43b0"
-opentelemetry-instrumentation-system-metrics = "0.43b0"
-opentelemetry-semantic-conventions = "0.43b0"
-opentelemetry-propagator-b3 = "1.22.0"
-opentelemetry-exporter-otlp-proto-grpc = "1.22.0"
+opentelemetry-api = "1.23.0"
+opentelemetry-sdk = "1.23.0"
+opentelemetry-instrumentation = "0.44b0"
+opentelemetry-instrumentation-system-metrics = "0.44b0"
+opentelemetry-semantic-conventions = "0.44b0"
+opentelemetry-propagator-b3 = "1.23.0"
+opentelemetry-exporter-otlp-proto-grpc = "1.23.0"
 
 [tool.poetry.extras]
 all = ["opentelemetry-propagator-b3", "opentelemetry-exporter-otlp-proto-grpc"]
@@ -43,7 +43,6 @@ b3 = ["opentelemetry-propagator-b3"]
 otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 
 [tool.poetry.dev-dependencies]
-backoff = ">=2.1.2,<2.2.0"
 flake8 = "~3.9"
 mypy = "1.4.1"
 black = {version = "23.3.0", python = ">=3.7.0"}
@@ -55,7 +54,6 @@ pylint = "2.17.7"
 pylintfileheader = "0.3.3"
 pytest-docker = {version = "2.2.0", platform = "linux"}
 requests-futures = "1.0.1"
-githubrelease = "1.5.9"
 keepachangelog = "1.0.0"
 click = "8.1.7"
 types-setuptools = "69.0.0.0"

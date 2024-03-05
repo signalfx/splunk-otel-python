@@ -8,11 +8,12 @@ We'll pretend to release version 1.1.0
 Release process:
 
 1. [Checkout a release branch](#1-checkout-a-release-branch)
-2. [Submit PR for review and merge to main](#3-submit-changes-for-review)
-3. [Release the package](#4-create-a-draft-github-release)
-4. [Create and push tag](#5-create-and-publish-a-version-git-tag)
-5. [Verify release](#6-verify-release)
-6. [Publish the draft GitHub Release](#7-publish-the-draft-github-release)
+2. [Submit PR for review and merge to main](#2-submit-changes-for-review)
+3. [Release the package](#3-create-a-draft-github-release)
+4. [Create and push tag](#4-create-and-publish-a-version-git-tag)
+5. [Create github release](#5-create-gh-release)
+6. [Verify release](#6-verify-release)
+7. [Publish the draft GitHub Release](#7-publish-the-draft-github-release)
 
 
 ## 1. Prepare the release branch
@@ -52,8 +53,12 @@ Go to the Gitlab Splunk Otel Python releaser and verify the build for your new v
 
 This CI job will automatically create a Github release with changelogs and artifacts, and also publish new version to PyPI.
 
+## 5. Crete github release
 
-## 5. Verify release
+Go to the github UI and manually create a github release with the changelog contents 
+and the built package.  Name it according to the version number for this release.
+
+## 6. Verify release
 
 - Go to the Gitlab Splunk Otel Python releaser project and verify the new GH release was created and all artifacts were uploaded.
 
@@ -61,6 +66,6 @@ This CI job will automatically create a Github release with changelogs and artif
 
 - Download checksums.txt from the GH release and ensure they match the checksums from pypi.org for each artifact.
 
-## 6. Test new release
+## 7. Test new release
 
 Navigate to examples/falcon, upgrade `splunk-opentelemetry` package to the new version and verify it is working as expected. If you're feeling like doing some more work, commit the changes to the example falcon app and submit a PR.

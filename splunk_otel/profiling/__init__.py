@@ -137,6 +137,10 @@ class Profiler:
         encoded = self.get_cpu_profile(stacktraces, timestamp_unix_nanos)
         encoded_profile = base64.b64encode(encoded).decode()
 
+        frame_count = 0
+        for stacktrace in stacktraces:
+            frame_count += len(stacktrace["frames"])
+
         return LogRecord(
             timestamp=timestamp_unix_nanos,
             trace_id=0,
@@ -149,7 +153,7 @@ class Profiler:
                 "profiling.data.format": "pprof-gzip-base64",
                 "profiling.data.type": "cpu",
                 "com.splunk.sourcetype": "otel.profiling",
-                "profiling.data.total.frame.count": len(stacktraces),
+                "profiling.data.total.frame.count": frame_count,
             },
         )
 
@@ -238,7 +242,7 @@ class Profiler:
 
             location_ids = []
 
-            for frame in reversed(stacktrace["stacktrace"]):
+            for frame in reversed(stacktrace["frames"]):
                 location_ids.append(get_location(frame).id)
 
             sample.location_id.extend(location_ids)
@@ -351,7 +355,7 @@ def _collect_stacktraces(ignored_thread_ids):
         for sf in stack:
             stacktrace_frames.append((sf.filename, sf.name, sf.lineno))
         stacktrace = {
-            "stacktrace": stacktrace_frames,
+            "frames": stacktrace_frames,
             "tid": thread_id,
         }
         stacktraces.append(stacktrace)

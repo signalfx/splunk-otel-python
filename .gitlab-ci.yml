@@ -85,14 +85,3 @@ release-pypi:
     - poetry config pypi-token.pypi $PYPI_PASSWORD
     - make publish
 
-
-release-github:
-  stage: release
-  only:
-    - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
-  except:
-    - branches
-  needs:
-    - build-release
-  script:
-    - make ci-create-github-release
