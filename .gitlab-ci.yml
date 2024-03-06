@@ -40,12 +40,6 @@ build:
       - dist/
     when: always
 
-test-py37:
-  extends: .tox
-  variables:
-    PY_VERSION: "3.7"
-    TOX_ENV: py37-test
-
 test-py38:
   extends: .tox
   variables:
