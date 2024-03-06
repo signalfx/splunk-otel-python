@@ -43,7 +43,7 @@ b3 = ["opentelemetry-propagator-b3"]
 otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 
 [tool.poetry.dev-dependencies]
-flake8 = "~3.9"
+flake8 = "~5.0"
 mypy = "1.4.1"
 black = {version = "23.3.0", python = ">=3.7.0"}
 isort = {version = "5.11.5", python = ">=3.7.0"}
