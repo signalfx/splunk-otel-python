@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 1.18.0 - 2024-03-06
 - Upgraded Otel dependencies to 1.23.0 / 0.44b0
 
 - Changed the return type of start_tracing from sdk.TracerProvider to api.TracerProvider
