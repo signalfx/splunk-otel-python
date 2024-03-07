@@ -44,7 +44,7 @@ otlp = ["opentelemetry-exporter-otlp-proto-grpc"]
 
 [tool.poetry.dev-dependencies]
 flake8 = "~5.0"
-mypy = "1.4.1"
+mypy = "1.8.0"
 black = {version = "24.2.0", python = ">=3.7.0"}
 isort = {version = "5.13.2", python = ">=3.7.0"}
 pytest = "7.4.4"
