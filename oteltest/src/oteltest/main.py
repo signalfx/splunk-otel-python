@@ -70,10 +70,13 @@ def setup_script_environment(script, script_dir, tempdir):
     run_subprocess([pip_path, "install", "./oteltest"])
 
     for req in test_instance.requirements():
-        print(f"Will install requirement: '{req}'")
+        print(f"- Will install requirement: '{req}'")
         run_subprocess([pip_path, "install", req])
 
     run_python_script(script, script_dir, test_instance, v)
+
+    with open(str(Path(script_dir) / f"{module_name}.json"), "w") as file:
+        file.write(handler.telemetry_to_json())
 
     test_instance.validate(handler.telemetry)
 
@@ -136,13 +139,27 @@ class AccumulatingHandler(RequestHandler):
         self.telemetry = Telemetry()
 
     def handle_logs(self, request: ExportLogsServiceRequest, context):  # noqa: ARG002
-        self.telemetry.add_log(MessageToDict(request))
+        self.telemetry.add_log(MessageToDict(request), get_context_headers(context))
 
     def handle_metrics(self, request: ExportMetricsServiceRequest, context):  # noqa: ARG002
-        self.telemetry.add_metric(MessageToDict(request))
+        self.telemetry.add_metric(MessageToDict(request), get_context_headers(context))
 
     def handle_trace(self, request: ExportTraceServiceRequest, context):  # noqa: ARG002
-        self.telemetry.add_trace(MessageToDict(request))
+        self.telemetry.add_trace(MessageToDict(request), get_context_headers(context))
+
+    def telemetry_to_json(self):
+        return self.telemetry.to_json()
+
+
+def get_context_headers(context):
+    return pbmetadata_to_dict(context.invocation_metadata())
+
+
+def pbmetadata_to_dict(pbmetadata):
+    out = {}
+    for k, v in pbmetadata:
+        out[k] = v
+    return out
 
 
 if __name__ == '__main__':

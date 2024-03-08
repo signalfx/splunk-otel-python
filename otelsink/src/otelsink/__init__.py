@@ -55,7 +55,6 @@ class GrpcSink:
     """
 
     def __init__(self, request_handler: RequestHandler):
-        self._request_handler = request_handler
         self.svr = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         trace_service_pb2_grpc.add_TraceServiceServicer_to_server(
             _TraceServiceServicer(request_handler.handle_trace), self.svr

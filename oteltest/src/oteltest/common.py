@@ -13,40 +13,64 @@
 # limitations under the License.
 
 import abc
+import dataclasses
 import json
-from typing import List, Mapping
+from typing import List, Mapping, Optional
+
+
+@dataclasses.dataclass
+class Request:
+    request: dict
+    headers: dict
+
+    def get_header(self, name):
+        return self.headers.get(name)
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+    def to_dict(self):
+        return {
+            "request": self.request,
+            "headers": self.headers,
+        }
 
 
 class Telemetry:
-    def __init__(self):
-        self.logs = []
-        self.metrics = []
-        self.trace = []
+    def __init__(
+        self,
+        log_reqs: Optional[List[Request]] = None,
+        metric_reqs: Optional[List[Request]] = None,
+        trace_reqs: Optional[List[Request]] = None,
+    ):
+        self.log_reqs: List[Request] = log_reqs or []
+        self.metric_reqs: List[Request] = metric_reqs or []
+        self.trace_reqs: List[Request] = trace_reqs or []
 
-    def add_log(self, log: dict):
-        self.logs.append(log)
+    def add_log(self, log: dict, headers: dict):
+        self.log_reqs.append(Request(log, headers))
 
-    def add_metric(self, metric: dict):
-        self.metrics.append(metric)
+    def add_metric(self, metric: dict, headers: dict):
+        self.metric_reqs.append(Request(metric, headers))
 
-    def add_trace(self, trace: dict):
-        self.trace.append(trace)
+    def add_trace(self, trace: dict, headers: dict):
+        self.trace_reqs.append(Request(trace, headers))
 
-    def get_traces(self):
-        return self.trace
+    def get_trace_requests(self) -> List[Request]:
+        return self.trace_reqs
 
     def num_metrics(self) -> int:
         out = 0
-        for metric in self.metrics:
-            for rm in metric["resourceMetrics"]:
+        for req in self.metric_reqs:
+            for rm in req.request["resourceMetrics"]:
                 for sm in rm["scopeMetrics"]:
                     out += len(sm["metrics"])
         return out
 
     def metric_names(self) -> set:
         out = set()
-        for metric in self.metrics:
-            for rm in metric["resourceMetrics"]:
+        for req in self.metric_reqs:
+            for rm in req.request["resourceMetrics"]:
                 for sm in rm["scopeMetrics"]:
                     for m in sm["metrics"]:
                         out.add(m["name"])
@@ -54,8 +78,8 @@ class Telemetry:
 
     def num_spans(self) -> int:
         out = 0
-        for tr in self.trace:
-            for rs in tr["resourceSpans"]:
+        for req in self.trace_reqs:
+            for rs in req.request["resourceSpans"]:
                 for ss in rs["scopeSpans"]:
                     out += len(ss["spans"])
         return out
@@ -64,18 +88,21 @@ class Telemetry:
         return self.to_json()
 
     def to_json(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), indent=2)
 
     def to_dict(self):
         return {
-            "logs": self.logs,
-            "metrics": self.metrics,
-            "trace": self.trace,
+            "log_reqs": [req.to_dict() for req in self.log_reqs],
+            "metric_reqs": [req.to_dict() for req in self.metric_reqs],
+            "trace_reqs": [req.to_dict() for req in self.trace_reqs],
         }
 
-
-def telemetry_from_json(json_data: str):
-    pass
+    def has_header(self, key, expected) -> bool:
+        for req in self.trace_reqs:
+            actual = req.get_header(key)
+            if expected == actual:
+                return True
+        return False
 
 
 def trace_attribute_as_str_array(tr: dict, attr_name) -> [str]:
