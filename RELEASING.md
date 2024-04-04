@@ -38,7 +38,9 @@ This can be copied as is from the CHANGELOG file. Merge the PR back to main once
 Switch to `main` branch and pull the latest changes. Make sure your git head is on the release commit.
 Switch to the commit if it is not. 
 
-Go to the gitlab UI.  From there (and not from github or through your github cli), create
+Go to the gitlab UI.  First, refresh the gitlab mirror of this repo manually
+to be sure you will tag the latest changes.
+From the gitlab UI (and not from github or through your github cli), create
 a new tag for the release with the `v` prefix.  For example, if you're releasing `1.1.0`:
 
 ```
