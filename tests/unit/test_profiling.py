@@ -26,6 +26,7 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs.export import LogExportResult
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+from opentelemetry.sdk.trace.sampling import ALWAYS_OFF
 
 from splunk_otel.profiling import (
     _force_flush,
@@ -228,3 +229,29 @@ class TestProfiling(unittest.TestCase):
             without_internal_stacks_thread_ids
         )
         self.assertEqual(count_diff, 2)
+
+    def test_non_recording_span(self):
+        provider = TracerProvider(sampler=ALWAYS_OFF)
+        tracer = provider.get_tracer("tests.tracer")
+
+        start_profiling(
+            service_name="nonrecording span test",
+            call_stack_interval_millis=100,
+        )
+
+        with tracer.start_as_current_span("not recorded"):
+            do_work(550)
+
+        _force_flush()
+
+        self.export_mock.assert_called()
+
+        args = self.export_mock.call_args
+        (log_datas,) = args[0]
+
+        self.assertGreaterEqual(len(log_datas), 5)
+
+        for log_data in log_datas:
+            log_record = log_data.log_record
+            self.assertEqual(log_record.trace_id, 0)
+            self.assertEqual(log_record.span_id, 0)
