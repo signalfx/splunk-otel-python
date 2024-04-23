@@ -275,9 +275,10 @@ class Profiler:
 
                 if span:
                     thread_id = threading.get_ident()
+                    context = span.get_span_context()
                     self.thread_states[thread_id] = (
-                        span.context.trace_id,
-                        span.context.span_id,
+                        context.trace_id,
+                        context.span_id,
                     )
 
             return token
@@ -295,9 +296,10 @@ class Profiler:
                     span = prev.get(_SPAN_KEY)
 
                     if span:
+                        context = span.get_span_context()
                         self.thread_states[thread_id] = (
-                            span.context.trace_id,
-                            span.context.span_id,
+                            context.trace_id,
+                            context.span_id,
                         )
                     else:
                         self.thread_states[thread_id] = None
