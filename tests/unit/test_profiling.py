@@ -239,7 +239,7 @@ class TestProfiling(unittest.TestCase):
             call_stack_interval_millis=100,
         )
 
-        with tracer.start_as_current_span("not recorded"):
+        with tracer.start_as_current_span("not recorded"):  # pylint: disable=E1129
             do_work(550)
 
         _force_flush()
