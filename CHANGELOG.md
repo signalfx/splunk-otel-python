@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.19.0 - 2024-05-01
+
 - Profiling: fix access to context in case of `NonRecordingSpan`.
 - Upgraded Otel dependencies to 1.24.0 / 0.45b0
 
