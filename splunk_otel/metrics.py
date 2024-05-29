@@ -50,16 +50,18 @@ def _configure_metrics() -> MeterProvider:
     # upstream SDK's Configurator.
     metrics_exporter = None
     try:
-      from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
-          OTLPMetricExporter,
-      )
-      metrics_exporter = OTLPMetricExporter()
+        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+            OTLPMetricExporter,
+        )
+
+        metrics_exporter = OTLPMetricExporter()
     except:
-      logger.info("Cannot load grpc metrics exporter, trying http/protobuf")
-      from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
-          OTLPMetricExporter,
-      )
-      metrics_exporter = OTLPMetricExporter()
+        logger.info("Cannot load grpc metrics exporter, trying http/protobuf")
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+            OTLPMetricExporter,
+        )
+
+        metrics_exporter = OTLPMetricExporter()
 
     from opentelemetry.metrics import set_meter_provider
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
