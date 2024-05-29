@@ -55,7 +55,7 @@ def _configure_metrics() -> MeterProvider:
         )
 
         metrics_exporter = OTLPMetricExporter()
-    except:
+    except Exception:  # pylint:disable=broad-except
         logger.info("Cannot load grpc metrics exporter, trying http/protobuf")
         from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
             OTLPMetricExporter,
