@@ -44,13 +44,28 @@ def start_metrics() -> MeterProvider:
 
 def _configure_metrics() -> MeterProvider:
     # pylint: disable=import-outside-toplevel
-    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
-        OTLPMetricExporter,
-    )
+    # FIXME yes, this doesn't match up to the spec in terms of looking for
+    # relevant environment variables, etc., but this is a stopgap because a lot
+    # of this initialization sequence needs to be burned down and replaced with the
+    # upstream SDK's Configurator.
+    metrics_exporter = None
+    try:
+        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+            OTLPMetricExporter,
+        )
+
+        metrics_exporter = OTLPMetricExporter()
+    except Exception:  # pylint:disable=broad-except
+        logger.info("Cannot load grpc metrics exporter, trying http/protobuf")
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+            OTLPMetricExporter,
+        )
+
+        metrics_exporter = OTLPMetricExporter()
+
     from opentelemetry.metrics import set_meter_provider
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
-    metrics_exporter = OTLPMetricExporter()
     meter_provider = MeterProvider([PeriodicExportingMetricReader(metrics_exporter)])
     set_meter_provider(meter_provider)
     return meter_provider
