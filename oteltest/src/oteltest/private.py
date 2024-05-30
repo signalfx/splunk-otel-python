@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import glob
 import importlib
+import importlib.util
 import inspect
 import os
 import shutil
@@ -25,11 +25,7 @@ import typing
 import venv
 from pathlib import Path
 
-import psutil
 from google.protobuf.json_format import MessageToDict
-from oteltest import OtelTest, Telemetry
-from oteltest.sink import GrpcSink, RequestHandler
-
 from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
     ExportLogsServiceRequest,
 )
@@ -39,6 +35,9 @@ from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
     ExportTraceServiceRequest,
 )
+
+from oteltest import OtelTest, Telemetry
+from oteltest.sink import GrpcSink, RequestHandler
 
 
 def run(script_path: str, wheel_file: str, venv_parent_dir: str):
@@ -81,7 +80,8 @@ def setup_script_environment(venv_parent, script_dir, script, wheel_file):
     sink.start()
 
     module_name = script[:-3]
-    oteltest_instance: OtelTest = load_test_class_for_script(module_name)()
+    module_path = os.path.join(script_dir, script)
+    oteltest_instance: OtelTest = load_test_class_for_script(module_name, module_path)()
 
     script_venv = Venv(str(Path(venv_parent) / module_name))
     script_venv.create()
@@ -198,8 +198,10 @@ def print_subprocess_result(stdout: str, stderr: str, returncode: int):
     print("- End Subprocess -\n")
 
 
-def load_test_class_for_script(module_name):
-    module = importlib.import_module(module_name)
+def load_test_class_for_script(module_name, module_path):
+    spec = importlib.util.spec_from_file_location(module_name, os.path.abspath(module_path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
     for attr_name in dir(module):
         value = getattr(module, attr_name)
         if is_test_class(value):
