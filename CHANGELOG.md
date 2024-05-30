@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 1.19.1 - 2024-05-29
+- Fixed an issue with metrics exporting in a lambda environment
+
 ## 1.19.0 - 2024-05-01
 
 - Profiling: fix access to context in case of `NonRecordingSpan`.
