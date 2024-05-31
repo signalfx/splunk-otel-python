@@ -34,21 +34,18 @@ if __name__ == "__main__":
 
 class MyOtelTest(OtelTest):
     def requirements(self):
-        return (
-            "opentelemetry-distro",
-            "opentelemetry-exporter-otlp-proto-http"
-        )
+        return ("splunk-opentelemetry[all]",)
 
     def environment_variables(self):
         return {
             "OTEL_SERVICE_NAME": SERVICE_NAME,
             "SPLUNK_ACCESS_TOKEN": SPLUNK_ACCESS_TOKEN,
             "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": "http/protobuf",
-            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT":  f"https://ingest.{REALM}.signalfx.com/v2/trace/otlp",
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": f"https://ingest.{REALM}.signalfx.com/v2/trace/otlp",
         }
 
     def wrapper_command(self):
-        return "opentelemetry-instrument"
+        return "splunk-py-trace"
 
     def on_start(self):
         return None

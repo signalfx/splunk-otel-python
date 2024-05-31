@@ -30,14 +30,14 @@ if __name__ == "__main__":
             resp.status = falcon.HTTP_200
             resp.body = json.dumps({"hello": "world"})
 
-    # class ErrorResource(object):
-    #     def on_get(self, req, resp):
-    #         print(non_existent_var)
+    class ErrorResource(object):
+        def on_get(self, req, resp):
+            raise NameError("")
 
     app = falcon.API()
 
     app.add_route("/hello", HelloWorldResource())
-    # app.add_route("/error", ErrorResource())
+    app.add_route("/error", ErrorResource())
 
     httpd = simple_server.make_server(HOST, PORT, app)
     httpd.serve_forever()
@@ -47,18 +47,8 @@ class MyOtelTest(OtelTest):
     def requirements(self):
         return (
             "falcon==2.0.0",
-            "splunk-opentelemetry",
-            "opentelemetry-api",
-            "opentelemetry-exporter-otlp-proto-common",
-            "opentelemetry-exporter-otlp-proto-grpc",
-            "opentelemetry-instrumentation-asgi",
-            "opentelemetry-instrumentation-asyncio",
-            "opentelemetry-instrumentation-falcon",
-            "opentelemetry-instrumentation-grpc",
-            "opentelemetry-instrumentation-system-metrics",
-            "opentelemetry-instrumentation-urllib",
-            "opentelemetry-instrumentation-urllib3",
-            "opentelemetry-instrumentation-wsgi",
+            "splunk-opentelemetry[all]==1.19.1",
+            "opentelemetry-instrumentation-falcon==0.45b0",
         )
 
     def environment_variables(self):
@@ -73,8 +63,13 @@ class MyOtelTest(OtelTest):
         time.sleep(10)
 
         conn = http.client.HTTPConnection(HOST, PORT)
+
         conn.request("GET", "/hello")
-        print("response:", conn.getresponse().read().decode())
+        print("hello response:", conn.getresponse().read().decode())
+
+        conn.request("GET", "/error")
+        print("error response:", conn.getresponse().read().decode())
+
         conn.close()
 
         return 60

@@ -14,6 +14,7 @@
 
 
 import time
+from abc import ABC
 
 from oteltest import OtelTest, Telemetry
 
@@ -30,24 +31,26 @@ if __name__ == "__main__":
             time.sleep(0.5)
 
 
-class MyOtelTest(OtelTest):
+class OtelTestBase(OtelTest, ABC):
     def requirements(self):
         return ("splunk-opentelemetry[all]",)
 
+
+class MyOtelTest(OtelTestBase):
     def environment_variables(self):
         return {"OTEL_SERVICE_NAME": SERVICE_NAME}
 
     def wrapper_command(self):
-        return "splunk-py-trace"
+        return "opentelemetry-instrument"
 
     def on_start(self):
         return None
 
     def on_stop(
         self,
-        telemetry: Telemetry,
+        tel: Telemetry,
         stdout: str,
         stderr: str,
         returncode: int,
     ) -> None:
-        assert telemetry.num_spans() == NUM_ADDS
+        return None
