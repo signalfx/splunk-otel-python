@@ -27,8 +27,9 @@ from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__name__)
 
+
 class SplunkConfigurator(_OTelSDKConfigurator):
-  pass
+    pass
 
 
 class _SplunkDistro(BaseDistro):

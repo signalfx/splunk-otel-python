@@ -30,6 +30,7 @@ from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__name__)
 
+
 def start_tracing(
     service_name: Optional[str] = None,
     span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
@@ -42,5 +43,3 @@ def start_tracing(
     # (x 5 fields)
     # FIXME posibly log
     return trace.get_tracer_provider()
-
-
