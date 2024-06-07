@@ -32,10 +32,10 @@ from opentelemetry.context import Context
 from opentelemetry.instrumentation.utils import unwrap
 from opentelemetry.sdk._logs import LoggerProvider, LogRecord
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
-from splunk_otel.options import _create_resource
 from splunk_otel.profiling import profile_pb2
 from splunk_otel.profiling.options import _Options
 
@@ -416,7 +416,7 @@ def start_profiling(
     endpoint: Optional[str] = None,
     call_stack_interval_millis: Optional[int] = None,
 ):
-    resource = _create_resource(service_name, resource_attributes)
+    resource = Resource.create({})
     opts = _Options(resource, endpoint, call_stack_interval_millis)
     _start_profiling(opts)
 

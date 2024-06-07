@@ -30,7 +30,6 @@ from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__name__)
 
-
 def start_tracing(
     service_name: Optional[str] = None,
     span_exporter_factories: Optional[Collection[_SpanExporterFactory]] = None,
@@ -38,49 +37,10 @@ def start_tracing(
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
 ) -> trace.TracerProvider:
-    enabled = os.environ.get("OTEL_TRACE_ENABLED", True)
-    if not _is_truthy(enabled):
-        logger.info("tracing has been disabled with OTEL_TRACE_ENABLED=%s", enabled)
-        return None
-
-    options = _Options(
-        service_name,
-        span_exporter_factories,
-        access_token,
-        resource_attributes,
-        trace_response_header_enabled,
-    )
-    try:
-        provider = _configure_tracing(options)
-        _load_instrumentors()
-        return provider
-    except Exception as error:  # pylint:disable=broad-except
-        logger.error("tracing could not be enabled: %s", error)
-        return trace.NoOpTracerProvider()
+    # FIXME mark as deprecated or document the change or something
+    # FIXME document new ways to either use otel apis or ours to do same config work
+    # (x 5 fields)
+    # FIXME posibly log
+    return trace.get_tracer_provider()
 
 
-def _configure_tracing(options: _Options) -> TracerProvider:
-    provider = TracerProvider(resource=options.resource)
-    set_global_response_propagator(options.response_propagator)  # type: ignore
-    trace.set_tracer_provider(provider)
-    for factory in options.span_exporter_factories:
-        provider.add_span_processor(BatchSpanProcessor(factory(options)))
-    return provider
-
-
-def _load_instrumentors() -> None:
-    package_to_exclude = os.environ.get(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS, "").split(
-        ","
-    )
-    package_to_exclude = [p.strip() for p in package_to_exclude]
-
-    for entry_point in iter_entry_points("opentelemetry_instrumentor"):
-        try:
-            if entry_point.name in package_to_exclude:
-                logger.debug("Instrumentation skipped for library %s", entry_point.name)
-                continue
-            entry_point.load()().instrument()
-            logger.debug("Instrumented %s", entry_point.name)
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.exception("Instrumenting of %s failed", entry_point.name)
-            raise exc

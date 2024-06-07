@@ -14,6 +14,7 @@
 
 from os import environ
 
+# FIXME remove this
 _OTEL_PYTHON_LOG_CORRELATION = "OTEL_PYTHON_LOG_CORRELATION"
 
 

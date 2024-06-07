@@ -25,6 +25,9 @@ splk-py-trace-bootstrap = 'splunk_otel.cmd.bootstrap:run_deprecated'
 [tool.poetry.plugins."opentelemetry_distro"]
 splunk_distro = "splunk_otel.distro:_SplunkDistro"
 
+[tool.poetry.plugins."opentelemetry_configurator"]
+configurator = "splunk_otel.distro:SplunkConfigurator"
+
 [tool.poetry.dependencies]
 cryptography=">=2.0,<=42.0.8"
 python = ">=3.8"
