@@ -22,6 +22,7 @@ from splunk_otel.options import _Options, _SpanExporterFactory
 
 logger = logging.getLogger(__name__)
 
+
 # pylint: disable=unused-argument
 def start_tracing(
     service_name: Optional[str] = None,

@@ -17,7 +17,6 @@ import logging
 from opentelemetry.metrics import get_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
 
-
 logger = logging.getLogger(__name__)
 
 

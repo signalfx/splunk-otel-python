@@ -37,8 +37,8 @@ class _SplunkDistro(BaseDistro):
         self._profiling_enabled = _is_truthy(profiling_enabled)
 
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
-        options = _Options()
-        # FIXME _configure_Tracing and _metrics might have some unique stuff to copy thrugh to here
+        # FIXME the Options construtor side effect could live here?
+        _Options()
 
         if self._profiling_enabled:
             _start_profiling(ProfilingOptions())
