@@ -15,12 +15,12 @@
 import logging
 import os
 
+from opentelemetry.metrics import get_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
 
 from splunk_otel.util import _is_truthy
 
 logger = logging.getLogger(__name__)
-from opentelemetry.metrics import get_meter_provider
 
 
 def start_metrics() -> MeterProvider:
