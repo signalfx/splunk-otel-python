@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import logging
-from functools import partial
 from os import environ
-from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
+from typing import Callable, Optional
 
-from opentelemetry.environment_variables import OTEL_TRACES_EXPORTER
 from opentelemetry.instrumentation.propagators import ResponsePropagator
 from opentelemetry.instrumentation.version import (
     __version__ as auto_instrumentation_version,
@@ -31,9 +29,7 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_SPAN_EVENT_COUNT_LIMIT,
     OTEL_SPAN_LINK_COUNT_LIMIT,
 )
-from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import SpanExporter
-from pkg_resources import iter_entry_points
 
 from splunk_otel.environment_variables import (
     _SPLUNK_ACCESS_TOKEN,
@@ -41,19 +37,10 @@ from splunk_otel.environment_variables import (
 )
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.symbols import (
-    _DEFAULT_EXPORTERS,
     _DEFAULT_MAX_ATTR_LENGTH,
-    _DEFAULT_OTEL_SERVICE_NAME,
-    _DEFAULT_SERVICE_NAME,
     _DEFAULT_SPAN_LINK_COUNT_LIMIT,
-    _EXPORTER_OTLP,
-    _EXPORTER_OTLP_GRPC,
-    _KNOWN_EXPORTER_PACKAGES,
     _LIMIT_UNSET_VALUE,
-    _NO_SERVICE_NAME_WARNING,
-    _SERVICE_NAME_ATTR,
     _SPLUNK_DISTRO_VERSION_ATTR,
-    _TELEMETRY_VERSION_ATTR,
 )
 from splunk_otel.util import _is_truthy_str
 from splunk_otel.version import __version__

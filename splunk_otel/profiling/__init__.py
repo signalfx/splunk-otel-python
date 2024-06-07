@@ -410,6 +410,7 @@ def _start_profiling(opts):
     _start_profiler_thread(profiler)
 
 
+# pylint: disable=unused-argument
 def start_profiling(
     service_name: Optional[str] = None,
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,

@@ -18,7 +18,6 @@ from typing import Any, Dict
 
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
-from pkg_resources import EntryPoint
 
 from splunk_otel.options import _Options
 from splunk_otel.profiling import _start_profiling
@@ -42,4 +41,4 @@ class _SplunkDistro(BaseDistro):
         # FIXME _configure_Tracing and _metrics might have some unique stuff to copy thrugh to here
 
         if self._profiling_enabled:
-            _start_profiling(ProfilingOptions(options.resource))
+            _start_profiling(ProfilingOptions())
