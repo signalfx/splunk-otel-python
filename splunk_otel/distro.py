@@ -17,13 +17,13 @@ import os
 from typing import Any, Dict
 
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
+from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 from pkg_resources import EntryPoint
 
 from splunk_otel.options import _Options
 from splunk_otel.profiling import _start_profiling
 from splunk_otel.profiling.options import _Options as ProfilingOptions
 from splunk_otel.util import _is_truthy
-from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 
 logger = logging.getLogger(__name__)
 
