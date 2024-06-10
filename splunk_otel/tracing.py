@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import warnings
 from typing import Collection, Dict, Optional, Union
 
 from opentelemetry import trace
@@ -31,10 +32,10 @@ def start_tracing(
     resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     trace_response_header_enabled: Optional[bool] = None,
 ) -> trace.TracerProvider:
-    # FIXME mark as deprecated or document the change or something
+    # FIXME document the change, better message
     # document new ways to either use otel apis or ours to do same config work
     # (x 5 fields)
-    # also posibly log
 
     # FIXME set_global_response_propagator needs to be called somewhere
+    warnings.warn("splunk_otel.start_tracing has been deprecated")
     return trace.get_tracer_provider()

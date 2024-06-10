@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import warnings
 
 from opentelemetry.metrics import get_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
@@ -21,5 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 def start_metrics() -> MeterProvider:
-    # FIXME mark deprecated and/or log warning
+    # FIXME better message
+    warnings.warn("splunk_otel.start_metrics has been deprecated")
     return get_meter_provider()
