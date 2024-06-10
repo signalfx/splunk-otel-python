@@ -22,7 +22,9 @@ from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 from splunk_otel.options import _Options
 from splunk_otel.profiling import _start_profiling
 from splunk_otel.profiling.options import _Options as ProfilingOptions
+from splunk_otel.symbols import _SPLUNK_DISTRO_VERSION_ATTR
 from splunk_otel.util import _is_truthy
+from splunk_otel.version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +49,16 @@ class _SplunkDistro(BaseDistro):
             headers += "x-sf-token=" + access_token
             os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = headers
 
+    def configure_resource_attributes(self):
+        resource_attributes = ""
+        if "OTEL_RESOURCE_ATTRIBUTES" in os.environ:
+            resource_attributes = os.environ["OTEL_RESOURCE_ATTRIBUTES"] + ","
+        resource_attributes += _SPLUNK_DISTRO_VERSION_ATTR + "=" + __version__
+        os.environ["OTEL_RESOURCE_ATTRIBUTES"] = resource_attributes
+
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
         self.configure_access_token()
+        self.configure_resource_attributes()
         # FIXME the Options construtor side effect could live here?
         _Options()
 

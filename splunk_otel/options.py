@@ -17,9 +17,6 @@ from os import environ
 from typing import Callable, Optional
 
 from opentelemetry.instrumentation.propagators import ResponsePropagator
-from opentelemetry.instrumentation.version import (
-    __version__ as auto_instrumentation_version,
-)
 from opentelemetry.sdk.environment_variables import (
     OTEL_ATTRIBUTE_COUNT_LIMIT,
     OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
@@ -40,10 +37,8 @@ from splunk_otel.symbols import (
     _DEFAULT_MAX_ATTR_LENGTH,
     _DEFAULT_SPAN_LINK_COUNT_LIMIT,
     _LIMIT_UNSET_VALUE,
-    _SPLUNK_DISTRO_VERSION_ATTR,
 )
 from splunk_otel.util import _is_truthy_str
-from splunk_otel.version import __version__
 
 _SpanExporterFactory = Callable[["_Options"], SpanExporter]
 _SpanExporterClass = Callable[..., SpanExporter]
@@ -86,10 +81,6 @@ def _get_response_propagator(
     if enabled:
         return _ServerTimingResponsePropagator()
     return None
-
-
-# FIXME need our splunk.distro.version attribute added to the resource
-#            _SPLUNK_DISTRO_VERSION_ATTR: __version__,
 
 
 def _set_default_env() -> None:
