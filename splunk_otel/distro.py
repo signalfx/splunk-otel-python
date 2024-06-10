@@ -17,21 +17,22 @@ import os
 from typing import Any, Dict
 
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
+from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 from opentelemetry.sdk.environment_variables import (
     OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
     OTEL_SPAN_LINK_COUNT_LIMIT,
 )
 
-from splunk_otel.options import _Options
+from splunk_otel.environment_variables import _SPLUNK_TRACE_RESPONSE_HEADER_ENABLED
 from splunk_otel.profiling import start_profiling
-from splunk_otel.profiling.options import _Options as ProfilingOptions
+from splunk_otel.propagators import _ServerTimingResponsePropagator
 from splunk_otel.symbols import (
     _DEFAULT_MAX_ATTR_LENGTH,
     _DEFAULT_SPAN_LINK_COUNT_LIMIT,
     _SPLUNK_DISTRO_VERSION_ATTR,
 )
-from splunk_otel.util import _is_truthy
+from splunk_otel.util import _is_truthy, _is_truthy_str
 from splunk_otel.version import __version__
 
 logger = logging.getLogger(__name__)
@@ -73,10 +74,15 @@ class _SplunkDistro(BaseDistro):
             if key not in os.environ:
                 os.environ[key] = value
 
+    def _set_server_timing_propagator(self) -> None:
+        if _is_truthy_str(os.environ.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")):
+            set_global_response_propagator(_ServerTimingResponsePropagator())
+
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
         self._set_default_env()
         self._configure_access_token()
         self._configure_resource_attributes()
+        self._set_server_timing_propagator()
 
         if self._profiling_enabled:
             start_profiling()
