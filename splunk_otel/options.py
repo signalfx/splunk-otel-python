@@ -107,8 +107,3 @@ def _set_default_env() -> None:
     for key, value in defaults.items():
         if key not in environ:
             environ[key] = value
-
-
-# FIXME reimplement with env var to set this
-def _otlp_factory(exporter: _SpanExporterClass, options: "_Options") -> SpanExporter:
-    return exporter(headers=(("x-sf-token", options.access_token),))

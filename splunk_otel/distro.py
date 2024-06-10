@@ -36,7 +36,19 @@ class _SplunkDistro(BaseDistro):
         profiling_enabled = os.environ.get("SPLUNK_PROFILER_ENABLED", False)
         self._profiling_enabled = _is_truthy(profiling_enabled)
 
+    def configure_access_token(self):
+        if "SPLUNK_ACCESS_TOKEN" in os.environ:
+            access_token = os.environ["SPLUNK_ACCESS_TOKEN"]
+            if access_token == "":
+                return
+            headers = ""
+            if "OTEL_EXPORTER_OTLP_HEADERS" in os.environ:
+                headers = os.environ["OTEL_EXPORTER_OTLP_HEADERS"] + ","
+            headers += "x-sf-token=" + access_token
+            os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = headers
+
     def _configure(self, **kwargs: Dict[str, Any]) -> None:
+        self.configure_access_token()
         # FIXME the Options construtor side effect could live here?
         _Options()
 
