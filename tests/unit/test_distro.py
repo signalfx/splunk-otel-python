@@ -30,7 +30,7 @@ def test_distro_env(monkeypatch):
     assert os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL") == "grpc"
     assert os.getenv("OTEL_EXPORTER_OTLP_HEADERS") == "x-sf-token=s4cr4t"
     assert os.getenv("OTEL_RESOURCE_ATTRIBUTES") == "splunk.distro.version=2.0"
-    assert type(get_global_response_propagator()) is _ServerTimingResponsePropagator
+    assert isinstance(get_global_response_propagator(), _ServerTimingResponsePropagator)
 
 
 def test_default_limits():
