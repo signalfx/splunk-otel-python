@@ -14,10 +14,6 @@
 
 from opentelemetry import trace
 
-from splunk_otel import start_tracing
-
-provider = start_tracing()
-
 tracer = trace.get_tracer("simple", "0.1")
 
 
@@ -30,5 +26,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    provider.force_flush()
-    provider.shutdown()
