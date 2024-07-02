@@ -93,7 +93,6 @@ class TestProfiling(unittest.TestCase):
 
     def profile_capture_thread_ids(self):
         start_profiling(
-            service_name="prof-thread-filter",
             call_stack_interval_millis=10,
         )
 
@@ -135,9 +134,7 @@ class TestProfiling(unittest.TestCase):
 
         resource = log_record.resource.attributes
 
-        self.assertEqual(resource["foo"], "bar")
         self.assertEqual(resource["telemetry.sdk.language"], "python")
-        self.assertEqual(resource["service.name"], "prof-export-test")
 
         profile = log_record_to_profile(log_record)
 
@@ -181,8 +178,6 @@ class TestProfiling(unittest.TestCase):
         tracer = trace_api.get_tracer("tests.tracer")
 
         start_profiling(
-            service_name="prof-export-test",
-            resource_attributes={"foo": "bar"},
             call_stack_interval_millis=100,
         )
 
@@ -235,7 +230,6 @@ class TestProfiling(unittest.TestCase):
         tracer = provider.get_tracer("tests.tracer")
 
         start_profiling(
-            service_name="nonrecording span test",
             call_stack_interval_millis=100,
         )
 

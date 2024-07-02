@@ -412,8 +412,6 @@ def _start_profiling(opts):
 
 # pylint: disable=unused-argument
 def start_profiling(
-    service_name: Optional[str] = None,
-    resource_attributes: Optional[Dict[str, Union[str, bool, int, float]]] = None,
     endpoint: Optional[str] = None,
     call_stack_interval_millis: Optional[int] = None,
 ):
