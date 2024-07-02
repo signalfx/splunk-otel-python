@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- FIXME major backwards-incompatible overhaul of initialization, apis, etc.
 
 ## 1.19.1 - 2024-05-29
 - Fixed an issue with metrics exporting in a lambda environment
