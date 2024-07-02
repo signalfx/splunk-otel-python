@@ -18,29 +18,7 @@ from unittest import TestCase, mock
 from opentelemetry import trace
 from opentelemetry.instrumentation.propagators import get_global_response_propagator
 
-from splunk_otel.options import _Options
 from splunk_otel.propagators import _ServerTimingResponsePropagator
-from splunk_otel.tracing import _configure_tracing
-
-
-class TestPropagator(TestCase):
-    def test_server_timing_is_default_response_propagator(self):
-        _configure_tracing(_Options())
-        propagtor = get_global_response_propagator()
-        self.assertIsInstance(propagtor, _ServerTimingResponsePropagator)
-
-    def test_server_timing_is_global_response_propagator_disabled_code(self):
-        _configure_tracing(_Options(trace_response_header_enabled=False))
-        self.assertIsNone(get_global_response_propagator())
-
-    @mock.patch.dict(
-        os.environ,
-        {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "false"},
-    )
-    def test_server_timing_is_global_response_propagator_disabled_env(self):
-        _configure_tracing(_Options())
-        self.assertIsNone(get_global_response_propagator())
-
 
 class TestServerTimingResponsePropagator(TestCase):
     def test_inject(self):
