@@ -15,13 +15,19 @@
 import logging
 import os
 
-from opentelemetry.environment_variables import OTEL_METRICS_EXPORTER, OTEL_TRACES_EXPORTER
+from opentelemetry.environment_variables import (
+    OTEL_METRICS_EXPORTER,
+    OTEL_TRACES_EXPORTER,
+)
 from opentelemetry.instrumentation.distro import BaseDistro  # type: ignore
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 from opentelemetry.sdk.environment_variables import (
-    OTEL_ATTRIBUTE_COUNT_LIMIT, OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
-    OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT, OTEL_EXPORTER_OTLP_PROTOCOL, OTEL_LINK_ATTRIBUTE_COUNT_LIMIT,
+    OTEL_ATTRIBUTE_COUNT_LIMIT,
+    OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
+    OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT,
+    OTEL_EXPORTER_OTLP_PROTOCOL,
+    OTEL_LINK_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_EVENT_COUNT_LIMIT,
     OTEL_SPAN_LINK_COUNT_LIMIT,
@@ -68,8 +74,12 @@ class _SplunkDistro(BaseDistro):
         os.environ.setdefault(OTEL_SPAN_EVENT_COUNT_LIMIT, "")
         os.environ.setdefault(OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT, "")
         os.environ.setdefault(OTEL_LINK_ATTRIBUTE_COUNT_LIMIT, "")
-        os.environ.setdefault(OTEL_SPAN_LINK_COUNT_LIMIT, str(_DEFAULT_SPAN_LINK_COUNT_LIMIT))
-        os.environ.setdefault(OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT, str(_DEFAULT_MAX_ATTR_LENGTH))
+        os.environ.setdefault(
+            OTEL_SPAN_LINK_COUNT_LIMIT, str(_DEFAULT_SPAN_LINK_COUNT_LIMIT)
+        )
+        os.environ.setdefault(
+            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT, str(_DEFAULT_MAX_ATTR_LENGTH)
+        )
 
     def _configure_headers(self) -> None:
         if "SPLUNK_ACCESS_TOKEN" not in os.environ:

@@ -20,6 +20,7 @@ from opentelemetry.instrumentation.propagators import get_global_response_propag
 
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 
+
 class TestServerTimingResponsePropagator(TestCase):
     def test_inject(self):
         span = trace.NonRecordingSpan(
