@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from unittest import TestCase, mock
+from unittest import TestCase
 
 from opentelemetry import trace
-from opentelemetry.instrumentation.propagators import get_global_response_propagator
 
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 
