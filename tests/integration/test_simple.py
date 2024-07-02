@@ -27,11 +27,8 @@ def test_otlp_simple(integration: IntegrationSession):
 
     # execute instrumented program
     env = os.environ.copy()
-    env["OTEL_TRACES_EXPORTER"] = "otlp"
     subprocess.check_call(
-        ["python", f"{integration.rootdir}/simple/main.py"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        ["splunk-py-trace", "python", f"{integration.rootdir}/simple/main.py"],
         env=env,
     )
 
