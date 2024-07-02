@@ -12,7 +12,8 @@ install-tox:
 
 .PHONY: install-setuptools
 install-setuptools:
-	pip install --upgrade pip setuptools wheel
+	python -m pip install --upgrade pip
+	pip install --upgrade setuptools wheel
 
 .PHONY: install-tools
 install-tools: install-setuptools install-poetry install-tox
