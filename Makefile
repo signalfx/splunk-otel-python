@@ -31,7 +31,7 @@ clean:
 .PHONY: develop
 develop:
 ifeq ($(DEV_VENV),"")
-	@echo "Usage: make develop DEV_ENV=~/path/to/dev/project/venv"
+	@echo "Usage: make develop DEV_VENV=~/path/to/dev/project/venv"
 else
 	$(DEV_VENV)/bin/pip uninstall splunk-opentelemetry --yes
 	. $(DEV_VENV)/bin/activate && poetry install --no-dev --extras all
