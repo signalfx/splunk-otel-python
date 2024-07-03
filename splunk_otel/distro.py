@@ -65,10 +65,10 @@ class _SplunkDistro(BaseDistro):
         self._set_server_timing_propagator()
 
     def _set_env(self):
-        os.environ.setdefault("OTEL_PYTHON_LOG_CORRELATION", "true")
+        os.environ.setdefault("OTEL_PYTHON_LOG_CORRELATION", "true")  # FIXME revisit
         os.environ.setdefault(OTEL_TRACES_EXPORTER, "otlp")
         os.environ.setdefault(OTEL_METRICS_EXPORTER, "otlp")
-        os.environ.setdefault(OTEL_EXPORTER_OTLP_PROTOCOL, "grpc")
+        os.environ.setdefault(OTEL_EXPORTER_OTLP_PROTOCOL, "grpc")  # FIXME revisit
         os.environ.setdefault(OTEL_ATTRIBUTE_COUNT_LIMIT, "")
         os.environ.setdefault(OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT, "")
         os.environ.setdefault(OTEL_SPAN_EVENT_COUNT_LIMIT, "")
@@ -82,10 +82,7 @@ class _SplunkDistro(BaseDistro):
         )
 
     def _configure_headers(self) -> None:
-        if "SPLUNK_ACCESS_TOKEN" not in os.environ:
-            return
-
-        access_token = os.environ["SPLUNK_ACCESS_TOKEN"]
+        access_token = os.environ.get("SPLUNK_ACCESS_TOKEN", "")
         if access_token == "":
             return
         headers = ""
