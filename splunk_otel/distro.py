@@ -26,39 +26,42 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_ATTRIBUTE_COUNT_LIMIT,
     OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
     OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_EXPORTER_OTLP_PROTOCOL,
+    OTEL_EXPORTER_OTLP_HEADERS, OTEL_EXPORTER_OTLP_PROTOCOL,
     OTEL_LINK_ATTRIBUTE_COUNT_LIMIT,
-    OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
+    OTEL_RESOURCE_ATTRIBUTES, OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
     OTEL_SPAN_EVENT_COUNT_LIMIT,
     OTEL_SPAN_LINK_COUNT_LIMIT,
 )
 
-from splunk_otel.environment_variables import _SPLUNK_TRACE_RESPONSE_HEADER_ENABLED
 from splunk_otel.profiling import start_profiling
 from splunk_otel.propagators import _ServerTimingResponsePropagator
-from splunk_otel.symbols import (
-    _DEFAULT_MAX_ATTR_LENGTH,
-    _DEFAULT_SPAN_LINK_COUNT_LIMIT,
-    _SPLUNK_DISTRO_VERSION_ATTR,
-)
 from splunk_otel.util import _is_truthy, _is_truthy_str
 from splunk_otel.version import __version__
+
+DEFAULT_MAX_ATTR_LENGTH = 12000
+DEFAULT_SPAN_LINK_COUNT_LIMIT = 1000
+SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 
 logger = logging.getLogger(__name__)
 
 
-class SplunkConfigurator(_OTelSDKConfigurator):
+# The distro, configurators, and instrumentors that have been registered via entrypoints
+# are loaded by opentelemetry-instrumentation (contrib) via sitecustomize.py:
+#
+#   distro = _load_distro()     # loads entrypoints "opentelemetry_distro"
+#   distro.configure()          # calls _configure() below
+#   _load_configurators()       # loads entrypoints "opentelemetry_configurator"
+#   _load_instrumentors(distro) # loads entrypoints "opentelemetry_instrumentor"
+class SplunkDistro(BaseDistro):
+    """
+    This class is referenced in the local pyproject.toml:
+
+    [tool.poetry.plugins."opentelemetry_distro"]
+    splunk_distro = "splunk_otel.distro:SplunkDistro"
+    """
 
     def _configure(self, **kwargs):
-        super()._configure(**kwargs)
-        if _is_truthy(os.environ.get("SPLUNK_PROFILER_ENABLED", False)):
-            start_profiling()
-
-
-class _SplunkDistro(BaseDistro):
-
-    def _configure(self, **kwargs):
-        # this runs *before* the configurator
+        # runs *before* the configurator
         self._set_env()
         self._configure_headers()
         self._configure_resource_attributes()
@@ -75,10 +78,10 @@ class _SplunkDistro(BaseDistro):
         os.environ.setdefault(OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT, "")
         os.environ.setdefault(OTEL_LINK_ATTRIBUTE_COUNT_LIMIT, "")
         os.environ.setdefault(
-            OTEL_SPAN_LINK_COUNT_LIMIT, str(_DEFAULT_SPAN_LINK_COUNT_LIMIT)
+            OTEL_SPAN_LINK_COUNT_LIMIT, str(DEFAULT_SPAN_LINK_COUNT_LIMIT)
         )
         os.environ.setdefault(
-            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT, str(_DEFAULT_MAX_ATTR_LENGTH)
+            OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT, str(DEFAULT_MAX_ATTR_LENGTH)
         )
 
     def _configure_headers(self) -> None:
@@ -86,18 +89,34 @@ class _SplunkDistro(BaseDistro):
         if access_token == "":
             return
         headers = ""
-        if "OTEL_EXPORTER_OTLP_HEADERS" in os.environ:
-            headers = os.environ["OTEL_EXPORTER_OTLP_HEADERS"] + ","
+        if OTEL_EXPORTER_OTLP_HEADERS in os.environ:
+            headers = os.environ[OTEL_EXPORTER_OTLP_HEADERS] + ","
         headers += "x-sf-token=" + access_token
-        os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = headers
+        os.environ[OTEL_EXPORTER_OTLP_HEADERS] = headers
 
     def _configure_resource_attributes(self) -> None:
         resource_attributes = ""
-        if "OTEL_RESOURCE_ATTRIBUTES" in os.environ:
-            resource_attributes = os.environ["OTEL_RESOURCE_ATTRIBUTES"] + ","
-        resource_attributes += _SPLUNK_DISTRO_VERSION_ATTR + "=" + __version__
-        os.environ["OTEL_RESOURCE_ATTRIBUTES"] = resource_attributes
+        if OTEL_RESOURCE_ATTRIBUTES in os.environ:
+            resource_attributes = os.environ[OTEL_RESOURCE_ATTRIBUTES] + ","
+        resource_attributes += SPLUNK_DISTRO_VERSION_ATTR + "=" + __version__
+        os.environ[OTEL_RESOURCE_ATTRIBUTES] = resource_attributes
 
     def _set_server_timing_propagator(self) -> None:
-        if _is_truthy_str(os.environ.get(_SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true")):
+        if _is_truthy_str(os.environ.get("SPLUNK_TRACE_RESPONSE_HEADER_ENABLED", "true")):
             set_global_response_propagator(_ServerTimingResponsePropagator())
+
+
+class SplunkConfigurator(_OTelSDKConfigurator):
+    """
+    The SDK configurator runs *after* the distro.
+
+    This class is referenced in the local pyproject.toml:
+
+    [tool.poetry.plugins."opentelemetry_configurator"]
+    configurator = "splunk_otel.distro:SplunkConfigurator"
+    """
+
+    def _configure(self, **kwargs):
+        super()._configure(**kwargs)
+        if _is_truthy(os.environ.get("SPLUNK_PROFILER_ENABLED", False)):
+            start_profiling()

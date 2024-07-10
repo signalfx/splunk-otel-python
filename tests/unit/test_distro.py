@@ -13,16 +13,28 @@
 # limitations under the License.
 import os
 
+import pytest
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.propagators import get_global_response_propagator
 from opentelemetry.sdk.trace import SpanLimits
 
-from splunk_otel.distro import _SplunkDistro
+from splunk_otel.distro import SplunkConfigurator, SplunkDistro
 from splunk_otel.propagators import _ServerTimingResponsePropagator
 
 
-def test_distro_env(monkeypatch):
-    monkeypatch.setenv("SPLUNK_ACCESS_TOKEN", "s4cr4t")
-    sd = _SplunkDistro()
+@pytest.fixture
+def restore_env():
+    original_env = os.environ.copy()
+    yield
+    os.environ.clear()
+    os.environ.update(original_env)
+
+
+def test_distro_env(restore_env):
+    os.environ["SPLUNK_ACCESS_TOKEN"] = "s4cr4t"
+
+    sd = SplunkDistro()
     sd.configure()
     assert os.getenv("OTEL_PYTHON_LOG_CORRELATION") == "true"
     assert os.getenv("OTEL_TRACES_EXPORTER") == "otlp"
@@ -33,8 +45,13 @@ def test_distro_env(monkeypatch):
     assert isinstance(get_global_response_propagator(), _ServerTimingResponsePropagator)
 
 
-def test_default_limits():
-    _SplunkDistro().configure()
+def test_default_limits(restore_env):
+    # we're not testing SplunkDistro here but configure() sets environment variables read by SpanLimits
+    distro = SplunkDistro()
+    distro.configure()
+
+    # SpanLimits() is instantiated by the TracerProvider constructor
+    # for testing, we instantiate it directly
     limits = SpanLimits()
     assert limits.max_events is None
     assert limits.max_span_attributes is None
@@ -44,3 +61,18 @@ def test_default_limits():
     assert limits.max_links == 1000
     assert limits.max_attribute_length == 12000
     assert limits.max_span_attribute_length == 12000
+
+
+def test_configurator():
+    # we're not testing SplunkDistro here but configure() sets environment variables read by SplunkConfigurator
+    distro = SplunkDistro()
+    distro.configure()
+
+    sp = SplunkConfigurator()
+    sp.configure()
+    tp = trace.get_tracer_provider()
+    sync_multi_span_proc = getattr(tp, "_active_span_processor")
+    assert len(sync_multi_span_proc._span_processors) == 1
+    batch_span_processor = sync_multi_span_proc._span_processors[0]
+    otlp_span_exporter = batch_span_processor.span_exporter
+    assert isinstance(otlp_span_exporter, OTLPSpanExporter)
