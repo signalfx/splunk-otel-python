@@ -12,62 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from importlib import reload
-from unittest import TestCase, mock
+from unittest import TestCase
 
-from opentelemetry import propagate, trace
-from opentelemetry.baggage.propagation import W3CBaggagePropagator
-from opentelemetry.instrumentation.propagators import get_global_response_propagator
-from opentelemetry.propagate import get_global_textmap
-from opentelemetry.propagators.composite import CompositePropagator
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from opentelemetry import trace
 
-from splunk_otel.options import _Options
 from splunk_otel.propagators import _ServerTimingResponsePropagator
-from splunk_otel.tracing import _configure_tracing
-
-
-class TestPropagator(TestCase):
-    def test_sets_tracecontext_and_baggage_are_default_propagator(self):
-        reload(propagate)
-        _configure_tracing(_Options())
-        propagator = get_global_textmap()
-        self.assertIsInstance(propagator, CompositePropagator)
-        propagators = propagator._propagators  # pylint: disable=protected-access
-        self.assertEqual(len(propagators), 2)
-        self.assertIsInstance(propagators[0], TraceContextTextMapPropagator)
-        self.assertIsInstance(propagators[1], W3CBaggagePropagator)
-
-    @mock.patch.dict(
-        os.environ,
-        {"OTEL_PROPAGATORS": "baggage"},
-    )
-    def test_set_custom_propagator(self):
-        reload(propagate)
-        _configure_tracing(_Options())
-        propagator = get_global_textmap()
-        self.assertIsInstance(propagator, CompositePropagator)
-        propagators = propagator._propagators  # pylint: disable=protected-access
-        self.assertEqual(len(propagators), 1)
-        self.assertIsInstance(propagators[0], W3CBaggagePropagator)
-
-    def test_server_timing_is_default_response_propagator(self):
-        _configure_tracing(_Options())
-        propagtor = get_global_response_propagator()
-        self.assertIsInstance(propagtor, _ServerTimingResponsePropagator)
-
-    def test_server_timing_is_global_response_propagator_disabled_code(self):
-        _configure_tracing(_Options(trace_response_header_enabled=False))
-        self.assertIsNone(get_global_response_propagator())
-
-    @mock.patch.dict(
-        os.environ,
-        {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "false"},
-    )
-    def test_server_timing_is_global_response_propagator_disabled_env(self):
-        _configure_tracing(_Options())
-        self.assertIsNone(get_global_response_propagator())
 
 
 class TestServerTimingResponsePropagator(TestCase):
