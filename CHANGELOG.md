@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Upgrade Otel dependencies to 1.26.0 / 0.47b0
 
 ## 1.19.1 - 2024-05-29
 - Fixed an issue with metrics exporting in a lambda environment
