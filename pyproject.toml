@@ -58,7 +58,7 @@ requests-futures = "1.0.1"
 keepachangelog = "1.0.0"
 click = "8.1.7"
 types-setuptools = "74.1.0.20240907"
-urllib3 = "2.2.2"
+urllib3 = "2.2.3"
 wrapt = ">=1.15.0"
 
 [tool.black]
