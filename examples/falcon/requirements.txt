@@ -11,6 +11,6 @@ pickleshare
 prompt-toolkit
 ptyprocess
 Pygments
-splunk-opentelemetry
+splunk-opentelemetry[all]
 traitlets
 wcwidth
