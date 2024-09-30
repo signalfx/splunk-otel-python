@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "splunk-opentelemetry"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+license = "Apache-2.0"
+keywords = []
+authors = []
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "cryptography>=2.0,<=42.0.8",
+    "protobuf>=4.23,<5.0",
+    "opentelemetry-api==1.27.0",
+    "opentelemetry-sdk==1.27.0",
+    "opentelemetry-instrumentation==0.48b0",
+    "opentelemetry-instrumentation-system-metrics==0.48b0",
+    "opentelemetry-semantic-conventions==0.48b0",
+    "opentelemetry-propagator-b3==1.27.0",
+    "opentelemetry-exporter-otlp-proto-grpc==1.27.0",
+    "opentelemetry-exporter-otlp-proto-http==1.27.0"
+]
+
+[project.urls]
+Documentation = "https://github.com/signalfx/splunk-otel-python#readme"
+Issues = "https://github.com/signalfx/splunk-otel-python/issues"
+Source = "https://github.com/signalfx/splunk-otel-python"
+
+#[project.entry-points.opentelemetry_configurator]
+#configurator = "splunk_otel.configurator:SplunkConfigurator"
+
+#[project.entry-points.opentelemetry_distro]
+#distro = "splunk_otel.distro:SplunkDistro"
+
+[tool.hatch.version]
+path = "src/splunk_otel/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.types]
+dependencies = [
+  "mypy>=1.0.0",
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/splunk_otel tests}"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/splunk_otel"]
+
+[tool.coverage.run]
+source_pkgs = ["splunk_otel", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/splunk_otel/__about__.py",
+]
+
+[tool.coverage.paths]
+splunk_otel = ["src/splunk_otel"]
+tests = ["tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
