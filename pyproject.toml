@@ -43,8 +43,8 @@ Source = "https://github.com/signalfx/splunk-otel-python"
 #[project.entry-points.opentelemetry_configurator]
 #configurator = "splunk_otel.configurator:SplunkConfigurator"
 
-#[project.entry-points.opentelemetry_distro]
-#distro = "splunk_otel.distro:SplunkDistro"
+[project.entry-points.opentelemetry_distro]
+splunk_distro = "splunk_otel.distro:SplunkDistro"
 
 [tool.hatch.version]
 path = "src/splunk_otel/__about__.py"

@@ -12,4 +12,23 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__version__ = "2.0.0a1"
+from opentelemetry.instrumentation.distro import BaseDistro
+
+from splunk_otel.env import DEFAULTS, Env
+
+
+class SplunkDistro(BaseDistro):
+    """
+    Loaded by the opentelemetry-instrumentation package via an entrypoint when running `opentelemetry-instrument`
+    """
+
+    def __init__(self):
+        # can't accept an arg here because of the parent class
+        self.env = Env()
+
+    def _configure(self, **kwargs):
+        self.set_env_defaults()
+
+    def set_env_defaults(self):
+        for key, value in DEFAULTS.items():
+            self.env.setdefault(key, value)
