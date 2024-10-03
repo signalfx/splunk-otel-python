@@ -16,6 +16,7 @@ import logging
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
+
 from splunk_otel.env import DEFAULTS, Env, OTEL_METRICS_ENABLED
 
 
