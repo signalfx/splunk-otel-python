@@ -13,8 +13,9 @@
 #  limitations under the License.
 
 from opentelemetry.instrumentation.distro import BaseDistro
+from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 
-from splunk_otel.env import DEFAULTS, Env
+from splunk_otel.env import DEFAULTS, Env, OTEL_METRICS_ENABLED
 
 
 class SplunkDistro(BaseDistro):
@@ -32,3 +33,18 @@ class SplunkDistro(BaseDistro):
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
             self.env.setdefault(key, value)
+
+    def load_instrumentor(self, entry_point, **kwargs):
+        #  This method is called in a loop by opentelemetry-instrumentation
+        if is_system_metrics_instrumentor(entry_point) and not self.env.is_true(OTEL_METRICS_ENABLED):
+            print(f"{OTEL_METRICS_ENABLED} not set -- skipping SystemMetricsInstrumentor")
+        else:
+            super().load_instrumentor(entry_point, **kwargs)
+
+
+def is_system_metrics_instrumentor(entry_point):
+    if entry_point.name == "system_metrics":
+        instrumentor_class = entry_point.load()
+        if instrumentor_class == SystemMetricsInstrumentor:
+            return True
+    return False
