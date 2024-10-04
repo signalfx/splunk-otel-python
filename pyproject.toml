@@ -53,6 +53,7 @@ path = "src/splunk_otel/__about__.py"
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
+  "ruff",
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -66,6 +67,10 @@ cov = [
   "test-cov",
   "cov-report",
 ]
+format = "ruff format"
+check-format = "ruff format --check"
+lint = "ruff check --fix"
+check-lint = "ruff check"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
