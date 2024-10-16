@@ -13,7 +13,7 @@
 #  limitations under the License.
 from importlib.metadata import entry_points
 
-from splunk_otel.distro import is_system_metrics_instrumentor, SplunkDistro
+from splunk_otel.distro import SplunkDistro, is_system_metrics_instrumentor
 from splunk_otel.env import Env
 
 
