@@ -15,10 +15,10 @@
 import os
 
 DEFAULTS = {
-    "OTEL_PYTHON_LOG_CORRELATION": "true",  # FIXME revisit
+    "OTEL_PYTHON_LOG_CORRELATION": "true",  # FIXME: revisit
     "OTEL_TRACES_EXPORTER": "otlp",
     "OTEL_METRICS_EXPORTER": "otlp",
-    "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",  # FIXME revisit
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",  # FIXME: revisit
     "OTEL_ATTRIBUTE_COUNT_LIMIT": "",
     "OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT": "",
     "OTEL_SPAN_EVENT_COUNT_LIMIT": "",
@@ -29,7 +29,7 @@ DEFAULTS = {
 }
 
 SPLUNK_OTEL_SYSTEM_METRICS_ENABLED = "SPLUNK_OTEL_SYSTEM_METRICS_ENABLED"
-SPLUNK_ACCESS_TOKEN = "SPLUNK_ACCESS_TOKEN"
+SPLUNK_ACCESS_TOKEN = "SPLUNK_ACCESS_TOKEN"  # noqa: S105
 SPLUNK_TRACE_RESPONSE_HEADER_ENABLED = "SPLUNK_TRACE_RESPONSE_HEADER_ENABLED"
 
 OTEL_METRICS_ENABLED = "OTEL_METRICS_ENABLED"
@@ -45,18 +45,18 @@ class Env:
         self.store = os.environ if store is None else store
 
     def is_true(self, key, default=""):
-        return is_true_str(self.get(key, default).strip())
+        return is_true_str(self.getval(key, default).strip())
 
     def list_append(self, key, value):
-        curr = self.get(key)
+        curr = self.getval(key)
         if curr:
             curr += ","
-        self.set(key, curr + value)
+        self.setval(key, curr + value)
 
-    def get(self, key, default=""):
+    def getval(self, key, default=""):
         return self.store.get(key, default)
 
-    def set(self, key, value):
+    def setval(self, key, value):
         self.store[key] = value
 
     def setdefault(self, key, value):

@@ -30,7 +30,7 @@ class SplunkDistro(BaseDistro):
         self.env = Env()
         self.logger = logging.getLogger(__name__)
 
-    def _configure(self, **kwargs):
+    def _configure(self, **kwargs):  # noqa: ARG002
         self.set_env_defaults()
 
     def set_env_defaults(self):
@@ -39,12 +39,8 @@ class SplunkDistro(BaseDistro):
 
     def load_instrumentor(self, entry_point, **kwargs):
         #  This method is called in a loop by opentelemetry-instrumentation
-        if is_system_metrics_instrumentor(entry_point) and not self.env.is_true(
-            OTEL_METRICS_ENABLED
-        ):
-            self.logger.info(
-                f"{OTEL_METRICS_ENABLED} not set -- skipping SystemMetricsInstrumentor"
-            )
+        if is_system_metrics_instrumentor(entry_point) and not self.env.is_true(OTEL_METRICS_ENABLED):
+            self.logger.info("%s not set -- skipping SystemMetricsInstrumentor", OTEL_METRICS_ENABLED)
         else:
             super().load_instrumentor(entry_point, **kwargs)
 

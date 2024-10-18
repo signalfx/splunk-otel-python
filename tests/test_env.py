@@ -22,21 +22,21 @@ def test_env():
     }
 
     e.setdefault("PREEXISTING", "default")
-    assert e.get("PREEXISTING") == "preexisting"
+    assert e.getval("PREEXISTING") == "preexisting"
 
     e.setdefault("FOO", "111")
-    assert e.get("FOO") == "111"
+    assert e.getval("FOO") == "111"
 
-    e.set("BAR", "222")
-    assert e.get("BAR") == "222"
+    e.setval("BAR", "222")
+    assert e.getval("BAR") == "222"
 
-    e.set("TRUE_FLAG", "true")
+    e.setval("TRUE_FLAG", "true")
     assert e.is_true("TRUE_FLAG")
 
-    e.set("FALSE_FLAG", "false")
+    e.setval("FALSE_FLAG", "false")
     assert not e.is_true("FALSE_FLAG")
 
     e.list_append("MY_LIST", "a")
-    assert e.get("MY_LIST") == "a"
+    assert e.getval("MY_LIST") == "a"
     e.list_append("MY_LIST", "b")
-    assert e.get("MY_LIST") == "a,b"
+    assert e.getval("MY_LIST") == "a,b"
