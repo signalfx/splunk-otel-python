@@ -38,5 +38,8 @@ jobs:
     - name: Run static analysis
       run: hatch fmt --check
 
-    - name: Run tests
+    - name: Run unit tests with coverage
       run: hatch run cov
+
+    - name: Run oteltests
+      run: oteltest tests
