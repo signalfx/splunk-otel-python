@@ -41,5 +41,8 @@ jobs:
     - name: Run unit tests with coverage
       run: hatch run cov
 
+    - name: Install oteltest
+      run: pip install oteltest
+
     - name: Run oteltests
       run: oteltest tests
