@@ -9,7 +9,7 @@ NUM_SPANS = 12
 
 def trace_loop(loops):
     tracer = trace.get_tracer("my-tracer")
-    for i in range(loops):
+    for _ in range(loops):
         with tracer.start_as_current_span("my-span"):
             time.sleep(0.5)
 
@@ -34,7 +34,7 @@ class MyOtelTest:
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:  # noqa: ARG002
         span_count = num_spans(telemetry)
         assert span_count == NUM_SPANS
 
