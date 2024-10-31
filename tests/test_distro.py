@@ -11,9 +11,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from importlib.metadata import entry_points
 
-from splunk_otel.distro import SplunkDistro, is_system_metrics_instrumentor
+from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
 
 
