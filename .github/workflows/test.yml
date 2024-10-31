@@ -2,9 +2,9 @@ name: test
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, v2]
   pull_request:
-    branches: [main, master]
+    branches: [main, v2]
 
 concurrency:
   group: test-${{ github.head_ref }}
@@ -38,5 +38,11 @@ jobs:
     - name: Run static analysis
       run: hatch fmt --check
 
-    - name: Run tests
+    - name: Run unit tests with coverage
       run: hatch run cov
+
+    - name: Install oteltest
+      run: pip install oteltest
+
+    - name: Run oteltests
+      run: oteltest tests/ott*

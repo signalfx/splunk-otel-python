@@ -12,17 +12,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from splunk_otel.distro import SplunkDistro
-from splunk_otel.env import Env
+from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 
 
-def test_distro_env():
-    env_store = {}
-    # SplunkDistro's parent prevents passing in a constructor arg...
-    sd = SplunkDistro()
-    # ...so instead we overwrite the field right after construction
-    sd.env = Env(env_store)
-    sd.configure()
-    # spot check default env vars
-    assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
-    assert len(env_store) == 11
+class SplunkConfigurator(_OTelSDKConfigurator):
+    pass

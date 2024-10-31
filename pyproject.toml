@@ -40,8 +40,8 @@ Documentation = "https://github.com/signalfx/splunk-otel-python#readme"
 Issues = "https://github.com/signalfx/splunk-otel-python/issues"
 Source = "https://github.com/signalfx/splunk-otel-python"
 
-#[project.entry-points.opentelemetry_configurator]
-#configurator = "splunk_otel.configurator:SplunkConfigurator"
+[project.entry-points.opentelemetry_configurator]
+configurator = "splunk_otel.configurator:SplunkConfigurator"
 
 [project.entry-points.opentelemetry_distro]
 splunk_distro = "splunk_otel.distro:SplunkDistro"
@@ -54,6 +54,7 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "ruff",
+  "oteltest",
 ]
 
 [tool.hatch.envs.default.scripts]
