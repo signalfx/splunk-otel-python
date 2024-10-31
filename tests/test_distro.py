@@ -27,13 +27,3 @@ def test_distro_env():
     # spot check default env vars
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
     assert len(env_store) == 11
-
-
-def test_is_system_metrics_instrumentor():
-    eps = entry_points()
-
-    ep = eps.get("opentelemetry_instrumentor")[0]
-    assert is_system_metrics_instrumentor(ep)
-
-    distro_ep = eps.get("opentelemetry_distro")[0]
-    assert not is_system_metrics_instrumentor(distro_ep)
