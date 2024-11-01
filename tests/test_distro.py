@@ -26,3 +26,11 @@ def test_distro_env():
     # spot check default env vars
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
     assert len(env_store) == 11
+
+
+def test_access_token():
+    env_store = {"SPLUNK_ACCESS_TOKEN": "abc123"}
+    sd = SplunkDistro()
+    sd.env = Env(env_store)
+    sd.configure()
+    assert env_store["OTEL_EXPORTER_OTLP_HEADERS"] == "x-sf-token=abc123"

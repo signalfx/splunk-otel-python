@@ -16,8 +16,11 @@ import logging
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
+from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS
 
-from splunk_otel.env import DEFAULTS, OTEL_METRICS_ENABLED, Env
+from splunk_otel.env import DEFAULTS, OTEL_METRICS_ENABLED, SPLUNK_ACCESS_TOKEN, Env
+
+X_SF_TOKEN = "x-sf-token"  # noqa S105
 
 
 class SplunkDistro(BaseDistro):
@@ -32,10 +35,16 @@ class SplunkDistro(BaseDistro):
 
     def _configure(self, **kwargs):  # noqa: ARG002
         self.set_env_defaults()
+        self.configure_headers()
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
             self.env.setdefault(key, value)
+
+    def configure_headers(self):
+        tok = self.env.getval(SPLUNK_ACCESS_TOKEN)
+        if tok:
+            self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{X_SF_TOKEN}={tok}")
 
     def load_instrumentor(self, entry_point, **kwargs):
         #  This method is called in a loop by opentelemetry-instrumentation
