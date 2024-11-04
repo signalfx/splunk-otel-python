@@ -42,7 +42,7 @@ class SplunkDistro(BaseDistro):
             self.env.setdefault(key, value)
 
     def configure_headers(self):
-        tok = self.env.getval(SPLUNK_ACCESS_TOKEN)
+        tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
         if tok:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{X_SF_TOKEN}={tok}")
 

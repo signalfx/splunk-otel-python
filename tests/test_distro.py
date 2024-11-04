@@ -18,19 +18,36 @@ from splunk_otel.env import Env
 
 def test_distro_env():
     env_store = {}
-    # SplunkDistro's parent prevents passing in a constructor arg...
-    sd = SplunkDistro()
-    # ...so instead we overwrite the field right after construction
-    sd.env = Env(env_store)
-    sd.configure()
-    # spot check default env vars
+    configure_distro(env_store)
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
     assert len(env_store) == 11
 
 
 def test_access_token():
     env_store = {"SPLUNK_ACCESS_TOKEN": "abc123"}
+    configure_distro(env_store)
+    assert env_store["OTEL_EXPORTER_OTLP_HEADERS"] == "x-sf-token=abc123"
+
+
+def test_access_token_none():
+    env_store = {}
+    configure_distro(env_store)
+    assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
+
+
+def test_access_token_empty():
+    env_store = {"SPLUNK_ACCESS_TOKEN": ""}
+    configure_distro(env_store)
+    assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
+
+
+def test_access_token_whitespace():
+    env_store = {"SPLUNK_ACCESS_TOKEN": " "}
+    configure_distro(env_store)
+    assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
+
+
+def configure_distro(env_store):
     sd = SplunkDistro()
     sd.env = Env(env_store)
     sd.configure()
-    assert env_store["OTEL_EXPORTER_OTLP_HEADERS"] == "x-sf-token=abc123"
