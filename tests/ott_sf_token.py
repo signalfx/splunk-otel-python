@@ -1,19 +1,18 @@
-from oteltest.telemetry import num_spans
+from oteltest import Telemetry
 from ott_lib import project_path, trace_loop
 
-NUM_SPANS = 12
-
 if __name__ == "__main__":
-    trace_loop(NUM_SPANS)
+    trace_loop(12)
 
 
-class NumSpansOtelTest:
+class AccessTokenOtelTest:
     def requirements(self):
         return project_path(), "oteltest"
 
     def environment_variables(self):
         return {
             "OTEL_SERVICE_NAME": "my-svc",
+            "SPLUNK_ACCESS_TOKEN": "s3cr3t",
         }
 
     def wrapper_command(self):
@@ -22,8 +21,9 @@ class NumSpansOtelTest:
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:  # noqa: ARG002
-        assert num_spans(telemetry) == NUM_SPANS
+    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:  # noqa: ARG002
+        for request in telemetry.get_trace_requests():
+            assert request.headers.get("x-sf-token") == "s3cr3t"
 
     def is_http(self):
         return False
