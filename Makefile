@@ -12,7 +12,7 @@ install-tox:
 
 .PHONY: install-setuptools
 install-setuptools:
-	pip install --upgrade pip setuptools wheel
+	python -m pip install --upgrade pip setuptools wheel
 
 .PHONY: install-tools
 install-tools: install-setuptools install-poetry install-tox
@@ -56,7 +56,7 @@ black-check:
 pylint:
 	poetry run pylint ./splunk_otel ./tests/ ./scripts/
 
-.PHONY: flake8 
+.PHONY: flake8
 flake8:
 	poetry run flake8 ./splunk_otel ./tests/ ./scripts/
 
