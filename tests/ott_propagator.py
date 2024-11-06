@@ -1,7 +1,6 @@
 from typing import Mapping, Optional, Sequence
 
 from oteltest import OtelTest, Telemetry
-
 from ott_lib import project_path
 
 PORT = 8888
@@ -11,6 +10,7 @@ HOST = "127.0.0.1"
 
 def main():
     from flask import Flask
+
     app = Flask(__name__)
 
     @app.route("/")
@@ -20,12 +20,11 @@ def main():
     app.run(host=HOST, port=PORT)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 
 
 class OTT(OtelTest):
-
     def environment_variables(self) -> Mapping[str, str]:
         return {
             "OTEL_SERVICE_NAME": "my-svc",
@@ -43,7 +42,7 @@ class OTT(OtelTest):
     def wrapper_command(self) -> str:
         return "opentelemetry-instrument"
 
-    def on_start(self) -> Optional[float]:
+    def on_start(self) -> Optional[float]:  # noqa: FA100
         import http.client
         import time
 
@@ -55,7 +54,6 @@ class OTT(OtelTest):
         response = conn.getresponse()
         assert_server_timing_headers_found(response)
 
-        print("response:", response.read().decode())
         conn.close()
 
         return 6
@@ -72,9 +70,10 @@ def assert_server_timing_headers_found(response):
     # Access-Control-Expose-Headers: Server-Timing
     server_timing_header_found = False
     access_control_header_found = False
-    for header, value in response.getheaders():
+    for header, _ in response.getheaders():
         if header == "Server-Timing":
             server_timing_header_found = True
         elif header == "Access-Control-Expose-Headers":
             access_control_header_found = True
-    assert server_timing_header_found and access_control_header_found
+    assert server_timing_header_found
+    assert access_control_header_found

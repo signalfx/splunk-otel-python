@@ -19,8 +19,13 @@ from opentelemetry.instrumentation.propagators import set_global_response_propag
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS
 
-from splunk_otel.env import DEFAULTS, OTEL_METRICS_ENABLED, SPLUNK_ACCESS_TOKEN, Env, \
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED
+from splunk_otel.env import (
+    DEFAULTS,
+    OTEL_METRICS_ENABLED,
+    SPLUNK_ACCESS_TOKEN,
+    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
+    Env,
+)
 from splunk_otel.propagator import ServerTimingResponsePropagator
 
 X_SF_TOKEN = "x-sf-token"  # noqa S105

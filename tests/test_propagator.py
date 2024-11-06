@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from opentelemetry import trace
-
 from splunk_otel.propagator import ServerTimingResponsePropagator
 
 

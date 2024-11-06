@@ -16,8 +16,11 @@ import typing
 
 from opentelemetry import trace
 from opentelemetry.context.context import Context
-from opentelemetry.instrumentation.propagators import (_HTTP_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS, default_setter,
-                                                       ResponsePropagator)
+from opentelemetry.instrumentation.propagators import (
+    _HTTP_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS,
+    ResponsePropagator,
+    default_setter,
+)
 from opentelemetry.propagators import textmap
 from opentelemetry.trace import format_span_id, format_trace_id
 
@@ -26,7 +29,7 @@ class ServerTimingResponsePropagator(ResponsePropagator):
     def inject(
         self,
         carrier: textmap.CarrierT,
-        context: typing.Optional[Context] = None,
+        context: typing.Optional[Context] = None,  # noqa: FA100
         setter: textmap.Setter = default_setter,  # type: ignore
     ) -> None:
         """
