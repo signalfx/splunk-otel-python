@@ -24,7 +24,7 @@ if __name__ == "__main__":
     main()
 
 
-class OTT(OtelTest):
+class ServerTimingOtelTest(OtelTest):
     def environment_variables(self) -> Mapping[str, str]:
         return {
             "OTEL_SERVICE_NAME": "my-svc",
