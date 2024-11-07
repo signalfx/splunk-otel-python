@@ -45,14 +45,13 @@ class ServerTimingResponsePropagator(ResponsePropagator):
             return
 
         header_name = "Server-Timing"
-        flags = span_context.trace_flags
         trace_id = format_trace_id(span_context.trace_id)
         span_id = format_span_id(span_context.span_id)
 
         setter.set(
             carrier,
             header_name,
-            f'traceparent;desc="00-{trace_id}-{span_id}-{flags:02x}"',
+            f'traceparent;desc="00-{trace_id}-{span_id}-01"',
         )
         setter.set(
             carrier,

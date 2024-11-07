@@ -33,22 +33,3 @@ def test_inject():
     prop.inject(carrier, ctx)
     assert carrier["Access-Control-Expose-Headers"] == "Server-Timing"
     assert carrier["Server-Timing"] == 'traceparent;desc="00-00000000000000000000000000000001-0000000000000002-01"'
-
-
-def test_inject_not_sampled():
-    span = trace.NonRecordingSpan(
-        trace.SpanContext(
-            trace_id=1,
-            span_id=2,
-            is_remote=False,
-            trace_flags=trace.TraceFlags(0),
-            trace_state=trace.DEFAULT_TRACE_STATE,
-        ),
-    )
-
-    ctx = trace.set_span_in_context(span)
-    prop = ServerTimingResponsePropagator()
-    carrier = {}
-    prop.inject(carrier, ctx)
-    assert carrier["Access-Control-Expose-Headers"] == "Server-Timing"
-    assert carrier["Server-Timing"] == 'traceparent;desc="00-00000000000000000000000000000001-0000000000000002-00"'
