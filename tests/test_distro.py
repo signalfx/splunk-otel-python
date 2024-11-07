@@ -65,8 +65,7 @@ def test_server_timing_resp_prop_false():
     set_global_response_propagator(None)
     env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "false"}
     configure_distro(env_store)
-    propagator = get_global_response_propagator()
-    assert propagator is None
+    assert get_global_response_propagator() is None
 
 
 def configure_distro(env_store):
