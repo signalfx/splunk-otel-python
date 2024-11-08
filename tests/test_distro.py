@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+from opentelemetry.instrumentation.propagators import get_global_response_propagator, set_global_response_propagator
 from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
 
@@ -45,6 +45,27 @@ def test_access_token_whitespace():
     env_store = {"SPLUNK_ACCESS_TOKEN": " "}
     configure_distro(env_store)
     assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
+
+
+def test_server_timing_resp_prop_default():
+    set_global_response_propagator(None)
+    env_store = {}
+    configure_distro(env_store)
+    assert get_global_response_propagator()
+
+
+def test_server_timing_resp_prop_true():
+    set_global_response_propagator(None)
+    env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "true"}
+    configure_distro(env_store)
+    assert get_global_response_propagator()
+
+
+def test_server_timing_resp_prop_false():
+    set_global_response_propagator(None)
+    env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "false"}
+    configure_distro(env_store)
+    assert get_global_response_propagator() is None
 
 
 def configure_distro(env_store):

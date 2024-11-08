@@ -15,10 +15,18 @@
 import logging
 
 from opentelemetry.instrumentation.distro import BaseDistro
+from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS
 
-from splunk_otel.env import DEFAULTS, OTEL_METRICS_ENABLED, SPLUNK_ACCESS_TOKEN, Env
+from splunk_otel.env import (
+    DEFAULTS,
+    OTEL_METRICS_ENABLED,
+    SPLUNK_ACCESS_TOKEN,
+    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
+    Env,
+)
+from splunk_otel.propagator import ServerTimingResponsePropagator
 
 X_SF_TOKEN = "x-sf-token"  # noqa S105
 
@@ -36,6 +44,7 @@ class SplunkDistro(BaseDistro):
     def _configure(self, **kwargs):  # noqa: ARG002
         self.set_env_defaults()
         self.configure_headers()
+        self.set_server_timing_propagator()
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
@@ -52,6 +61,10 @@ class SplunkDistro(BaseDistro):
             self.logger.info("%s not set -- skipping SystemMetricsInstrumentor", OTEL_METRICS_ENABLED)
         else:
             super().load_instrumentor(entry_point, **kwargs)
+
+    def set_server_timing_propagator(self):
+        if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
+            set_global_response_propagator(ServerTimingResponsePropagator())
 
 
 def is_system_metrics_instrumentor(entry_point):
