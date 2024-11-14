@@ -12,8 +12,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from opentelemetry.sdk._configuration import _OTelSDKConfigurator
+from opentelemetry.sdk._configuration import _initialize_components, _OTelSDKConfigurator
+
+from splunk_otel.profile import start_profiling
 
 
 class SplunkConfigurator(_OTelSDKConfigurator):
-    pass
+
+    def _configure(self, **kwargs):
+        super()._configure(**kwargs)
+        start_profiling()

@@ -1,6 +1,7 @@
 import json
 import random
 import time
+from os.path import abspath, dirname
 
 import pytest
 from google.protobuf.json_format import MessageToDict
@@ -32,7 +33,8 @@ def pb_profile_fixture():
 
 
 def load_json(fname):
-    with open(f"fixtures/{fname}", "r") as f:
+    parent_dir = dirname(abspath(__file__))
+    with open(f"{parent_dir}/fixtures/{fname}", "r") as f:
         return json.load(f)
 
 

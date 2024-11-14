@@ -20,7 +20,7 @@ def test_distro_env():
     env_store = {}
     configure_distro(env_store)
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
-    assert len(env_store) == 11
+    assert len(env_store) == 12
 
 
 def test_access_token():

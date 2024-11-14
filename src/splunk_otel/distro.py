@@ -19,16 +19,9 @@ from opentelemetry.instrumentation.propagators import set_global_response_propag
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS
 
-from splunk_otel.env import (
-    DEFAULTS,
-    OTEL_METRICS_ENABLED,
-    SPLUNK_ACCESS_TOKEN,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
-    Env,
-)
+from splunk_otel.env import (DEFAULTS, Env, OTEL_METRICS_ENABLED, SPLUNK_ACCESS_TOKEN,
+                             SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, X_SF_TOKEN)
 from splunk_otel.propagator import ServerTimingResponsePropagator
-
-X_SF_TOKEN = "x-sf-token"  # noqa S105
 
 
 class SplunkDistro(BaseDistro):
@@ -43,12 +36,18 @@ class SplunkDistro(BaseDistro):
 
     def _configure(self, **kwargs):  # noqa: ARG002
         self.set_env_defaults()
+        self.set_profiling_env()
         self.configure_headers()
         self.set_server_timing_propagator()
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
             self.env.setdefault(key, value)
+
+    def set_profiling_env(self):
+        if self.env.is_true("SPLUNK_PROFILER_ENABLED"):
+            self.env.setdefault("OTEL_LOGS_ENABLED", "true")
+            self.env.setdefault("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true")
 
     def configure_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
