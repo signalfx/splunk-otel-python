@@ -47,16 +47,11 @@ def test_basic_proto_serialization():
 def test_stacktraces_to_cpu_profile(stacktraces_fixture, pb_profile_fixture, thread_states_fixture):
     time_seconds = 1726760000  # corresponds to the timestamp in the fixture
     interval_millis = 100
-    profile = stacktraces_to_cpu_profile(
-        stacktraces_fixture,
-        thread_states_fixture,
-        interval_millis,
-        time_seconds
-    )
+    profile = stacktraces_to_cpu_profile(stacktraces_fixture, thread_states_fixture, interval_millis, time_seconds)
     assert pb_profile_fixture == MessageToDict(profile)
 
 
-def test_profile_scraper(stacktraces_fixture, pb_profile_fixture):
+def test_profile_scraper(stacktraces_fixture):
     time_seconds = 1726760000
     logger = FakeLogger()
     ps = ProfilingScraper(
@@ -95,10 +90,9 @@ def do_work(time_ms):
 
 
 class FakeLogger(Logger):
-
     def __init__(self):
         super().__init__("fake-logger")
         self.log_records = []
 
-    def emit(self, record: "LogRecord") -> None:
+    def emit(self, record) -> None:
         self.log_records.append(record)

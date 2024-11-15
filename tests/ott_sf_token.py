@@ -21,7 +21,7 @@ class AccessTokenOtelTest:
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:  # noqa: ARG002
+    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         for request in telemetry.get_trace_requests():
             assert request.headers.get("x-sf-token") == "s3cr3t"
 

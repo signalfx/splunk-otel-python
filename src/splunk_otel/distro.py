@@ -40,7 +40,7 @@ class SplunkDistro(BaseDistro):
         self.env = Env()
         self.logger = logging.getLogger(__name__)
 
-    def _configure(self, **kwargs):  # noqa: ARG002
+    def _configure(self, **kwargs):
         self.set_env_defaults()
         self.set_profiling_env()
         self.configure_headers()

@@ -22,7 +22,7 @@ class NumSpansOtelTest:
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:  # noqa: ARG002
+    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
         assert num_spans(telemetry) == NUM_SPANS
 
     def is_http(self):

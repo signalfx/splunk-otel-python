@@ -19,7 +19,6 @@ from splunk_otel.profile import start_profiling
 
 
 class SplunkConfigurator(_OTelSDKConfigurator):
-
     def _configure(self, **kwargs):
         super()._configure(**kwargs)
         if Env().is_true("SPLUNK_PROFILER_ENABLED"):

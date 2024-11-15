@@ -30,25 +30,18 @@ def start_profiling():
     logger = get_logger("splunk-profiler")
 
     period_millis = 100
-    scraper = ProfilingScraper(
-        mk_resource(),
-        tcm.get_thread_states(),
-        period_millis,
-        logger
-    )
+    scraper = ProfilingScraper(mk_resource(), tcm.get_thread_states(), period_millis, logger)
 
-    global _profiling_timer
+    global _profiling_timer  # noqa PLW0603
     _profiling_timer = PeriodicTimer(period_millis, scraper.tick)
     _profiling_timer.start()
 
 
 def stop_profiling():
-    global _profiling_timer
     _profiling_timer.stop()
 
 
 class ThreadContextMapping:
-
     def __init__(self):
         self.thread_states = {}
 
@@ -56,12 +49,8 @@ class ThreadContextMapping:
         return self.thread_states
 
     def wrap_context_methods(self):
-        wrapt.wrap_function_wrapper(
-            opentelemetry.context, "attach", self.wrap_context_attach()
-        )
-        wrapt.wrap_function_wrapper(
-            opentelemetry.context, "detach", self.wrap_context_detach()
-        )
+        wrapt.wrap_function_wrapper(opentelemetry.context, "attach", self.wrap_context_attach())
+        wrapt.wrap_function_wrapper(opentelemetry.context, "detach", self.wrap_context_detach())
 
     def wrap_context_attach(self):
         def wrapper(wrapped, _instance, args, kwargs):
@@ -111,20 +100,21 @@ class ThreadContextMapping:
 
 def collect_stacktraces():
     out = []
-    frames = sys._current_frames()
+    frames = sys._current_frames()  # noqa SLF001
 
     for thread_id, frame in frames.items():
         stack_summary = extract_stack_summary(frame)
         frames = [(sf.filename, sf.name, sf.lineno) for sf in stack_summary]
-        out.append({
-            "frames": frames,
-            "tid": thread_id,
-        })
+        out.append(
+            {
+                "frames": frames,
+                "tid": thread_id,
+            }
+        )
     return out
 
 
 class ProfilingScraper:
-
     def __init__(
         self,
         resource,
@@ -152,12 +142,7 @@ class ProfilingScraper:
 
         time_seconds = self.time()
 
-        pb_profile = stacktraces_to_cpu_profile(
-            stacktraces,
-            self.thread_states,
-            self.period_millis,
-            time_seconds
-        )
+        pb_profile = stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.period_millis, time_seconds)
         pb_profile_str = pb_profile_to_str(pb_profile)
 
         return LogRecord(
@@ -178,7 +163,6 @@ class ProfilingScraper:
 
 
 class PeriodicTimer:
-
     def __init__(self, period_millis, target):
         self.period_seconds = period_millis / 1e3
         self.target = target
@@ -200,10 +184,6 @@ class PeriodicTimer:
     def stop(self):
         self.cancel.set()
         self.thread.join()
-
-
-def emit_log_record(log_record):
-    print(f"emitting {log_record}")
 
 
 def mk_resource():
@@ -338,8 +318,7 @@ def pb_profile_to_str(pb_profile) -> str:
     serialized = pb_profile.SerializeToString()
     compressed = gzip.compress(serialized)
     b64encoded = base64.b64encode(compressed)
-    stringified = b64encoded.decode()
-    return stringified
+    return b64encoded.decode()
 
 
 def pb_profile_from_str(stringified: str) -> profile_pb2.Profile:
