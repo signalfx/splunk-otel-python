@@ -9,7 +9,7 @@ from traceback import StackSummary
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import get_logger, Logger, set_logger_provider, SeverityNumber
+from opentelemetry._logs import Logger, SeverityNumber, get_logger, set_logger_provider
 from opentelemetry.context import Context
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggerProvider, LogRecord
@@ -17,6 +17,7 @@ from opentelemetry.sdk._logs._internal.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
+
 from splunk_otel import profile_pb2
 
 _profiling_timer = None

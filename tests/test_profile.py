@@ -7,10 +7,8 @@ import pytest
 from google.protobuf.json_format import MessageToDict
 from opentelemetry._logs import Logger
 from opentelemetry.sdk.resources import Resource
-
 from splunk_otel import profile_pb2
-from splunk_otel.profile import pb_profile_from_str, pb_profile_to_str, ProfilingScraper, \
-    stacktraces_to_cpu_profile
+from splunk_otel.profile import ProfilingScraper, pb_profile_from_str, pb_profile_to_str, stacktraces_to_cpu_profile
 
 
 @pytest.fixture
@@ -34,7 +32,7 @@ def pb_profile_fixture():
 
 def load_json(fname):
     parent_dir = dirname(abspath(__file__))
-    with open(f"{parent_dir}/fixtures/{fname}", "r") as f:
+    with open(f"{parent_dir}/fixtures/{fname}") as f:
         return json.load(f)
 
 
@@ -85,7 +83,7 @@ def do_work(time_ms):
     total = 0.0
     while now < target:
         value = random.random()
-        for _ in range(0, 10000):
+        for _ in range(10000):
             value = value + random.random()
 
         total = total + value
