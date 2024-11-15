@@ -1,5 +1,6 @@
 import base64
 import gzip
+import logging
 import sys
 import threading
 import time
@@ -9,9 +10,10 @@ from traceback import StackSummary
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import Logger, SeverityNumber, get_logger, set_logger_provider
+from opentelemetry._logs import get_logger, Logger, set_logger_provider, SeverityNumber
 from opentelemetry.context import Context
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import LoggerProvider, LogRecord
 from opentelemetry.sdk._logs._internal.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
@@ -19,18 +21,29 @@ from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
+from splunk_otel.env import Env
+
+_SERVICE_NAME_ATTR = "service.name"
+_SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
+_DEFAULT_OTEL_SERVICE_NAME = "unknown_service"
+_NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
+set your service name using the OTEL_SERVICE_NAME environment variable.
+E.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
+_DEFAULT_SERVICE_NAME = "unnamed-python-service"
 
 _profiling_timer = None
+
+_pylogger = logging.getLogger(__name__)
 
 
 def start_profiling():
     tcm = ThreadContextMapping()
     tcm.wrap_context_methods()
 
-    logger = get_logger("splunk-profiler")
-
     period_millis = 100
-    scraper = ProfilingScraper(mk_resource(), tcm.get_thread_states(), period_millis, logger)
+    resource = mk_resource(Env().getval("OTEL_SERVICE_NAME"))
+    logger = get_logger("splunk-profiler")
+    scraper = ProfilingScraper(resource, tcm.get_thread_states(), period_millis, logger)
 
     global _profiling_timer  # noqa PLW0603
     _profiling_timer = PeriodicTimer(period_millis, scraper.tick)
@@ -166,7 +179,6 @@ class PeriodicTimer:
     def __init__(self, period_millis, target):
         self.period_seconds = period_millis / 1e3
         self.target = target
-        self.cancel = threading.Event()
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.sleep = time.sleep
 
@@ -182,12 +194,19 @@ class PeriodicTimer:
             time.sleep(sleep_seconds)
 
     def stop(self):
-        self.cancel.set()
         self.thread.join()
 
 
-def mk_resource():
-    return Resource({})
+def mk_resource(service_name) -> Resource:
+    if service_name:
+        resolved_name = service_name
+    else:
+        _pylogger.warning(_NO_SERVICE_NAME_WARNING)
+        resolved_name = _DEFAULT_SERVICE_NAME
+    return Resource.create({
+        _SPLUNK_DISTRO_VERSION_ATTR: version,
+        _SERVICE_NAME_ATTR: resolved_name,
+    })
 
 
 class StringTable:
