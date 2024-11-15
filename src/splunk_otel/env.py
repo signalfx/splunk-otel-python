@@ -72,5 +72,3 @@ class Env:
 
 def is_true_str(s: str) -> bool:
     return s.strip().lower() == "true"
-
-

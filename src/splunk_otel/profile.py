@@ -10,7 +10,7 @@ from traceback import StackSummary
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import get_logger, Logger, set_logger_provider, SeverityNumber
+from opentelemetry._logs import Logger, SeverityNumber, get_logger, set_logger_provider
 from opentelemetry.context import Context
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.version import __version__ as version
@@ -203,10 +203,12 @@ def mk_resource(service_name) -> Resource:
     else:
         _pylogger.warning(_NO_SERVICE_NAME_WARNING)
         resolved_name = _DEFAULT_SERVICE_NAME
-    return Resource.create({
-        _SPLUNK_DISTRO_VERSION_ATTR: version,
-        _SERVICE_NAME_ATTR: resolved_name,
-    })
+    return Resource.create(
+        {
+            _SPLUNK_DISTRO_VERSION_ATTR: version,
+            _SERVICE_NAME_ATTR: resolved_name,
+        }
+    )
 
 
 class StringTable:
