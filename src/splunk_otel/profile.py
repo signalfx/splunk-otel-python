@@ -10,7 +10,7 @@ from traceback import StackSummary
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import get_logger, Logger, SeverityNumber
+from opentelemetry._logs import Logger, SeverityNumber, get_logger
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import LogRecord
@@ -195,7 +195,6 @@ def _pb_profile_to_str(pb_profile) -> str:
 
 
 class _PeriodicTimer:
-
     def __init__(self, period_millis, target):
         self.period_seconds = period_millis / 1e3
         self.target = target

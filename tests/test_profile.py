@@ -9,7 +9,6 @@ import pytest
 from google.protobuf.json_format import MessageToDict
 from opentelemetry._logs import Logger
 from opentelemetry.sdk.resources import Resource
-
 from splunk_otel import profile_pb2
 from splunk_otel.profile import _pb_profile_to_str, _ProfileScraper, _stacktraces_to_cpu_profile
 
@@ -101,7 +100,6 @@ def _do_work(time_ms):
 
 
 class _FakeLogger(Logger):
-
     def __init__(self):
         super().__init__("fake-logger")
         self.log_records = []
