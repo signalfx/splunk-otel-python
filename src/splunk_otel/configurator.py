@@ -14,7 +14,7 @@
 
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 
-from splunk_otel.env import Env, SPLUNK_PROFILER_ENABLED
+from splunk_otel.env import SPLUNK_PROFILER_ENABLED, Env
 from splunk_otel.profile import start_profiling
 
 
