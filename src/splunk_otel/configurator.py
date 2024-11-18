@@ -14,12 +14,12 @@
 
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 
-from splunk_otel.env import Env
+from splunk_otel.env import Env, SPLUNK_PROFILER_ENABLED
 from splunk_otel.profile import start_profiling
 
 
 class SplunkConfigurator(_OTelSDKConfigurator):
     def _configure(self, **kwargs):
         super()._configure(**kwargs)
-        if Env().is_true("SPLUNK_PROFILER_ENABLED"):
+        if Env().is_true(SPLUNK_PROFILER_ENABLED):
             start_profiling()

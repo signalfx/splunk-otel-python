@@ -21,9 +21,9 @@ from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS
 
 from splunk_otel.env import (
     DEFAULTS,
-    OTEL_METRICS_ENABLED,
-    SPLUNK_ACCESS_TOKEN,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
+    OTEL_LOGS_ENABLED, OTEL_METRICS_ENABLED,
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, SPLUNK_ACCESS_TOKEN,
+    SPLUNK_PROFILER_ENABLED, SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     X_SF_TOKEN,
     Env,
 )
@@ -51,9 +51,9 @@ class SplunkDistro(BaseDistro):
             self.env.setdefault(key, value)
 
     def set_profiling_env(self):
-        if self.env.is_true("SPLUNK_PROFILER_ENABLED"):
-            self.env.setdefault("OTEL_LOGS_ENABLED", "true")
-            self.env.setdefault("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true")
+        if self.env.is_true(SPLUNK_PROFILER_ENABLED):
+            self.env.setdefault(OTEL_LOGS_ENABLED, "true")
+            self.env.setdefault(OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true")
 
     def configure_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()

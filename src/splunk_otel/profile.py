@@ -22,12 +22,10 @@ from splunk_otel import profile_pb2
 from splunk_otel.env import Env
 
 _SERVICE_NAME_ATTR = "service.name"
-
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
-_DEFAULT_OTEL_SERVICE_NAME = "unknown_service"
-_NO_SERVICE_NAME_WARNING = """service.name attribute is not set, your service is unnamed and will be difficult to identify.
-set your service name using the OTEL_SERVICE_NAME environment variable.
-E.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
+_NO_SERVICE_NAME_WARNING = """The service.name attribute is not set, which may make your service difficult to identify.
+Set your service name using the OTEL_SERVICE_NAME environment variable.
+e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
 _DEFAULT_SERVICE_NAME = "unnamed-python-service"
 
 _profile_timer = None
