@@ -13,9 +13,9 @@ Summary of changes between Splunk OTel Python major versions 1 and 2.
 
 ### Version 2
 
-| Function name  | Operation                             | Arguments |
-|----------------|---------------------------------------|-----------|
-| `start_otel()` | Configures tracing, metrics, and logs | None      |
+| Function name | Operation                              | Arguments |
+|---------------|----------------------------------------|-----------|
+| `init_otel()` | Initializes tracing, metrics, and logs | None      |
 
 ## Environment Variables
 
