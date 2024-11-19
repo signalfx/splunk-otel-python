@@ -18,6 +18,7 @@ DEFAULTS = {
     "OTEL_PYTHON_LOG_CORRELATION": "true",  # FIXME: revisit
     "OTEL_TRACES_EXPORTER": "otlp",
     "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
     "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",  # FIXME: revisit
     "OTEL_ATTRIBUTE_COUNT_LIMIT": "",
     "OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT": "",
@@ -28,11 +29,17 @@ DEFAULTS = {
     "OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT": "12000",
 }
 
+OTEL_TRACE_ENABLED = "OTEL_TRACE_ENABLED"
+OTEL_METRICS_ENABLED = "OTEL_METRICS_ENABLED"
+OTEL_LOGS_ENABLED = "OTEL_LOGS_ENABLED"
+OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+
 SPLUNK_OTEL_SYSTEM_METRICS_ENABLED = "SPLUNK_OTEL_SYSTEM_METRICS_ENABLED"
 SPLUNK_ACCESS_TOKEN = "SPLUNK_ACCESS_TOKEN"  # noqa: S105
 SPLUNK_TRACE_RESPONSE_HEADER_ENABLED = "SPLUNK_TRACE_RESPONSE_HEADER_ENABLED"
+SPLUNK_PROFILER_ENABLED = "SPLUNK_PROFILER_ENABLED"
 
-OTEL_METRICS_ENABLED = "OTEL_METRICS_ENABLED"
+X_SF_TOKEN = "x-sf-token"  # noqa S105
 
 
 class Env:
@@ -45,7 +52,7 @@ class Env:
         self.store = os.environ if store is None else store
 
     def is_true(self, key, default=""):
-        return is_true_str(self.getval(key, default).strip())
+        return is_true_str(self.getval(key, default))
 
     def list_append(self, key, value):
         curr = self.getval(key)

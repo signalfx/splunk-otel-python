@@ -42,7 +42,7 @@ class OTT(OtelTest):
     def wrapper_command(self) -> str:
         return "opentelemetry-instrument"
 
-    def on_start(self) -> Optional[float]:  # noqa: FA100
+    def on_start(self) -> Optional[float]:
         import http.client
         import time
 

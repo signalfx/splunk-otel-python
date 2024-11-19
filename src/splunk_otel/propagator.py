@@ -29,7 +29,7 @@ class ServerTimingResponsePropagator(ResponsePropagator):
     def inject(
         self,
         carrier: textmap.CarrierT,
-        context: typing.Optional[Context] = None,  # noqa: FA100
+        context: typing.Optional[Context] = None,
         setter: textmap.Setter = default_setter,  # type: ignore
     ) -> None:
         """

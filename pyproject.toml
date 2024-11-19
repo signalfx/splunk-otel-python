@@ -101,3 +101,7 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.ruff.lint]
+ignore = ["FA100", "ARG002"]
+exclude = ["src/splunk_otel/profile_pb2.py"]
