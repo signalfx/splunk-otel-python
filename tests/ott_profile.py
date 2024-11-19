@@ -1,6 +1,5 @@
 from oteltest import Telemetry
 from oteltest.telemetry import count_logs, has_log_attribute
-
 from ott_lib import project_path, trace_loop
 
 if __name__ == "__main__":
