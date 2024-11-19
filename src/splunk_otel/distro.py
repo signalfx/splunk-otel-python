@@ -54,7 +54,7 @@ class SplunkDistro(BaseDistro):
             self.env.setdefault(key, value)
 
     def set_profiling_env(self):
-        if self.env.is_true(SPLUNK_PROFILER_ENABLED):
+        if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
             self.env.setdefault(OTEL_LOGS_ENABLED, "true")
             self.env.setdefault(OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true")
 

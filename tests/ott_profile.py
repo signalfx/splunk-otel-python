@@ -1,5 +1,6 @@
 from oteltest import Telemetry
-from oteltest.telemetry import num_logs
+from oteltest.telemetry import count_logs, has_log_attribute
+
 from ott_lib import project_path, trace_loop
 
 if __name__ == "__main__":
@@ -22,7 +23,8 @@ class ProfileOtelTest:
         pass
 
     def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int):
-        assert num_logs(tel)
+        assert count_logs(tel)
+        assert has_log_attribute(tel, "profiling.data.format")
 
     def is_http(self):
         return False

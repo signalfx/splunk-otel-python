@@ -68,6 +68,27 @@ def test_server_timing_resp_prop_false():
     assert get_global_response_propagator() is None
 
 
+def test_profiling_enabled():
+    env_store = {"SPLUNK_PROFILER_ENABLED": "true"}
+    configure_distro(env_store)
+    assert env_store["OTEL_LOGS_ENABLED"] == "true"
+    assert env_store["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] == "true"
+
+
+def test_profiling_disabled():
+    env_store = {"SPLUNK_PROFILER_ENABLED": "false"}
+    configure_distro(env_store)
+    assert "OTEL_LOGS_ENABLED" not in env_store
+    assert "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED" not in env_store
+
+
+def test_profiling_notset():
+    env_store = {}
+    configure_distro(env_store)
+    assert "OTEL_LOGS_ENABLED" not in env_store
+    assert "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED" not in env_store
+
+
 def configure_distro(env_store):
     sd = SplunkDistro()
     sd.env = Env(env_store)
