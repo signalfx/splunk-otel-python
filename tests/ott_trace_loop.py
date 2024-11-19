@@ -1,4 +1,4 @@
-from oteltest.telemetry import num_spans
+from oteltest.telemetry import count_spans
 from ott_lib import project_path, trace_loop
 
 NUM_SPANS = 12
@@ -23,7 +23,7 @@ class NumSpansOtelTest:
         return None
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        assert num_spans(telemetry) == NUM_SPANS
+        assert count_spans(telemetry) == NUM_SPANS
 
     def is_http(self):
         return False
