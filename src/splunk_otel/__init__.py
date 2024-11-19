@@ -15,7 +15,7 @@ from splunk_otel.configurator import SplunkConfigurator
 from splunk_otel.distro import SplunkDistro
 
 
-def init_otel():
+def init_splunk_otel():
     """
     Initializes OpenTelemetry Python components (exporters, tracer providers, meter providers, resources etc.).
     Like auto instrumentation (`opentelemetry-instrument`) but without loading instrumentors.

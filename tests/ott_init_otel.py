@@ -6,9 +6,9 @@ from ott_lib import project_path, trace_loop
 NUM_SPANS = 12
 
 if __name__ == "__main__":
-    from splunk_otel import init_otel
+    from splunk_otel import init_splunk_otel
 
-    init_otel()
+    init_splunk_otel()
     trace_loop(NUM_SPANS)
 
 
