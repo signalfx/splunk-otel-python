@@ -11,4 +11,16 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+from splunk_otel.configurator import SplunkConfigurator
+from splunk_otel.distro import SplunkDistro
 
+
+def init_otel():
+    """
+    Initializes OpenTelemetry Python components (exporters, tracer providers, meter providers, resources etc.).
+    Like auto instrumentation (`opentelemetry-instrument`) but without loading instrumentors.
+    """
+    sd = SplunkDistro()
+    sd.configure()
+    sc = SplunkConfigurator()
+    sc.configure()
