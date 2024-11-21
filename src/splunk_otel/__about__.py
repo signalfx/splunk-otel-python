@@ -12,4 +12,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 __version__ = "2.0.0a1"
+"""
+explanation:
+2.0.0a1 (alpha release 1 of version 2.0.0)
+2.0.0b1 (beta release 1 of version 2.0.0)
+2.0.0rc1 (release candidate 1 of version 2.0.0)
+
+installation:
+pip install --pre splunk-opentelemetry
+pip install splunk-opentelemetry==2.0.0a1
+"""
