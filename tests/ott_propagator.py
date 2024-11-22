@@ -35,8 +35,7 @@ class OTT(OtelTest):
             project_path(),
             "oteltest",
             "flask",
-            "opentelemetry-instrumentation-flask==0.48b0",
-            "opentelemetry-exporter-otlp-proto-grpc==1.27.0",
+            "opentelemetry-instrumentation-flask",
         ]
 
     def wrapper_command(self) -> str:
