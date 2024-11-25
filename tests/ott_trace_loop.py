@@ -1,5 +1,4 @@
 from oteltest.telemetry import count_spans, extract_leaves, get_attribute
-
 from ott_lib import project_path, trace_loop
 
 NUM_SPANS = 12
