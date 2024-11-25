@@ -23,7 +23,7 @@ class NumSpansOtelTest:
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         assert count_spans(telemetry) == NUM_SPANS
 
         attributes = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
