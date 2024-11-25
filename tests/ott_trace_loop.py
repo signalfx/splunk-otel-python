@@ -1,5 +1,5 @@
 from oteltest import Telemetry
-from oteltest.telemetry import count_spans, extract_leaves, get_attribute, get_spans
+from oteltest.telemetry import count_spans, extract_leaves, get_attribute
 from ott_lib import project_path, trace_loop
 
 NUM_SPANS = 12
@@ -26,9 +26,7 @@ class NumSpansOtelTest:
     def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         assert count_spans(telemetry) == NUM_SPANS
 
-        attributes = extract_leaves(
-            telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes"
-        )
+        attributes = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
         assert get_attribute(attributes, "host.name")
 
     def is_http(self):
