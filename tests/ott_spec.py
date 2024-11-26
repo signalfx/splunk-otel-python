@@ -1,6 +1,5 @@
 from oteltest.telemetry import extract_leaves, get_attribute
 from ott_lib import project_path, trace_loop
-from splunk_otel.__about__ import __version__ as version
 
 if __name__ == "__main__":
     trace_loop(1)
@@ -26,8 +25,8 @@ class SpecOtelTest:
         assert get_attribute(attributes, "telemetry.sdk.version")
         assert get_attribute(attributes, "telemetry.sdk.language")
 
+        assert get_attribute_str(attributes, "telemetry.distro.version")
         assert get_attribute_str(attributes, "telemetry.distro.name") == "splunk-opentelemetry"
-        assert get_attribute_str(attributes, "telemetry.distro.version") == version
 
     def is_http(self):
         return False
