@@ -1,5 +1,4 @@
 from oteltest.telemetry import extract_leaves, get_attribute
-
 from ott_lib import project_path, trace_loop
 from splunk_otel.__about__ import __version__ as version
 

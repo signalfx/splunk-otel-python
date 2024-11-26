@@ -20,9 +20,17 @@ from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrument
 from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS, OTEL_RESOURCE_ATTRIBUTES
 
 from splunk_otel.__about__ import __version__ as version
-from splunk_otel.env import (DEFAULTS, Env, OTEL_LOGS_ENABLED, OTEL_METRICS_ENABLED,
-                             OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, SPLUNK_ACCESS_TOKEN,
-                             SPLUNK_PROFILER_ENABLED, SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, X_SF_TOKEN)
+from splunk_otel.env import (
+    DEFAULTS,
+    OTEL_LOGS_ENABLED,
+    OTEL_METRICS_ENABLED,
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED,
+    SPLUNK_ACCESS_TOKEN,
+    SPLUNK_PROFILER_ENABLED,
+    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
+    X_SF_TOKEN,
+    Env,
+)
 from splunk_otel.propagator import ServerTimingResponsePropagator
 
 DISTRO_NAME = "splunk-opentelemetry"
