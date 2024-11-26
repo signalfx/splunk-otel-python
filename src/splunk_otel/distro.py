@@ -71,16 +71,16 @@ class SplunkDistro(BaseDistro):
         if tok:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{X_SF_TOKEN}={tok}")
 
+    def set_server_timing_propagator(self):
+        if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
+            set_global_response_propagator(ServerTimingResponsePropagator())
+
     def load_instrumentor(self, entry_point, **kwargs):
         #  This method is called in a loop by opentelemetry-instrumentation
         if is_system_metrics_instrumentor(entry_point) and not self.env.is_true(OTEL_METRICS_ENABLED):
             self.logger.info("%s not set -- skipping SystemMetricsInstrumentor", OTEL_METRICS_ENABLED)
         else:
             super().load_instrumentor(entry_point, **kwargs)
-
-    def set_server_timing_propagator(self):
-        if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
-            set_global_response_propagator(ServerTimingResponsePropagator())
 
 
 def is_system_metrics_instrumentor(entry_point):
