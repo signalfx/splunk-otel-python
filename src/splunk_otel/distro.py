@@ -17,20 +17,15 @@ import logging
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
-from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS
+from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS, OTEL_RESOURCE_ATTRIBUTES
 
-from splunk_otel.env import (
-    DEFAULTS,
-    OTEL_LOGS_ENABLED,
-    OTEL_METRICS_ENABLED,
-    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED,
-    SPLUNK_ACCESS_TOKEN,
-    SPLUNK_PROFILER_ENABLED,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
-    X_SF_TOKEN,
-    Env,
-)
+from splunk_otel.__about__ import __version__ as version
+from splunk_otel.env import (DEFAULTS, Env, OTEL_LOGS_ENABLED, OTEL_METRICS_ENABLED,
+                             OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, SPLUNK_ACCESS_TOKEN,
+                             SPLUNK_PROFILER_ENABLED, SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, X_SF_TOKEN)
 from splunk_otel.propagator import ServerTimingResponsePropagator
+
+DISTRO_NAME = "splunk-opentelemetry"
 
 
 class SplunkDistro(BaseDistro):
@@ -46,6 +41,7 @@ class SplunkDistro(BaseDistro):
     def _configure(self, **kwargs):
         self.set_env_defaults()
         self.set_profiling_env()
+        self.set_resource_attributes()
         self.configure_headers()
         self.set_server_timing_propagator()
 
@@ -57,6 +53,10 @@ class SplunkDistro(BaseDistro):
         if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
             self.env.setdefault(OTEL_LOGS_ENABLED, "true")
             self.env.setdefault(OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true")
+
+    def set_resource_attributes(self):
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={DISTRO_NAME}")
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
     def configure_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
