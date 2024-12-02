@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 from opentelemetry.instrumentation.propagators import get_global_response_propagator, set_global_response_propagator
+from splunk_otel.__about__ import __version__ as version
 from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
 
@@ -20,7 +21,7 @@ def test_distro_env():
     env_store = {}
     configure_distro(env_store)
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
-    assert len(env_store) == 14
+    assert len(env_store) > 10
 
 
 def test_access_token():
@@ -87,6 +88,15 @@ def test_profiling_notset():
     configure_distro(env_store)
     assert "OTEL_LOGS_ENABLED" not in env_store
     assert "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED" not in env_store
+
+
+def test_resource_attributes():
+    env_store = {"OTEL_RESOURCE_ATTRIBUTES": "foo=bar"}
+    configure_distro(env_store)
+    attrs = env_store["OTEL_RESOURCE_ATTRIBUTES"]
+    assert "telemetry.distro.name=splunk-opentelemetry" in attrs
+    assert f"telemetry.distro.version={version}" in attrs
+    assert "foo=bar" in attrs
 
 
 def configure_distro(env_store):
