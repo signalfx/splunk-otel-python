@@ -1,5 +1,4 @@
 from oteltest.telemetry import extract_leaves, get_attribute, get_metric_names
-
 from ott_lib import project_path, trace_loop
 
 if __name__ == "__main__":
@@ -31,14 +30,7 @@ class SpecOtelTest:
 
 
 def assert_traces_to_spec(telemetry):
-    attrs = extract_leaves(
-        telemetry,
-        "trace_requests",
-        "pbreq",
-        "resource_spans",
-        "resource",
-        "attributes"
-    )
+    attrs = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
     assert get_attribute(attrs, "telemetry.sdk.name")
     assert get_attribute(attrs, "telemetry.sdk.version")
     assert get_attribute(attrs, "telemetry.sdk.language")
