@@ -28,6 +28,8 @@ class SpecOtelTest:
         assert get_attribute_str(attributes, "telemetry.distro.version")
         assert get_attribute_str(attributes, "telemetry.distro.name") == "splunk-opentelemetry"
 
+        assert get_attribute(attributes, "process.pid")
+
     def is_http(self):
         return False
 
