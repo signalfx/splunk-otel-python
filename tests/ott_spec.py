@@ -30,7 +30,6 @@ class SpecOtelTest:
 
         assert get_attribute(attributes, "process.pid")
 
-
     def is_http(self):
         return False
 
