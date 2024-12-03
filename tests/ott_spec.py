@@ -1,5 +1,4 @@
 from oteltest.telemetry import extract_leaves, get_attribute
-
 from ott_lib import project_path, trace_loop
 
 if __name__ == "__main__":
@@ -11,7 +10,9 @@ class SpecOtelTest:
         return project_path(), "oteltest"
 
     def environment_variables(self):
-        return {"OTEL_SERVICE_NAME": "my-svc",}
+        return {
+            "OTEL_SERVICE_NAME": "my-svc",
+        }
 
     def wrapper_command(self):
         return "opentelemetry-instrument"
