@@ -20,9 +20,7 @@ from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel.env import SPLUNK_PROFILER_CALL_STACK_INTERVAL, SPLUNK_PROFILER_ENABLED, Env
-
-DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
+from splunk_otel.env import Env, SPLUNK_PROFILER_CALL_STACK_INTERVAL, SPLUNK_PROFILER_ENABLED
 
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
@@ -43,7 +41,7 @@ def _start_profiling_if_enabled(env=None):
 
 def start_profiling(env=None):
     env = env or Env()
-    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
+    interval_millis = env.getval(SPLUNK_PROFILER_CALL_STACK_INTERVAL, 1000)
     svcname = env.getval(OTEL_SERVICE_NAME)
 
     tcm = _ThreadContextMapping()
