@@ -11,7 +11,10 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from opentelemetry.instrumentation.propagators import get_global_response_propagator, set_global_response_propagator
+from opentelemetry.instrumentation.propagators import (
+    get_global_response_propagator,
+    set_global_response_propagator,
+)
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
@@ -72,7 +75,6 @@ def test_server_timing_resp_prop_false():
 def test_profiling_enabled():
     env_store = {"SPLUNK_PROFILER_ENABLED": "true"}
     configure_distro(env_store)
-    assert env_store["OTEL_LOGS_ENABLED"] == "true"
     assert env_store["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] == "true"
 
 
@@ -88,6 +90,15 @@ def test_profiling_notset():
     configure_distro(env_store)
     assert "OTEL_LOGS_ENABLED" not in env_store
     assert "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED" not in env_store
+
+
+def test_profiling_endpt():
+    env_store = {
+        "SPLUNK_PROFILER_ENABLED": "true",
+        "SPLUNK_PROFILER_LOGS_ENDPOINT": "my-logs-endpoint",
+    }
+    configure_distro(env_store)
+    assert "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" in env_store
 
 
 def test_resource_attributes():

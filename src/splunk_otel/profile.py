@@ -14,12 +14,13 @@ from opentelemetry._logs import Logger, SeverityNumber, get_logger
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import LogRecord
+from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel.env import Env
+from splunk_otel.env import Env, SPLUNK_PROFILER_CALL_STACK_INTERVAL, SPLUNK_PROFILER_ENABLED
 
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
@@ -32,17 +33,26 @@ _profile_timer = None
 _pylogger = logging.getLogger(__name__)
 
 
-def start_profiling():
+def _start_profiling_if_enabled(env=None):
+    env = env or Env()
+    if env.is_true(SPLUNK_PROFILER_ENABLED):
+        start_profiling(env)
+
+
+def start_profiling(env=None):
+    env = env or Env()
+    interval_millis = env.getval(SPLUNK_PROFILER_CALL_STACK_INTERVAL, 1000)
+    svcname = env.getval(OTEL_SERVICE_NAME)
+
     tcm = _ThreadContextMapping()
     tcm.wrap_context_methods()
 
-    period_millis = 100
-    resource = _mk_resource(Env().getval("OTEL_SERVICE_NAME"))
+    resource = _mk_resource(svcname)
     logger = get_logger("splunk-profiler")
-    scraper = _ProfileScraper(resource, tcm.get_thread_states(), period_millis, logger)
+    scraper = _ProfileScraper(resource, tcm.get_thread_states(), interval_millis, logger)
 
     global _profile_timer  # noqa PLW0603
-    _profile_timer = _PeriodicTimer(period_millis, scraper.tick)
+    _profile_timer = _PeriodicTimer(interval_millis, scraper.tick)
     _profile_timer.start()
 
 
