@@ -21,4 +21,3 @@ class SplunkConfigurator(_OTelSDKConfigurator):
     def _configure(self, **kwargs):
         super()._configure(**kwargs)
         _start_profiling_if_enabled()
-
