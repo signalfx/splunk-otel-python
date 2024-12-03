@@ -24,13 +24,13 @@ from opentelemetry.sdk.environment_variables import (
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.env import (
     DEFAULTS,
-    Env,
     OTEL_LOGS_ENABLED,
     OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED,
     SPLUNK_ACCESS_TOKEN,
     SPLUNK_PROFILER_ENABLED,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     X_SF_TOKEN,
+    Env,
 )
 from splunk_otel.propagator import ServerTimingResponsePropagator
 
@@ -61,17 +61,11 @@ class SplunkDistro(BaseDistro):
     def set_profiling_env(self):
         if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
             self.env.setdefault(OTEL_LOGS_ENABLED, "true")
-            self.env.setdefault(
-                OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true"
-            )
+            self.env.setdefault(OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true")
 
     def set_resource_attributes(self):
-        self.env.list_append(
-            OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={DISTRO_NAME}"
-        )
-        self.env.list_append(
-            OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}"
-        )
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={DISTRO_NAME}")
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
     def configure_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
