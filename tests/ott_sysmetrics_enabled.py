@@ -11,7 +11,6 @@ class SysMetricsOtelTest:
     def environment_variables(self):
         return {
             "OTEL_SERVICE_NAME": "my-svc",
-            "OTEL_METRICS_ENABLED": "true",
         }
 
     def wrapper_command(self):

@@ -16,20 +16,21 @@ import logging
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
-from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
-from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_HEADERS, OTEL_RESOURCE_ATTRIBUTES
+from opentelemetry.sdk.environment_variables import (
+    OTEL_EXPORTER_OTLP_HEADERS,
+    OTEL_RESOURCE_ATTRIBUTES,
+)
 
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.env import (
     DEFAULTS,
+    Env,
     OTEL_LOGS_ENABLED,
-    OTEL_METRICS_ENABLED,
     OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED,
     SPLUNK_ACCESS_TOKEN,
     SPLUNK_PROFILER_ENABLED,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     X_SF_TOKEN,
-    Env,
 )
 from splunk_otel.propagator import ServerTimingResponsePropagator
 
@@ -60,11 +61,17 @@ class SplunkDistro(BaseDistro):
     def set_profiling_env(self):
         if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
             self.env.setdefault(OTEL_LOGS_ENABLED, "true")
-            self.env.setdefault(OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true")
+            self.env.setdefault(
+                OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED, "true"
+            )
 
     def set_resource_attributes(self):
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={DISTRO_NAME}")
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
+        self.env.list_append(
+            OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={DISTRO_NAME}"
+        )
+        self.env.list_append(
+            OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}"
+        )
 
     def configure_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
@@ -74,18 +81,3 @@ class SplunkDistro(BaseDistro):
     def set_server_timing_propagator(self):
         if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
             set_global_response_propagator(ServerTimingResponsePropagator())
-
-    def load_instrumentor(self, entry_point, **kwargs):
-        #  This method is called in a loop by opentelemetry-instrumentation
-        if is_system_metrics_instrumentor(entry_point) and not self.env.is_true(OTEL_METRICS_ENABLED):
-            self.logger.info("%s not set -- skipping SystemMetricsInstrumentor", OTEL_METRICS_ENABLED)
-        else:
-            super().load_instrumentor(entry_point, **kwargs)
-
-
-def is_system_metrics_instrumentor(entry_point):
-    if entry_point.name == "system_metrics":
-        instrumentor_class = entry_point.load()
-        if instrumentor_class == SystemMetricsInstrumentor:
-            return True
-    return False
