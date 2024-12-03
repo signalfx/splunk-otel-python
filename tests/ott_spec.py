@@ -10,9 +10,7 @@ class SpecOtelTest:
         return project_path(), "oteltest"
 
     def environment_variables(self):
-        return {
-            "OTEL_SERVICE_NAME": "my-svc",
-        }
+        return {"OTEL_SERVICE_NAME": "my-svc"}
 
     def wrapper_command(self):
         return "opentelemetry-instrument"
@@ -21,13 +19,16 @@ class SpecOtelTest:
         return None
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        attrs = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
-        assert get_attribute(attrs, "telemetry.sdk.name")
-        assert get_attribute(attrs, "telemetry.sdk.version")
-        assert get_attribute(attrs, "telemetry.sdk.language")
-        assert get_attribute_str(attrs, "telemetry.distro.version")
-        assert get_attribute_str(attrs, "telemetry.distro.name") == "splunk-opentelemetry"
-        assert get_attribute(attrs, "process.pid")
+        attributes = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
+
+        assert get_attribute(attributes, "telemetry.sdk.name")
+        assert get_attribute(attributes, "telemetry.sdk.version")
+        assert get_attribute(attributes, "telemetry.sdk.language")
+
+        assert get_attribute_str(attributes, "telemetry.distro.version")
+        assert get_attribute_str(attributes, "telemetry.distro.name") == "splunk-opentelemetry"
+
+        assert get_attribute(attributes, "process.pid")
 
     def is_http(self):
         return False
