@@ -22,6 +22,8 @@ from opentelemetry.trace.propagation import _SPAN_KEY
 from splunk_otel import profile_pb2
 from splunk_otel.env import SPLUNK_PROFILER_CALL_STACK_INTERVAL, SPLUNK_PROFILER_ENABLED, Env
 
+DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
+
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _NO_SERVICE_NAME_WARNING = """The service.name attribute is not set, which may make your service difficult to identify.
@@ -41,7 +43,7 @@ def _start_profiling_if_enabled(env=None):
 
 def start_profiling(env=None):
     env = env or Env()
-    interval_millis = env.getval(SPLUNK_PROFILER_CALL_STACK_INTERVAL, 1000)
+    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     svcname = env.getval(OTEL_SERVICE_NAME)
 
     tcm = _ThreadContextMapping()
@@ -52,7 +54,7 @@ def start_profiling(env=None):
     scraper = _ProfileScraper(resource, tcm.get_thread_states(), interval_millis, logger)
 
     global _profile_timer  # noqa PLW0603
-    _profile_timer = _PeriodicTimer(interval_millis, scraper.tick)
+    _profile_timer = _IntervalTimer(interval_millis, scraper.tick)
     _profile_timer.start()
 
 
@@ -152,14 +154,14 @@ class _ProfileScraper:
         self,
         resource,
         thread_states,
-        period_millis,
+        interval_millis,
         logger: Logger,
         collect_stacktraces_func=_collect_stacktraces,
         time_func=time.time,
     ):
         self.resource = resource
         self.thread_states = thread_states
-        self.period_millis = period_millis
+        self.interval_millis = interval_millis
         self.collect_stacktraces = collect_stacktraces_func
         self.time = time_func
         self.logger = logger
@@ -175,7 +177,7 @@ class _ProfileScraper:
 
         time_seconds = self.time()
 
-        pb_profile = _stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.period_millis, time_seconds)
+        pb_profile = _stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.interval_millis, time_seconds)
         pb_profile_str = _pb_profile_to_str(pb_profile)
 
         return LogRecord(
@@ -202,9 +204,9 @@ def _pb_profile_to_str(pb_profile) -> str:
     return b64encoded.decode()
 
 
-class _PeriodicTimer:
-    def __init__(self, period_millis, target):
-        self.period_seconds = period_millis / 1e3
+class _IntervalTimer:
+    def __init__(self, interval_millis, target):
+        self.interval_seconds = interval_millis / 1e3
         self.target = target
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.sleep = time.sleep
@@ -217,7 +219,7 @@ class _PeriodicTimer:
             start_time_seconds = time.time()
             self.target()
             elapsed_seconds = time.time() - start_time_seconds
-            sleep_seconds = max(0, self.period_seconds - elapsed_seconds)
+            sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             time.sleep(sleep_seconds)
 
     def stop(self):
@@ -287,7 +289,7 @@ def _extract_stack_summary(frame):
     return out
 
 
-def _stacktraces_to_cpu_profile(stacktraces, thread_states, period_millis, time_seconds):
+def _stacktraces_to_cpu_profile(stacktraces, thread_states, interval_millis, time_seconds):
     str_table = _StringTable()
     locations_table = OrderedDict()
     functions_table = OrderedDict()
@@ -304,7 +306,7 @@ def _stacktraces_to_cpu_profile(stacktraces, thread_states, period_millis, time_
 
     event_period_label = profile_pb2.Label()
     event_period_label.key = event_period_key
-    event_period_label.num = period_millis
+    event_period_label.num = interval_millis
 
     samples = []
     for stacktrace in stacktraces:

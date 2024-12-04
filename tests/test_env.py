@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import logging
 
 from splunk_otel.env import Env
 
@@ -19,6 +20,7 @@ def test_env():
     e = Env()
     e.store = {
         "PREEXISTING": "preexisting",
+        "FAVORITE_NUMBER": "42",
     }
 
     e.setdefault("PREEXISTING", "default")
@@ -40,3 +42,16 @@ def test_env():
     assert e.getval("MY_LIST") == "a"
     e.list_append("MY_LIST", "b")
     assert e.getval("MY_LIST") == "a,b"
+
+    assert e.getint("FAVORITE_NUMBER", 111) == 42
+
+
+def test_get_invalid_int(caplog):
+    with caplog.at_level(logging.WARNING):
+        e = Env()
+        e.store = {
+            "FAVORITE_NUMBER": "bar",
+        }
+        assert e.getint("FAVORITE_NUMBER", 111) == 111
+    assert "Invalid integer value" in caplog.text
+
