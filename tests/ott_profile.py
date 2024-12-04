@@ -8,7 +8,8 @@ class ProfileOtelTest:
     def environment_variables(self):
         return {
             "SPLUNK_PROFILER_ENABLED": "true",
-            "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "500",
+            "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "500",  # not necessary, defaults to "1000" (ms)
+            "SPLUNK_PROFILER_LOGS_ENDPOINT": "http://localhost:4317",  # not necessary, this is the default
         }
 
     def requirements(self):
