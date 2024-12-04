@@ -54,4 +54,3 @@ def test_get_invalid_int(caplog):
         }
         assert e.getint("FAVORITE_NUMBER", 111) == 111
     assert "Invalid integer value" in caplog.text
-
