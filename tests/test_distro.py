@@ -11,6 +11,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import logging
+
 from opentelemetry.instrumentation.propagators import (
     get_global_response_propagator,
     set_global_response_propagator,
@@ -108,6 +110,14 @@ def test_resource_attributes():
     assert "telemetry.distro.name=splunk-opentelemetry" in attrs
     assert f"telemetry.distro.version={version}" in attrs
     assert "foo=bar" in attrs
+
+
+def test_service_name(caplog):
+    with caplog.at_level(logging.WARNING):
+        env_store = {}
+        configure_distro(env_store)
+        assert "OTEL_SERVICE_NAME" in env_store
+    assert "service.name attribute is not set" in caplog.text
 
 
 def configure_distro(env_store):

@@ -1,4 +1,3 @@
-from oteltest.telemetry import extract_leaves, get_attribute
 from ott_lib import project_path, trace_loop
 
 if __name__ == "__main__":
@@ -7,10 +6,10 @@ if __name__ == "__main__":
 
 class SpecOtelTest:
     def requirements(self):
-        return project_path(), "oteltest"
+        return (project_path(),)
 
     def environment_variables(self):
-        return {"OTEL_SERVICE_NAME": "my-svc"}
+        return {}
 
     def wrapper_command(self):
         return "opentelemetry-instrument"
@@ -19,7 +18,19 @@ class SpecOtelTest:
         return None
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        attributes = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
+        from oteltest.telemetry import extract_leaves, get_attribute
+
+        def get_attribute_str(attrs, key):
+            return get_attribute(attrs, key).value.string_value
+
+        attributes = extract_leaves(
+            telemetry,
+            "trace_requests",
+            "pbreq",
+            "resource_spans",
+            "resource",
+            "attributes",
+        )
 
         assert get_attribute(attributes, "telemetry.sdk.name")
         assert get_attribute(attributes, "telemetry.sdk.version")
@@ -32,7 +43,3 @@ class SpecOtelTest:
 
     def is_http(self):
         return False
-
-
-def get_attribute_str(attributes, key):
-    return get_attribute(attributes, key).value.string_value
