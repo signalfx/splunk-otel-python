@@ -1,5 +1,7 @@
 from ott_lib import project_path, trace_loop
 
+SERVICE_NAME = "spec-svc"
+
 if __name__ == "__main__":
     trace_loop(1)
 
@@ -11,7 +13,7 @@ class SpecOtelTest:
     def environment_variables(self):
         return {
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
-            "OTEL_SERVICE_NAME": "spec-svc",
+            "OTEL_SERVICE_NAME": SERVICE_NAME,
         }
 
     def wrapper_command(self):
@@ -41,7 +43,7 @@ class SpecOtelTest:
 
         assert get_attribute(attributes, "process.pid")
 
-        assert get_attribute(attributes, "service.name").value.string_value == "spec-svc"
+        assert get_attribute(attributes, "service.name").value.string_value == SERVICE_NAME
 
     def is_http(self):
         return False
