@@ -44,6 +44,7 @@ def test_env():
     assert e.getval("MY_LIST") == "a,b"
 
     assert e.getint("FAVORITE_NUMBER", 111) == 42
+    assert e.getint("NOT_SET", 222) == 222
 
 
 def test_get_invalid_int(caplog):
