@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import logging
 import os
 
 DEFAULTS = {
@@ -31,17 +31,18 @@ DEFAULTS = {
     "OTEL_TRACES_SAMPLER": "always_on",
 }
 
-OTEL_TRACE_ENABLED = "OTEL_TRACE_ENABLED"
-OTEL_METRICS_ENABLED = "OTEL_METRICS_ENABLED"
-OTEL_LOGS_ENABLED = "OTEL_LOGS_ENABLED"
 OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
 
 SPLUNK_OTEL_SYSTEM_METRICS_ENABLED = "SPLUNK_OTEL_SYSTEM_METRICS_ENABLED"
 SPLUNK_ACCESS_TOKEN = "SPLUNK_ACCESS_TOKEN"  # noqa: S105
 SPLUNK_TRACE_RESPONSE_HEADER_ENABLED = "SPLUNK_TRACE_RESPONSE_HEADER_ENABLED"
 SPLUNK_PROFILER_ENABLED = "SPLUNK_PROFILER_ENABLED"
+SPLUNK_PROFILER_CALL_STACK_INTERVAL = "SPLUNK_PROFILER_CALL_STACK_INTERVAL"
+SPLUNK_PROFILER_LOGS_ENDPOINT = "SPLUNK_PROFILER_LOGS_ENDPOINT"
 
 X_SF_TOKEN = "x-sf-token"  # noqa S105
+
+_pylogger = logging.getLogger(__name__)
 
 
 class Env:
@@ -64,6 +65,14 @@ class Env:
 
     def getval(self, key, default=""):
         return self.store.get(key, default)
+
+    def getint(self, key, default=0):
+        val = self.getval(key, str(default))
+        try:
+            return int(val)
+        except ValueError:
+            _pylogger.warning("Invalid integer value of '%s' for env var '%s'", val, key)
+            return default
 
     def setval(self, key, value):
         self.store[key] = value
