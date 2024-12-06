@@ -22,14 +22,10 @@ from opentelemetry.trace.propagation import _SPAN_KEY
 from splunk_otel import profile_pb2
 from splunk_otel.env import SPLUNK_PROFILER_CALL_STACK_INTERVAL, SPLUNK_PROFILER_ENABLED, Env
 
-DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
+_DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
 
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
-_NO_SERVICE_NAME_WARNING = """The service.name attribute is not set, which may make your service difficult to identify.
-Set your service name using the OTEL_SERVICE_NAME environment variable.
-e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
-_DEFAULT_SERVICE_NAME = "unnamed-python-service"
 
 _profile_timer = None
 _pylogger = logging.getLogger(__name__)
@@ -43,7 +39,7 @@ def _start_profiling_if_enabled(env=None):
 
 def start_profiling(env=None):
     env = env or Env()
-    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
+    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     svcname = env.getval(OTEL_SERVICE_NAME)
 
     tcm = _ThreadContextMapping()
@@ -63,15 +59,10 @@ def stop_profiling():
 
 
 def _mk_resource(service_name) -> Resource:
-    if service_name:
-        resolved_name = service_name
-    else:
-        _pylogger.warning(_NO_SERVICE_NAME_WARNING)
-        resolved_name = _DEFAULT_SERVICE_NAME
     return Resource.create(
         {
             _SPLUNK_DISTRO_VERSION_ATTR: version,
-            _SERVICE_NAME_ATTR: resolved_name,
+            _SERVICE_NAME_ATTR: service_name,
         }
     )
 

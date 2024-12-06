@@ -20,6 +20,7 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
     OTEL_RESOURCE_ATTRIBUTES,
+    OTEL_SERVICE_NAME,
 )
 
 from splunk_otel.__about__ import __version__ as version
@@ -35,7 +36,14 @@ from splunk_otel.env import (
 )
 from splunk_otel.propagator import ServerTimingResponsePropagator
 
-DISTRO_NAME = "splunk-opentelemetry"
+_DISTRO_NAME = "splunk-opentelemetry"
+
+_NO_SERVICE_NAME_WARNING = """The service.name attribute is not set, which may make your service difficult to identify.
+Set your service name using the OTEL_SERVICE_NAME environment variable.
+e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
+_DEFAULT_SERVICE_NAME = "unnamed-python-service"
+
+_pylogger = logging.getLogger(__name__)
 
 
 class SplunkDistro(BaseDistro):
@@ -50,10 +58,16 @@ class SplunkDistro(BaseDistro):
 
     def _configure(self, **kwargs):
         self.set_env_defaults()
+        self.check_service_name()
         self.set_profiling_env()
         self.set_resource_attributes()
         self.configure_headers()
         self.set_server_timing_propagator()
+
+    def check_service_name(self):
+        if not len(self.env.getval(OTEL_SERVICE_NAME)):
+            _pylogger.warning(_NO_SERVICE_NAME_WARNING)
+            self.env.setval(OTEL_SERVICE_NAME, _DEFAULT_SERVICE_NAME)
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
@@ -67,7 +81,7 @@ class SplunkDistro(BaseDistro):
                 self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
 
     def set_resource_attributes(self):
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={DISTRO_NAME}")
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
         self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
     def configure_headers(self):
