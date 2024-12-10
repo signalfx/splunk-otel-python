@@ -4,7 +4,7 @@ if __name__ == "__main__":
     trace_loop(1)
 
 
-class MyOtelTest:
+class HttpProtocolOtelTest:
     def requirements(self):
         return (project_path(),)
 
