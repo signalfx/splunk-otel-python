@@ -120,6 +120,14 @@ def test_service_name(caplog):
     assert "service.name attribute is not set" in caplog.text
 
 
+def test_realm():
+    env_store = {"SPLUNK_REALM": "us2"}
+    configure_distro(env_store)
+    assert env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/trace/otlp"
+    assert env_store["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/datapoint/otlp"
+    assert env_store["OTEL_EXPORTER_OTLP_PROTOCOL"] == "http/protobuf"
+
+
 def configure_distro(env_store):
     sd = SplunkDistro()
     sd.env = Env(env_store)
