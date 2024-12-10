@@ -19,6 +19,9 @@ from opentelemetry.instrumentation.propagators import set_global_response_propag
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
+    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+    OTEL_EXPORTER_OTLP_PROTOCOL,
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
     OTEL_RESOURCE_ATTRIBUTES,
     OTEL_SERVICE_NAME,
 )
@@ -30,6 +33,7 @@ from splunk_otel.env import (
     SPLUNK_ACCESS_TOKEN,
     SPLUNK_PROFILER_ENABLED,
     SPLUNK_PROFILER_LOGS_ENDPOINT,
+    SPLUNK_REALM,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     Env,
 )
@@ -61,8 +65,25 @@ class SplunkDistro(BaseDistro):
         self.check_service_name()
         self.set_profiling_env()
         self.set_resource_attributes()
-        self.configure_headers()
+        self.handle_realm()
+        self.configure_token_headers()
         self.set_server_timing_propagator()
+
+    def handle_realm(self):
+        realm = self.env.getval(SPLUNK_REALM)
+        if len(realm):
+            ingest_url = f"https://ingest.{realm}.signalfx.com"
+            self.env.setdefault(
+                OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+                f"{ingest_url}/v2/trace/otlp",
+            )
+            self.env.setdefault(
+                OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+                f"{ingest_url}/v2/datapoint/otlp",
+            )
+
+            # if realm is set, we assume direct ingest and set the protocol to `http/proto`
+            self.env.setdefault(OTEL_EXPORTER_OTLP_PROTOCOL, "http/protobuf")
 
     def check_service_name(self):
         if not len(self.env.getval(OTEL_SERVICE_NAME)):
@@ -84,7 +105,7 @@ class SplunkDistro(BaseDistro):
         self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
         self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
-    def configure_headers(self):
+    def configure_token_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
         if tok:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
