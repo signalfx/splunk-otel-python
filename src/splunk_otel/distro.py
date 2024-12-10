@@ -31,7 +31,6 @@ from splunk_otel.env import (
     SPLUNK_PROFILER_ENABLED,
     SPLUNK_PROFILER_LOGS_ENDPOINT,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
-    X_SF_TOKEN,
     Env,
 )
 from splunk_otel.propagator import ServerTimingResponsePropagator
@@ -42,6 +41,7 @@ _NO_SERVICE_NAME_WARNING = """The service.name attribute is not set, which may m
 Set your service name using the OTEL_SERVICE_NAME environment variable.
 e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
 _DEFAULT_SERVICE_NAME = "unnamed-python-service"
+_X_SF_TOKEN = "x-sf-token"  # noqa S105
 
 _pylogger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class SplunkDistro(BaseDistro):
     def configure_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
         if tok:
-            self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{X_SF_TOKEN}={tok}")
+            self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
 
     def set_server_timing_propagator(self):
         if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
