@@ -1,7 +1,6 @@
 import logging
 
 from opentelemetry import trace
-
 from ott_lib import project_path
 
 MESSAGE = "uh oh!"
@@ -47,9 +46,7 @@ def get_scope_log_records(telemetry, scope_name):
     from oteltest.telemetry import extract_leaves
 
     out = []
-    scope_logs = extract_leaves(
-        telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs"
-    )
+    scope_logs = extract_leaves(telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
     for scope_log in scope_logs:
         if scope_log.scope.name == scope_name:
             out.extend(scope_log.log_records)
