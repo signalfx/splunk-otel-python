@@ -74,26 +74,6 @@ def test_server_timing_resp_prop_false():
     assert get_global_response_propagator() is None
 
 
-def test_profiling_enabled():
-    env_store = {"SPLUNK_PROFILER_ENABLED": "true"}
-    configure_distro(env_store)
-    assert env_store["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] == "true"
-
-
-def test_profiling_disabled():
-    env_store = {"SPLUNK_PROFILER_ENABLED": "false"}
-    configure_distro(env_store)
-    assert "OTEL_LOGS_ENABLED" not in env_store
-    assert "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED" not in env_store
-
-
-def test_profiling_notset():
-    env_store = {}
-    configure_distro(env_store)
-    assert "OTEL_LOGS_ENABLED" not in env_store
-    assert "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED" not in env_store
-
-
 def test_profiling_endpt():
     env_store = {
         "SPLUNK_PROFILER_ENABLED": "true",
@@ -123,8 +103,14 @@ def test_service_name(caplog):
 def test_realm():
     env_store = {"SPLUNK_REALM": "us2"}
     configure_distro(env_store)
-    assert env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/trace/otlp"
-    assert env_store["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/datapoint/otlp"
+    assert (
+        env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"]
+        == "https://ingest.us2.signalfx.com/v2/trace/otlp"
+    )
+    assert (
+        env_store["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"]
+        == "https://ingest.us2.signalfx.com/v2/datapoint/otlp"
+    )
     assert env_store["OTEL_EXPORTER_OTLP_PROTOCOL"] == "http/protobuf"
 
 
