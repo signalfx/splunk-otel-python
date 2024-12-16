@@ -103,14 +103,8 @@ def test_service_name(caplog):
 def test_realm():
     env_store = {"SPLUNK_REALM": "us2"}
     configure_distro(env_store)
-    assert (
-        env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"]
-        == "https://ingest.us2.signalfx.com/v2/trace/otlp"
-    )
-    assert (
-        env_store["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"]
-        == "https://ingest.us2.signalfx.com/v2/datapoint/otlp"
-    )
+    assert env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/trace/otlp"
+    assert env_store["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/datapoint/otlp"
     assert env_store["OTEL_EXPORTER_OTLP_PROTOCOL"] == "http/protobuf"
 
 
