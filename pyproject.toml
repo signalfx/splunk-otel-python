@@ -101,5 +101,5 @@ exclude_lines = [
 ]
 
 [tool.ruff.lint]
-ignore = ["FA100", "ARG002"]
+ignore = ["INP001", "FA100", "ARG002"]
 exclude = ["src/splunk_otel/profile_pb2.py"]
