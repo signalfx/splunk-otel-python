@@ -28,7 +28,7 @@ This distribution comes with the following defaults:
 
 ## Requirements
 
-This Splunk Distribution of OpenTelemetry requires Python 3.7 or later. Supported
+This Splunk Distribution of OpenTelemetry requires Python 3.8 or later. Supported
 libraries are listed
 [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation).
 
