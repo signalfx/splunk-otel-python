@@ -13,10 +13,11 @@
 #  limitations under the License.
 
 
-__version__ = "2.0.0a1"
+__version__ = "2.0.0a2.dev0"
 """
 explanation:
 2.0.0a1 (alpha release 1 of version 2.0.0)
+2.0.0a1.dev0 (development version zero of the next release)
 2.0.0b1 (beta release 1 of version 2.0.0)
 2.0.0rc1 (release candidate 1 of version 2.0.0)
 
