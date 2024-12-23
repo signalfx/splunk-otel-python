@@ -29,7 +29,7 @@ from splunk_otel.env import (
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
-_SCOPE_VERSION = "0.1.0"
+_SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
 
 _timer = None
