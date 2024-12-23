@@ -20,14 +20,19 @@ from opentelemetry.trace import TraceFlags
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel.env import SPLUNK_PROFILER_CALL_STACK_INTERVAL, SPLUNK_PROFILER_ENABLED, Env
+from splunk_otel.env import (
+    SPLUNK_PROFILER_CALL_STACK_INTERVAL,
+    SPLUNK_PROFILER_ENABLED,
+    Env,
+)
 
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
-
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
+_SCOPE_VERSION = "0.2.0"
+_SCOPE_NAME = "otel.profiling"
 
-_profile_timer = None
+_timer = None
 _pylogger = logging.getLogger(__name__)
 
 
@@ -46,16 +51,16 @@ def start_profiling(env=None):
     tcm.wrap_context_methods()
 
     resource = _mk_resource(svcname)
-    logger = get_logger("splunk-profiler")
+    logger = get_logger(_SCOPE_NAME, _SCOPE_VERSION)
     scraper = _ProfileScraper(resource, tcm.get_thread_states(), interval_millis, logger)
 
-    global _profile_timer  # noqa PLW0603
-    _profile_timer = _IntervalTimer(interval_millis, scraper.tick)
-    _profile_timer.start()
+    global _timer  # noqa PLW0603
+    _timer = _IntervalTimer(interval_millis, scraper.tick)
+    _timer.start()
 
 
 def stop_profiling():
-    _profile_timer.stop()
+    _timer.stop()
 
 
 def _mk_resource(service_name) -> Resource:
@@ -127,8 +132,10 @@ class _ThreadContextMapping:
 def _collect_stacktraces():
     out = []
     frames = sys._current_frames()  # noqa SLF001
-
+    profile_scraper_thread_id = threading.get_ident()
     for thread_id, frame in frames.items():
+        if thread_id == profile_scraper_thread_id:
+            continue
         stack_summary = _extract_stack_summary(frame)
         frames = [(sf.filename, sf.name, sf.lineno) for sf in stack_summary]
         out.append(
