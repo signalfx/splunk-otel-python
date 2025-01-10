@@ -3,6 +3,7 @@ default:
 
 stages:
   - build
+  - sign
   - deploy
 
 build-job:
@@ -19,13 +20,29 @@ build-job:
   except:
     - branches
 
+checksum-signing-job:
+  stage: sign
+  extends: .submit-signing-request
+  needs:
+    - build-job
+  variables:
+    PROJECT: splunk-otel-python
+    ARTIFACT: dist/checksums.txt
+    SIGN_TYPE: GPG
+    DOWNLOAD_DIR: dist
+    REPO_NAME: releng
+    REPO_PATH: splunk-otel-python
+  artifacts:
+    paths:
+      - dist/
+
 deploy-job:
   stage: deploy
   script:
     - pip install hatch keyrings.alt
     - hatch --no-interactive publish
   needs:
-    - build-job
+    - checksum-signing-job
   only:
     - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
   except:
