@@ -1,6 +1,12 @@
 default:
   image: 'cimg/python:3.11'
 
+include:
+  # repo: https://cd.splunkdev.com/core-ee/signing/api-integration/-/tree/develop/
+  - project: core-ee/signing/api-integration
+    ref: develop
+    file: /templates/.sign-client.yml
+
 stages:
   - build
   - sign
