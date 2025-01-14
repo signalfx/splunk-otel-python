@@ -2,7 +2,6 @@ default:
   image: 'cimg/python:3.11'
 
 include:
-  # repo: https://cd.splunkdev.com/core-ee/signing/api-integration/-/tree/develop/
   - project: core-ee/signing/api-integration
     ref: develop
     file: /templates/.sign-client.yml
@@ -32,12 +31,10 @@ checksum-signing-job:
   needs:
     - build-job
   variables:
-    PROJECT: splunk-otel-python
     ARTIFACT: dist/checksums.txt
     SIGN_TYPE: GPG
     DOWNLOAD_DIR: dist
-    REPO_NAME: releng
-    REPO_PATH: splunk-otel-python
+    LOGLEVEL: DEBUG
   artifacts:
     paths:
       - dist/
