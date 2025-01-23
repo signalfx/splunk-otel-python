@@ -8,7 +8,7 @@
 # Splunk Distribution of OpenTelemetry Python
 
 The Splunk distribution of [OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python) provides
-an installable package that automatically instruments your Python application to capture and report distributed
+multiple installable packages that automatically instrument your Python application to capture and report distributed
 traces to Splunk APM. Instrumentation works by patching supported libraries at runtime with an OpenTelemetry-compatible
 tracer to capture and export trace spans.
 
