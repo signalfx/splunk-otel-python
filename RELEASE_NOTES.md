@@ -26,7 +26,7 @@ Summary of changes between Splunk OTel Python major versions 1 and 2.
 | SPLUNK_TRACE_RESPONSE_HEADER_ENABLED             | true      | Configures a ServerTimingReponsePropagator if true (injects tracecontext headers into HTTP responses) |
 | SPLUNK_PROFILER_CALL_STACK_INTERVAL              | 1000      | Profiling poll interval, in milliseconds                                                              |
 | SPLUNK_PROFILER_LOGS_ENDPOINT                    |           | OTel logging endpoint, only if profiling is enabled                                                   |
-| SPLUNK_REALM                                     |           | Sets the metrics and traces endpoints by realm (e.g. us1) and sets the protocol to `http/protobuf`    |
+| SPLUNK_REALM                                     |           | Sets the metrics and traces endpoints by realm (e.g. `us1`) and sets the protocol to `http/protobuf`  |
 | OTEL_METRICS_EXPORTER                            | otlp      | Sets the metrics exporter                                                                             |
 | OTEL_TRACES_EXPORTER                             | otlp      | Sets the traces exporter                                                                              |
 | OTEL_LOGS_EXPORTER                               | otlp      | Sets the logs exporter                                                                                |
