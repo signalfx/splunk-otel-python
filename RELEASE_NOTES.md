@@ -19,27 +19,27 @@ Summary of changes between Splunk OTel Python major versions 1 and 2.
 
 ## Environment Variables
 
-| Variable                                         | Default   | Description                                                                                                        |
-|--------------------------------------------------|-----------|--------------------------------------------------------------------------------------------------------------------|
-| SPLUNK_ACCESS_TOKEN                              |           | Adds token to requests to enable direct ingest (for skipping the collector)                                        |
-| SPLUNK_PROFILER_ENABLED                          | false     | Causes the Splunk profiler to start polling at startup                                                             |
+| Variable                                         | Default   | Description                                                                                           |
+|--------------------------------------------------|-----------|-------------------------------------------------------------------------------------------------------|
+| SPLUNK_ACCESS_TOKEN                              |           | Adds token to requests to enable direct ingest (for skipping the collector)                           |
+| SPLUNK_PROFILER_ENABLED                          | false     | Configures the Splunk profiler to start polling at startup                                            |
 | SPLUNK_TRACE_RESPONSE_HEADER_ENABLED             | true      | Configures a ServerTimingReponsePropagator if true (injects tracecontext headers into HTTP responses) |
-| SPLUNK_PROFILER_CALL_STACK_INTERVAL              | 1000      | Profiling poll interval, in milliseconds                                                                            |
-| SPLUNK_PROFILER_LOGS_ENDPOINT                    |           | OTel logging endpoint, only if profiling is enabled                                                                |
-| SPLUNK_REALM                                     |           | Sets the metrics and traces endpoints by realm (e.g. us1) and sets the protocol to `http/protobuf`                 |
-| OTEL_METRICS_EXPORTER                            | otlp      | Sets the metrics exporter                                                                                          |
-| OTEL_TRACES_EXPORTER                             | otlp      | Sets the traces exporter                                                                                           |
-| OTEL_LOGS_EXPORTER                               | otlp      | Sets the logs exporter                                                                                             |
+| SPLUNK_PROFILER_CALL_STACK_INTERVAL              | 1000      | Profiling poll interval, in milliseconds                                                              |
+| SPLUNK_PROFILER_LOGS_ENDPOINT                    |           | OTel logging endpoint, only if profiling is enabled                                                   |
+| SPLUNK_REALM                                     |           | Sets the metrics and traces endpoints by realm (e.g. `us1`) and sets the protocol to `http/protobuf`  |
+| OTEL_METRICS_EXPORTER                            | otlp      | Sets the metrics exporter                                                                             |
+| OTEL_TRACES_EXPORTER                             | otlp      | Sets the traces exporter                                                                              |
+| OTEL_LOGS_EXPORTER                               | otlp      | Sets the logs exporter                                                                                |
 | OTEL_EXPERIMENTAL_RESOURCE_DETECTORS             | host      | Configures a host resource detector to set telemetry attributes                                       |
-| OTEL_TRACES_SAMPLER                              | always_on | Causes all traces to be exported                                                                                   |
-| OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED | true      | Exports all logs                                                                                        |
-| OTEL_SPAN_LINK_COUNT_LIMIT                       | 1000      | Sets the maximum allowed span link count                                                                           |
-| OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT                | 12000     | Sets the maximum allowed attribute value size                                                                      |
-| OTEL_ATTRIBUTE_COUNT_LIMIT                       | _empty_   |                                                                                                                    |
-| OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT                  | _empty_   |                                                                                                                    |
-| OTEL_SPAN_EVENT_COUNT_LIMIT                      | _empty_   |                                                                                                                    |
-| OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT                 | _empty_   |                                                                                                                    |
-| OTEL_LINK_ATTRIBUTE_COUNT_LIMIT                  | _empty_   |                                                                                                                    |
+| OTEL_TRACES_SAMPLER                              | always_on | Configures the sampler to export all traces                                                           |
+| OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED | true      | Exports all logs                                                                                      |
+| OTEL_SPAN_LINK_COUNT_LIMIT                       | 1000      | Sets the maximum allowed span link count                                                              |
+| OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT                | 12000     | Sets the maximum allowed attribute value size                                                         |
+| OTEL_ATTRIBUTE_COUNT_LIMIT                       | _empty_   |                                                                                                       |
+| OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT                  | _empty_   |                                                                                                       |
+| OTEL_SPAN_EVENT_COUNT_LIMIT                      | _empty_   |                                                                                                       |
+| OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT                 | _empty_   |                                                                                                       |
+| OTEL_LINK_ATTRIBUTE_COUNT_LIMIT                  | _empty_   |                                                                                                       |
 
 ## Environment Variable Changes Between 1.x and 2.x
 
