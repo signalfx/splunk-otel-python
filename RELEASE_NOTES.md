@@ -32,7 +32,7 @@ Summary of changes between Splunk OTel Python major versions 1 and 2.
 | OTEL_LOGS_EXPORTER                               | otlp      | Sets the logs exporter                                                                                             |
 | OTEL_EXPERIMENTAL_RESOURCE_DETECTORS             | host      | Configures a host resource detector to set telemetry attributes                                       |
 | OTEL_TRACES_SAMPLER                              | always_on | Causes all traces to be exported                                                                                   |
-| OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED | true      | Causes logs to be exported                                                                                         |
+| OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED | true      | Exports all logs                                                                                        |
 | OTEL_SPAN_LINK_COUNT_LIMIT                       | 1000      | Sets the maximum allowed span link count                                                                           |
 | OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT                | 12000     | Sets the maximum allowed attribute value size                                                                      |
 | OTEL_ATTRIBUTE_COUNT_LIMIT                       | _empty_   |                                                                                                                    |
