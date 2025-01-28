@@ -23,7 +23,7 @@ Summary of changes between Splunk OTel Python major versions 1 and 2.
 |--------------------------------------------------|-----------|--------------------------------------------------------------------------------------------------------------------|
 | SPLUNK_ACCESS_TOKEN                              |           | Adds token to requests to enable direct ingest (for skipping the collector)                                        |
 | SPLUNK_PROFILER_ENABLED                          | false     | Causes the Splunk profiler to start polling at startup                                                             |
-| SPLUNK_TRACE_RESPONSE_HEADER_ENABLED             | true      | Causes a ServerTimingReponsePropagator to be configured if true (injects tracecontext headers into HTTP responses) |
+| SPLUNK_TRACE_RESPONSE_HEADER_ENABLED             | true      | Configures a ServerTimingReponsePropagator if true (injects tracecontext headers into HTTP responses) |
 | SPLUNK_PROFILER_CALL_STACK_INTERVAL              | 1000      | Profiling poll interval in milliseconds                                                                            |
 | SPLUNK_PROFILER_LOGS_ENDPOINT                    |           | OTel logging endpoint, only if profiling is enabled                                                                |
 | SPLUNK_REALM                                     |           | Sets the metrics and traces endpoints by realm (e.g. us1) and sets the protocol to `http/protobuf`                 |
