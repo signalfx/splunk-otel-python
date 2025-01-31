@@ -3,7 +3,7 @@
 ## Unreleased
 
 ## 2.0.0 - 2025-01-28
-- See VERSION_2_RELEASE_NOTES.md
+- See [VERSION_2_RELEASE_NOTES.md](VERSION_2_RELEASE_NOTES.md)
 
 ## 1.20.0 - 2024-08-08
 - Upgrade Otel dependencies to 1.26.0 / 0.47b0
