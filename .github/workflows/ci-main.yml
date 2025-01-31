@@ -2,9 +2,9 @@ name: test
 
 on:
   push:
-    branches: [main, v2]
+    branches: [main]
   pull_request:
-    branches: [main, v2]
+    branches: [main]
 
 concurrency:
   group: test-${{ github.head_ref }}
