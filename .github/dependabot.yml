@@ -14,3 +14,12 @@ updates:
     labels:
       - "Skip Changelog"
       - "dependencies"
+    ignore:
+      - dependency-name: "opentelemetry-api"
+      - dependency-name: "opentelemetry-sdk"
+      - dependency-name: "opentelemetry-propagator-b3"
+      - dependency-name: "opentelemetry-exporter-otlp-proto-grpc"
+      - dependency-name: "opentelemetry-exporter-otlp-proto-http"
+      - dependency-name: "opentelemetry-instrumentation"
+      - dependency-name: "opentelemetry-instrumentation-system-metrics"
+      - dependency-name: "opentelemetry-semantic-conventions"

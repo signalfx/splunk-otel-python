@@ -1,4 +1,3 @@
-from oteltest.telemetry import count_spans, extract_leaves, get_attribute
 from ott_lib import project_path, trace_loop
 
 NUM_SPANS = 12
@@ -23,6 +22,8 @@ class NumSpansOtelTest:
         return None
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+        from oteltest.telemetry import count_spans, extract_leaves, get_attribute
+
         assert count_spans(telemetry) == NUM_SPANS
 
         attributes = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
