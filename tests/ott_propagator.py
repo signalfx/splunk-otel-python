@@ -35,7 +35,7 @@ class OTT(OtelTest):
             project_path(),
             "oteltest",
             "flask",
-            "opentelemetry-instrumentation-flask",
+            "opentelemetry-instrumentation-flask==0.50b0",
         ]
 
     def wrapper_command(self) -> str:
