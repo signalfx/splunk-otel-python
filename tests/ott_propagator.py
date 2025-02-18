@@ -2,7 +2,6 @@ from typing import Mapping, Optional, Sequence
 
 from oteltest import OtelTest, Telemetry
 from ott_lib import project_path
-from splunk_otel.__about__ import __upstream_prerelease_version__ as upstream_prerelease_version
 
 PORT = 8888
 
@@ -32,6 +31,8 @@ class OTT(OtelTest):
         }
 
     def requirements(self) -> Sequence[str]:
+        from splunk_otel.__about__ import __upstream_prerelease_version__ as upstream_prerelease_version
+
         return [
             project_path(),
             "oteltest",
