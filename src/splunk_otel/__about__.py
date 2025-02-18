@@ -14,4 +14,3 @@
 
 
 __version__ = "2.1.0"
-__upstream_prerelease_version__ = "0.51b0"

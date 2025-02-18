@@ -3,6 +3,8 @@ from pathlib import Path
 
 from opentelemetry import trace
 
+UPSTREAM_PRERELEASE_VERSION = "0.51b0"
+
 
 def project_path():
     return str(Path(__file__).parent.parent)
