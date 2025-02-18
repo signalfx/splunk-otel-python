@@ -1,0 +1,14 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: splunk-otel-python
+spec:
+  exporter:
+    endpoint: http://localhost:4318
+  sampler:
+    type: always_on
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+    image: "splunk-otel-python-init:v2.0.0"
