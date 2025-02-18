@@ -4,7 +4,6 @@ from opentelemetry import trace
 from ott_lib import project_path
 from splunk_otel.__about__ import __upstream_prerelease_version__ as upstream_prerelease_version
 
-
 MESSAGE = "uh oh!"
 LOGGER_NAME = "logging-ott"
 
