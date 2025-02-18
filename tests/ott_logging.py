@@ -2,6 +2,8 @@ import logging
 
 from opentelemetry import trace
 from ott_lib import project_path
+from splunk_otel.__about__ import __upstream_prerelease_version__ as upstream_prerelease_version
+
 
 MESSAGE = "uh oh!"
 LOGGER_NAME = "logging-ott"
@@ -17,7 +19,7 @@ if __name__ == "__main__":
 
 class LoggingOtelTest:
     def requirements(self):
-        return project_path(), "opentelemetry-instrumentation-logging==0.49b2"
+        return project_path(), f"opentelemetry-instrumentation-logging=={upstream_prerelease_version}"
 
     def environment_variables(self):
         return {

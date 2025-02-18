@@ -2,6 +2,7 @@ from typing import Mapping, Optional, Sequence
 
 from oteltest import OtelTest, Telemetry
 from ott_lib import project_path
+from splunk_otel.__about__ import __upstream_prerelease_version__ as upstream_prerelease_version
 
 PORT = 8888
 
@@ -35,7 +36,7 @@ class OTT(OtelTest):
             project_path(),
             "oteltest",
             "flask",
-            "opentelemetry-instrumentation-flask==0.50b0",
+            f"opentelemetry-instrumentation-flask=={upstream_prerelease_version}",
         ]
 
     def wrapper_command(self) -> str:
