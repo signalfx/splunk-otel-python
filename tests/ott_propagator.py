@@ -1,7 +1,7 @@
 from typing import Mapping, Optional, Sequence
 
 from oteltest import OtelTest, Telemetry
-from ott_lib import project_path, UPSTREAM_PRERELEASE_VERSION
+from ott_lib import UPSTREAM_PRERELEASE_VERSION, project_path
 
 PORT = 8888
 
