@@ -1,7 +1,7 @@
 from typing import Mapping, Optional, Sequence
 
 from oteltest import OtelTest, Telemetry
-from ott_lib import project_path
+from ott_lib import UPSTREAM_PRERELEASE_VERSION, project_path
 
 PORT = 8888
 
@@ -35,7 +35,7 @@ class OTT(OtelTest):
             project_path(),
             "oteltest",
             "flask",
-            "opentelemetry-instrumentation-flask==0.50b0",
+            f"opentelemetry-instrumentation-flask=={UPSTREAM_PRERELEASE_VERSION}",
         ]
 
     def wrapper_command(self) -> str:

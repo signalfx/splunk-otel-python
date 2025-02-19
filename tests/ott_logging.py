@@ -1,7 +1,7 @@
 import logging
 
 from opentelemetry import trace
-from ott_lib import project_path
+from ott_lib import UPSTREAM_PRERELEASE_VERSION, project_path
 
 MESSAGE = "uh oh!"
 LOGGER_NAME = "logging-ott"
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
 class LoggingOtelTest:
     def requirements(self):
-        return project_path(), "opentelemetry-instrumentation-logging==0.49b2"
+        return project_path(), f"opentelemetry-instrumentation-logging=={UPSTREAM_PRERELEASE_VERSION}"
 
     def environment_variables(self):
         return {
