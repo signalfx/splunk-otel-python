@@ -54,10 +54,12 @@ deploy-job:
 
 publish-docker-image:
   stage: post-release
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-alpha)?.*/'
-  before_script:
-    - ./docker/install-docker-deps.sh
-    - ./docker/install-gh-deps.sh
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+  only:
+    - /^test-[0-9]+$/
   script:
-    - ./docker/publish-docker-image.sh "$CI_COMMIT_TAG"
+    - docker version
