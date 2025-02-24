@@ -36,6 +36,8 @@ checksum-signing-job:
     SIGN_TYPE: GPG
     DOWNLOAD_DIR: dist
     LOGLEVEL: DEBUG
+  only:
+    - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
   artifacts:
     paths:
       - dist/
