@@ -41,6 +41,13 @@
   </strong>
 </p>
 
+# Deprecation Notice
+
+:warning: The Splunk Distribution of OpenTelemetry Python version 1.X is deprecated as of February 28, 2025 and will reach End of Support on June 30, 2025. Until then, only critical security fixes and bug fixes will be provided.
+
+New customers should use the latest version of the Splunk OpenTelemetry Python agent. Existing customers should consider migrating to Splunk OpenTelemetry Python 2.0 or higher.
+See [Migrate to the Splunk Python 2.0 instrumentation](https://docs.splunk.com/observability/en/gdi/get-data-in/application/python/migration-guide.html#python-migration-guide).
+
 # Splunk Distribution of OpenTelemetry Python
 
 The Splunk distribution of [OpenTelemetry
