@@ -41,3 +41,9 @@ The Splunk distribution of OpenTelemetry Python Instrumentation is a
 distribution of [OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python).
 It is licensed under the terms of the Apache Software License version 2.0.
 See [the license file](./LICENSE.txt) for more details.
+
+# Deprecation
+ℹ️ The Splunk Distribution of OpenTelemetry Python version 1.X is deprecated as of February 28, 2025 and will reach end of
+support on February 28, 2026. Existing customers should consider migrating to Splunk OpenTelemetry Python 2.0 or higher.
+See [Migrate to the Splunk Python 2.0 instrumentation](https://docs.splunk.com/observability/en/gdi/get-data-in/application/python/migration-guide.html#python-migration-guide).
+
