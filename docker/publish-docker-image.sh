@@ -1,38 +1,18 @@
 #!/usr/bin/env bash
 set -e
 
-# NOTE: this script is meant to be run on GitLab CI, as it depends on GitLab CI variables
+cd docker
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-source "${SCRIPT_DIR}/common.sh"
-
-ROOT_DIR="${SCRIPT_DIR}/../"
-cd "${ROOT_DIR}"
-
-print_usage() {
-  cat <<EOF
-Usage: $(basename "$0") tag"
-
-Tag example: v1.2.3
-EOF
-}
-
-if [[ $# != 1 ]]
-then
-  print_usage
-  exit 1
-fi
-
-release_tag="$1"
+release_tag="$1" # e.g. v1.2.3
+major_version=$(echo $release_tag | cut -d '.' -f1) # e.g. "v1"
+repo="quay.io/signalfx/splunk-otel-instrumentation-python"
 
 build_docker_image() {
   echo ">>> Building the operator docker image ..."
-  cd docker
   docker build -t splunk-otel-instrumentation-python .
-  docker tag splunk-otel-instrumentation-python quay.io/signalfx/splunk-otel-instrumentation-python:latest
-  docker tag splunk-otel-instrumentation-python "quay.io/signalfx/splunk-otel-instrumentation-python:v$(get_major_version "$release_tag")"
-  docker tag splunk-otel-instrumentation-python "quay.io/signalfx/splunk-otel-instrumentation-python:$release_tag"
+  docker tag splunk-otel-instrumentation-python ${repo}:latest
+  docker tag splunk-otel-instrumentation-python ${repo}:${major_version}
+  docker tag splunk-otel-instrumentation-python ${repo}:${release_tag}
 }
 
 login_to_quay_io() {
@@ -42,9 +22,9 @@ login_to_quay_io() {
 
 publish_docker_image() {
   echo ">>> Publishing the operator docker image ..."
-  docker push quay.io/signalfx/splunk-otel-instrumentation-python:latest
-  docker push "quay.io/signalfx/splunk-otel-instrumentation-python:v$(get_major_version "$release_tag")"
-  docker push "quay.io/signalfx/splunk-otel-instrumentation-python:$release_tag"
+  docker push ${repo}:latest
+  docker push ${repo}:${major_version}
+  docker push ${repo}:${release_tag}
 }
 
 build_docker_image
