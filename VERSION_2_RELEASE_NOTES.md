@@ -87,3 +87,6 @@ already installed in the current environment. In version 2 the `splunk-py-trace-
 |---------|--------------------------------------------------------|
 | 1.x     | `splunk-py-trace-bootstrap`, `splk-py-trace-bootstrap` |
 | 2.x     | `opentelemetry-bootstrap`                              |
+
+> **Note:** `opentelemetry-bootstrap` does not install packages automatically. You need to pass it the `-a install`
+> flag to install them.

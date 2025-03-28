@@ -57,7 +57,6 @@ class SplunkDistro(BaseDistro):
     def __init__(self):
         # can't accept an arg here because of the parent class
         self.env = Env()
-        self.logger = logging.getLogger(__name__)
 
     def _configure(self, **kwargs):
         self.set_env_defaults()
@@ -67,6 +66,25 @@ class SplunkDistro(BaseDistro):
         self.handle_realm()
         self.configure_token_headers()
         self.set_server_timing_propagator()
+
+    def set_env_defaults(self):
+        for key, value in DEFAULTS.items():
+            self.env.setdefault(key, value)
+
+    def check_service_name(self):
+        if not len(self.env.getval(OTEL_SERVICE_NAME)):
+            _pylogger.warning(_NO_SERVICE_NAME_WARNING)
+            self.env.setval(OTEL_SERVICE_NAME, _DEFAULT_SERVICE_NAME)
+
+    def set_profiling_env(self):
+        if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
+            logs_endpt = self.env.getval(SPLUNK_PROFILER_LOGS_ENDPOINT)
+            if logs_endpt:
+                self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
+
+    def set_resource_attributes(self):
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
+        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
     def handle_realm(self):
         realm = self.env.getval(SPLUNK_REALM)
@@ -81,27 +99,8 @@ class SplunkDistro(BaseDistro):
                 f"{ingest_url}/v2/datapoint/otlp",
             )
 
-            # if realm is set, we assume direct ingest and set the protocol to `http/proto`
+            # if realm is set, we assume direct ingest and set the protocol to `http/protobuf`
             self.env.setdefault(OTEL_EXPORTER_OTLP_PROTOCOL, "http/protobuf")
-
-    def check_service_name(self):
-        if not len(self.env.getval(OTEL_SERVICE_NAME)):
-            _pylogger.warning(_NO_SERVICE_NAME_WARNING)
-            self.env.setval(OTEL_SERVICE_NAME, _DEFAULT_SERVICE_NAME)
-
-    def set_env_defaults(self):
-        for key, value in DEFAULTS.items():
-            self.env.setdefault(key, value)
-
-    def set_profiling_env(self):
-        if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
-            logs_endpt = self.env.getval(SPLUNK_PROFILER_LOGS_ENDPOINT)
-            if logs_endpt:
-                self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
-
-    def set_resource_attributes(self):
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
     def configure_token_headers(self):
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
