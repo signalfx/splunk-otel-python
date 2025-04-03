@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.2.0 - 2025-04-03
+- Upgrade Otel dependencies to 1.31.1 / 0.52b1
+
 ## 2.1.0 - 2025-02-18
 - Upgrade Otel dependencies to 1.30.0 / 0.51b0
 
