@@ -64,4 +64,4 @@ publish-docker-image:
   only:
     - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
   script:
-    - ./docker/publish_docker_image.sh "$CI_COMMIT_TAG"
+    - ./docker/publish-docker-image.sh "$CI_COMMIT_TAG"
