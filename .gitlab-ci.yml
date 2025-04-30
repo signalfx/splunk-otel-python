@@ -70,6 +70,4 @@ publish-docker-image:
     - ./docker/install-docker-deps.sh
     - ./docker/install-gh-deps.sh
   script:
-    - if [ -z "$CI_COMMIT_TAG" ]; then echo "Error: CI_COMMIT_TAG is not set"; exit 1; fi
-    - echo "Using CI_COMMIT_TAG: $CI_COMMIT_TAG"
     - ./docker/publish-docker-image.sh "$CI_COMMIT_TAG"
