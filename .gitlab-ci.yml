@@ -56,12 +56,20 @@ deploy-job:
 
 publish-docker-image:
   stage: post-release
-  image: docker:latest
-  services:
-    - docker:dind
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-alpha)?.*/'
+    - when: manual  # allow manual triggering (in which case CI_COMMIT_TAG must be set via the UI)
   variables:
-    DOCKER_TLS_CERTDIR: ""
-  only:
-    - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+    SIGNING_SERVICE_ADDR: "https://signing.prod.svc.splunk8s.io"
+  id_tokens:
+    CI_JOB_JWT:
+      aud:
+        - $CICD_VAULT_ADDR
+        - $SIGNING_SERVICE_ADDR
+  before_script:
+    - ./docker/install-docker-deps.sh
+    - ./docker/install-gh-deps.sh
   script:
+    - if [ -z "$CI_COMMIT_TAG" ]; then echo "Error: CI_COMMIT_TAG is not set"; exit 1; fi
+    - echo "Using CI_COMMIT_TAG: $CI_COMMIT_TAG"
     - ./docker/publish-docker-image.sh "$CI_COMMIT_TAG"
