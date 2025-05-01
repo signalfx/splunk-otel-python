@@ -1,5 +1,5 @@
 default:
-  image: 'cimg/python:3.11'
+  image: 'python:3.11-slim'
 
 include:
   - project: core-ee/signing/api-integration
