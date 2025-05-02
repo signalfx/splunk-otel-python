@@ -1,1 +1,1 @@
-splunk-opentelemetry==2.1.0
+splunk-opentelemetry==2.3.0
