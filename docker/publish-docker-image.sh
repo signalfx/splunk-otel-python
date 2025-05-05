@@ -15,6 +15,28 @@ build_docker_image() {
   docker tag splunk-otel-instrumentation-python ${repo}:${release_tag}
 }
 
+check_package_available() {
+  package_name="splunk-opentelemetry"
+  max_attempts=10
+  sleep_seconds=10
+
+  echo "Waiting for $package_name==$release_tag to be available on PyPI..."
+
+  for i in $(seq 1 $max_attempts); do
+      if curl --silent --fail "https://pypi.org/pypi/$package_name/$release_tag/json" > /dev/null; then
+          echo "Package $package_name==$release_tag is available on PyPI."
+          break
+      fi
+      echo "Attempt $i: Package not yet available. Retrying in $sleep_seconds seconds..."
+      sleep $sleep_seconds
+  done
+
+  if [ "$i" -eq "$max_attempts" ]; then
+      echo "ERROR: Package $package_name==$release_tag was not found on PyPI after $max_attempts attempts."
+      exit 1
+  fi
+}
+
 login_to_quay_io() {
   echo ">>> Logging into quay.io ..."
   docker login -u "$QUAY_USERNAME" -p "$QUAY_PASSWORD" quay.io
@@ -28,5 +50,6 @@ publish_docker_image() {
 }
 
 build_docker_image
+check_package_available
 login_to_quay_io
 publish_docker_image
