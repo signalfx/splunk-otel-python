@@ -16,7 +16,7 @@ from splunk_otel.profile import (
     _pb_profile_to_str,
     _ProfileScraper,
     _stacktraces_to_cpu_profile,
-    _StringTable,
+    _StringTable
 )
 
 
