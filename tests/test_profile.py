@@ -3,6 +3,7 @@ import gzip
 import json
 import random
 import time
+from collections import OrderedDict
 from os.path import abspath, dirname
 
 import pytest
@@ -13,7 +14,7 @@ from splunk_otel import profile_pb2
 from splunk_otel.profile import (
     _pb_profile_to_str,
     _ProfileScraper,
-    _stacktraces_to_cpu_profile,
+    _stacktraces_to_cpu_profile, _StringTable, _get_line,
 )
 
 
@@ -55,6 +56,16 @@ def test_stacktraces_to_cpu_profile(stacktraces_fixture, pb_profile_fixture, thr
     interval_millis = 100
     profile = _stacktraces_to_cpu_profile(stacktraces_fixture, thread_states_fixture, interval_millis, time_seconds)
     assert pb_profile_fixture == MessageToDict(profile)
+
+
+def test_get_line():
+    line = _get_line(OrderedDict(), _StringTable(), "test", "test", 42)
+    assert line.line == 42
+
+
+def test_get_line_none():
+    line = _get_line(OrderedDict(), _StringTable(), "test", "test", None)
+    assert line.line == -1
 
 
 def test_profile_scraper(stacktraces_fixture):
