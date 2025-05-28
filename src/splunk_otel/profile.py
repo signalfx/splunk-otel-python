@@ -260,7 +260,10 @@ def _get_location(functions_table, str_table, locations_table, frame):
 def _get_line(functions_table, str_table, file_name, function_name, line_no):
     line = profile_pb2.Line()
     line.function_id = _get_function(functions_table, str_table, file_name, function_name).id
-    line.line = line_no if line_no != 0 else -1
+    if line_no is None or line_no == 0:
+        line.line = -1
+    else:
+        line.line = line_no
     return line
 
 
