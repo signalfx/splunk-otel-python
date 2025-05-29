@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.4.0 - 2025-05-29
+- Upgrade Otel dependencies to 1.33.1 / 0.54b1
+- Fix profiling bug where line number could be None [#627](https://github.com/signalfx/splunk-otel-python/pull/627/)
+
 ## 2.3.0 - 2025-04-29
 - Upgrade Otel dependencies to 1.32.1 / 0.53b1
 
