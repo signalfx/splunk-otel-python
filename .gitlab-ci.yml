@@ -17,7 +17,7 @@ build-job:
   script:
     - pip install hatch
     - hatch build
-    - shasum -a 256 dist/* > dist/checksums.txt
+    - sha256sum dist/* > dist/checksums.txt
   artifacts:
       paths:
         - dist/
