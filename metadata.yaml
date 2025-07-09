@@ -1,0 +1,38 @@
+component: Splunk Distribution of OpenTelemetry Python
+version: 2.4.0
+
+dependencies:
+  - name: OpenTelemetry Python
+    source_href: https://github.com/open-telemetry/opentelemetry-python
+    version: 1.33.1
+    stability: stable
+  - name: OpenTelemetry Instrumentation for Python
+    source_href: https://github.com/open-telemetry/opentelemetry-python-contrib
+    version: 0.54b1
+    stability: experimental
+  - name: OpenTelemetry System Metrics Instrumentation
+    source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-system-metrics
+    version: 0.54b1
+    stability: experimental
+
+settings:
+  - property: otel.service.name
+    env: OTEL_SERVICE_NAME
+    description: Logical name of the service.
+    type: string
+    category: general
+
+instrumentations:
+  - keys:
+      - system-metrics
+    instrumented_components:
+      - name: System Metrics Instrumentation
+        supported_versions: 0.54b1 and higher
+    stability: experimental
+    support: community
+    signals:
+      - metrics:
+          - metric_name: system.cpu.utilization
+            instrument: gauge
+            description: System CPU utilization
+            category_notes: APM bundled.
