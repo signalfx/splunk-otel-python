@@ -1,4 +1,3 @@
-from oteltest import Telemetry
 from ott_lib import project_path, trace_loop
 
 if __name__ == "__main__":
@@ -21,7 +20,7 @@ class AccessTokenOtelTest:
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
+    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
         for request in telemetry.get_trace_requests():
             assert request.headers.get("x-sf-token") == "s3cr3t"
 
