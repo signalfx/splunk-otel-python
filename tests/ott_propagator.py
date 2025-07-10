@@ -1,6 +1,5 @@
 from typing import Mapping, Optional, Sequence
 
-from oteltest import OtelTest, Telemetry
 from ott_lib import UPSTREAM_PRERELEASE_VERSION, project_path
 
 PORT = 8888
@@ -24,7 +23,7 @@ if __name__ == "__main__":
     main()
 
 
-class OTT(OtelTest):
+class OtelTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {
             "OTEL_SERVICE_NAME": "my-svc",
@@ -57,7 +56,7 @@ class OTT(OtelTest):
 
         return 6
 
-    def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
+    def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
         pass
 
     def is_http(self) -> bool:
