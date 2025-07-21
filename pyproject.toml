@@ -7,14 +7,13 @@ name = "splunk-opentelemetry"
 dynamic = ["version"]
 description = ''
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = "Apache-2.0"
 keywords = []
 authors = []
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -69,7 +68,7 @@ cov = [
 ]
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+python = ["3.9", "3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.types]
 dependencies = [

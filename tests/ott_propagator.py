@@ -1,4 +1,5 @@
-from typing import Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Optional
 
 from ott_lib import UPSTREAM_PRERELEASE_VERSION, project_path
 
