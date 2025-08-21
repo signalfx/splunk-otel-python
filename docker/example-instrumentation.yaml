@@ -11,4 +11,4 @@ spec:
     env:
       - name: OTEL_EXPORTER_OTLP_PROTOCOL
         value: http/protobuf
-    image: "splunk-otel-instrumentation-python:v2.1.0"
+    image: "splunk-otel-instrumentation-python:v2.7.0"
