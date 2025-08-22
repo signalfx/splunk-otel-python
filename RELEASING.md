@@ -1,8 +1,6 @@
 # Releasing splunk-opentelemetry
 
-This document describes the steps to release a new version of the `splunk-opentelemetry` package.
-
-Steps to release a new version:
+How to release a new version of the `splunk-opentelemetry` project:
 
 1) Create a new branch from `main`
 2) Bump dependency versions in pyproject.toml
@@ -25,8 +23,17 @@ Steps to release a new version:
 8) Open a PR and merge after approval
 9) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
    version number in the `__about__.py` file
-10) When ready to release, create a new tag like `v3.4.5` on main in GitLab with the version number
-    - a tag of the format `vX.Y.Z` will trigger the CI pipeline to build and publish the package to PyPI and the Docker image to Quay
+10) When ready to release, create a new tag like `v3.4.5` on main in GitLab
+    - a tag of the format `vX.Y.Z` will trigger the CI pipeline to build and publish the package to PyPI and the Docker
+      image to Quay
 11) Monitor the release pipeline in GitLab to ensure it completes successfully
 12) Post release, verify that the new package is available on PyPI and the Docker image is available on Quay
 13) Smoke test the release locally by installing the new package and running it with a small app
+14) Navigate to Pipelines in the GitLab repo, click the download button for the build job that just ran,
+    and select the 'build-job' artifact
+    - this will download a tarball of the package files
+15) Navigate to the Splunk OTel Python repo and create a New Release
+    - create a new tag on publish with the tag name you created in step 10
+    - set the title to that tag name (e.g. `v2.7.0`)
+    - unpack the tarball from step 14 and drag its contents onto the attachments section of the New Release page
+    - Leave the defaults selected and click Publish
