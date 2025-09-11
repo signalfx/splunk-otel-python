@@ -1,0 +1,1115 @@
+component: Splunk Distribution of OpenTelemetry Python
+version: 1.0.0
+dependencies: []
+settings:
+  - property: otel.attribute.count.limit
+    env: OTEL_ATTRIBUTE_COUNT_LIMIT
+    description: Integer value for otel attribute count limit.
+    default: ''
+    type: int
+    category: general
+  - property: otel.attribute.value.length.limit
+    env: OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT
+    description: Integer value for otel attribute value length limit.
+    default: '12000'
+    type: int
+    category: general
+  - property: otel.event.attribute.count.limit
+    env: OTEL_EVENT_ATTRIBUTE_COUNT_LIMIT
+    description: Integer value for otel event attribute count limit.
+    default: ''
+    type: int
+    category: general
+  - property: otel.experimental.resource.detectors
+    env: OTEL_EXPERIMENTAL_RESOURCE_DETECTORS
+    description: Value for otel experimental resource detectors.
+    default: host,process
+    type: string
+    category: general
+  - property: otel.link.attribute.count.limit
+    env: OTEL_LINK_ATTRIBUTE_COUNT_LIMIT
+    description: Integer value for otel link attribute count limit.
+    default: ''
+    type: int
+    category: general
+  - property: otel.logs.exporter
+    env: OTEL_LOGS_EXPORTER
+    description: Value for otel logs exporter.
+    default: otlp
+    type: string
+    category: exporter
+  - property: otel.metrics.exporter
+    env: OTEL_METRICS_EXPORTER
+    description: Value for otel metrics exporter.
+    default: otlp
+    type: string
+    category: exporter
+  - property: otel.python.logging.auto.instrumentation.enabled
+    env: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+    description: Enable or disable otel python logging auto instrumentation enabled.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.span.attribute.count.limit
+    env: OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
+    description: Integer value for otel span attribute count limit.
+    default: ''
+    type: int
+    category: general
+  - property: otel.span.event.count.limit
+    env: OTEL_SPAN_EVENT_COUNT_LIMIT
+    description: Integer value for otel span event count limit.
+    default: ''
+    type: int
+    category: general
+  - property: otel.span.link.count.limit
+    env: OTEL_SPAN_LINK_COUNT_LIMIT
+    description: Integer value for otel span link count limit.
+    default: '1000'
+    type: int
+    category: general
+  - property: otel.traces.exporter
+    env: OTEL_TRACES_EXPORTER
+    description: Value for otel traces exporter.
+    default: otlp
+    type: string
+    category: exporter
+  - property: otel.traces.sampler
+    env: OTEL_TRACES_SAMPLER
+    description: Value for otel traces sampler.
+    default: always_on
+    type: string
+    category: general
+  - property: splunk.access.token
+    env: SPLUNK_ACCESS_TOKEN
+    description: Value for splunk access token.
+    default: ''
+    type: string
+    category: splunk
+  - property: splunk.otel.system.metrics.enabled
+    env: SPLUNK_OTEL_SYSTEM_METRICS_ENABLED
+    description: Enable or disable splunk otel system metrics enabled.
+    default: ''
+    type: boolean
+    category: splunk
+  - property: splunk.profiler.call.stack.interval
+    env: SPLUNK_PROFILER_CALL_STACK_INTERVAL
+    description: Integer value for splunk profiler call stack interval.
+    default: ''
+    type: int
+    category: splunk
+  - property: splunk.profiler.enabled
+    env: SPLUNK_PROFILER_ENABLED
+    description: Enable or disable splunk profiler enabled.
+    default: ''
+    type: boolean
+    category: splunk
+  - property: splunk.profiler.logs.endpoint
+    env: SPLUNK_PROFILER_LOGS_ENDPOINT
+    description: Value for splunk profiler logs endpoint.
+    default: ''
+    type: string
+    category: splunk
+  - property: splunk.realm
+    env: SPLUNK_REALM
+    description: Value for splunk realm.
+    default: ''
+    type: string
+    category: splunk
+  - property: splunk.trace.response.header.enabled
+    env: SPLUNK_TRACE_RESPONSE_HEADER_ENABLED
+    description: Enable or disable splunk trace response header enabled.
+    default: ''
+    type: boolean
+    category: splunk
+instrumentations:
+  - keys:
+      - aio_pika
+    instrumented_components:
+      - name: AioPika
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Messaging {operation}
+            kind: PRODUCER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.message_id
+              - messaging.conversation_id
+              - net.peer.name
+              - net.peer.port
+          - name: Messaging {operation}
+            kind: CONSUMER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.message_id
+              - messaging.conversation_id
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - aiohttp_client
+    instrumented_components:
+      - name: AioHttpClient
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: CLIENT
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.status_code
+              - net.peer.name
+              - net.peer.port
+              - http.url
+  - keys:
+      - aiohttp_server
+    instrumented_components:
+      - name: AioHttpServer
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - aiokafka
+    instrumented_components:
+      - name: AIOKafka
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Kafka {operation} {topic}
+            kind: CONSUMER
+            attributes:
+              - messaging.system
+              - messaging.kafka.message.key
+              - messaging.destination.name
+              - messaging.destination.partition.id
+              - messaging.kafka.message.offset
+              - messaging.operation.name
+              - messaging.operation.type
+              - messaging.consumer.group.name
+  - keys:
+      - aiopg
+    instrumented_components:
+      - name: Aiopg
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {query}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.user
+              - db.statement
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - asgi
+    instrumented_components:
+      - name: ASGI
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - asyncclick
+    instrumented_components:
+      - name: AsyncClick
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Command {ctx.info_name}
+            kind: INTERNAL
+            attributes:
+              - process.command.args
+              - process.executable.name
+              - process.exit.code
+              - process.pid
+  - keys:
+      - asyncio
+    instrumented_components:
+      - name: AsyncIO
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: AsyncIO Coroutine {coroutine.name}
+            kind: INTERNAL
+            attributes:
+              - asyncio.coroutine.name
+              - asyncio.coroutine.state
+              - asyncio.coroutine.duration
+          - name: AsyncIO Future {future.state}
+            kind: INTERNAL
+            attributes:
+              - asyncio.future.state
+              - asyncio.future.duration
+          - name: AsyncIO to_thread {function.name}
+            kind: INTERNAL
+            attributes:
+              - asyncio.to_thread.function.name
+              - asyncio.to_thread.state
+  - keys:
+      - asyncpg
+    instrumented_components:
+      - name: AsyncPG
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.user
+              - db.statement
+              - db.statement.parameters
+              - net.peer.name
+              - net.peer.port
+              - net.transport
+  - keys:
+      - aws_lambda
+    instrumented_components:
+      - name: AWS Lambda
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: AWS Lambda Invocation
+            kind: SERVER
+            attributes:
+              - faas.invocation_id
+              - cloud.account.id
+              - cloud.resource_id
+              - faas.trigger
+              - http.method
+              - http.route
+              - http.status_code
+  - keys:
+      - boto
+    instrumented_components:
+      - name: Boto
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: '{endpoint}.command'
+            kind: CONSUMER
+            attributes:
+              - endpoint
+              - http_method
+              - aws.agent
+              - aws.operation
+              - aws.region
+              - http.status_code
+  - keys:
+      - boto3sqs
+    instrumented_components:
+      - name: Boto3SQS
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: '{queue_name} send'
+            kind: PRODUCER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.destination.kind
+              - messaging.url
+              - messaging.message_id
+          - name: '{queue_name} receive'
+            kind: CONSUMER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.destination.kind
+              - messaging.url
+              - messaging.conversation_id
+              - messaging.message_id
+  - keys:
+      - botocore
+    instrumented_components:
+      - name: Botocore
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: AWS {call_context.operation}
+            kind: CLIENT
+            attributes:
+              - aws.request_id
+              - aws.queue_url
+              - aws.dynamodb.table_names
+              - aws.step_functions.activity_arn
+              - aws.step_functions.state_machine_arn
+              - http.status_code
+  - keys:
+      - cassandra
+    instrumented_components:
+      - name: Cassandra
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Cassandra {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.statement
+              - net.peer.name
+  - keys:
+      - celery
+    instrumented_components:
+      - name: Celery
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Celery {task.name}
+            kind: CONSUMER
+            attributes:
+              - celery.action
+              - celery.task_name
+              - messaging.message_id
+              - messaging.conversation_id
+              - celery.retry.reason
+              - celery.revoked.reason
+  - keys:
+      - click
+    instrumented_components:
+      - name: Click
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Command {command_name}
+            kind: INTERNAL
+            attributes:
+              - process.command.args
+              - process.executable.name
+              - process.exit.code
+              - process.pid
+  - keys:
+      - confluent_kafka
+    instrumented_components:
+      - name: Confluent Kafka
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Kafka Produce {topic}
+            kind: PRODUCER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.kafka.partition
+              - messaging.message_id
+              - messaging.operation
+          - name: Kafka Consume {topic}
+            kind: CONSUMER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.kafka.partition
+              - messaging.message_id
+              - messaging.operation
+  - keys:
+      - dbapi
+    instrumented_components:
+      - name: DBAPI
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: DB {db.system} {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.statement
+              - db.user
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - django
+    instrumented_components:
+      - name: Django
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - elasticsearch
+    instrumented_components:
+      - name: Elasticsearch
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: '{span_name_prefix} {elasticsearch.method}'
+            kind: CLIENT
+            attributes:
+              - elasticsearch.url
+              - elasticsearch.method
+              - elasticsearch.params
+              - elasticsearch.id
+              - elasticsearch.target
+              - db.system
+  - keys:
+      - falcon
+    instrumented_components:
+      - name: Falcon
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+              - falcon.resource
+  - keys:
+      - fastapi
+    instrumented_components:
+      - name: FastAPI
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - flask
+    instrumented_components:
+      - name: Flask
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - grpc
+    instrumented_components:
+      - name: gRPC
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: gRPC {request.method}
+            kind: SERVER
+            attributes:
+              - rpc.method
+              - rpc.service
+              - rpc.system
+              - rpc.grpc.status_code
+  - keys:
+      - httpx
+    instrumented_components:
+      - name: HTTPX
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: CLIENT
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+  - keys:
+      - jinja2
+    instrumented_components:
+      - name: Jinja2
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: jinja2.render
+            kind: INTERNAL
+            attributes:
+              - jinja2.template_name
+              - jinja2.template_path
+          - name: jinja2.compile
+            kind: INTERNAL
+            attributes:
+              - jinja2.template_name
+          - name: jinja2.load
+            kind: INTERNAL
+            attributes:
+              - jinja2.template_name
+              - jinja2.template_path
+  - keys:
+      - kafka
+    instrumented_components:
+      - name: Kafka
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Kafka {topic} send
+            kind: PRODUCER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.kafka.partition
+              - messaging.url
+          - name: Kafka {topic} receive
+            kind: CONSUMER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.kafka.partition
+              - messaging.url
+  - keys:
+      - logging
+    instrumented_components:
+      - name: Logging
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Log Entry
+            kind: INTERNAL
+            attributes:
+              - otelSpanID
+              - otelTraceID
+              - otelServiceName
+              - otelTraceSampled
+  - keys:
+      - mysql
+    instrumented_components:
+      - name: MySQL
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.connection_string
+              - db.user
+              - db.name
+              - db.statement
+              - db.operation
+  - keys:
+      - mysqlclient
+    instrumented_components:
+      - name: MySQLClient
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.connection_string
+              - db.user
+              - db.name
+              - db.statement
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - pika
+    instrumented_components:
+      - name: Pika
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Pika {operation}
+            kind: PRODUCER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.message_id
+              - messaging.conversation_id
+              - net.peer.name
+              - net.peer.port
+          - name: Pika {operation}
+            kind: CONSUMER
+            attributes:
+              - messaging.system
+              - messaging.destination
+              - messaging.message_id
+              - messaging.conversation_id
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - psycopg
+    instrumented_components:
+      - name: Psycopg
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.statement
+              - db.user
+              - db.host
+              - db.port
+  - keys:
+      - psycopg2
+    instrumented_components:
+      - name: Psycopg2
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.statement
+              - db.user
+              - db.host
+              - db.port
+  - keys:
+      - pymemcache
+    instrumented_components:
+      - name: Pymemcache
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Pymemcache {command}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.statement
+              - net.peer.name
+              - net.peer.port
+              - net.transport
+  - keys:
+      - pymongo
+    instrumented_components:
+      - name: Pymongo
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: '{event.database_name}.{event.command_name}'
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.statement
+              - db.mongodb.collection
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - pymssql
+    instrumented_components:
+      - name: PyMSSQL
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: DB {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.user
+              - net.peer.name
+              - net.peer.port
+              - db.protocol.tds.version
+              - db.charset
+  - keys:
+      - pymysql
+    instrumented_components:
+      - name: PyMySQL
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.connection_string
+              - db.user
+              - db.name
+              - db.statement
+              - db.operation
+  - keys:
+      - pyramid
+    instrumented_components:
+      - name: Pyramid
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - redis
+    instrumented_components:
+      - name: Redis
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Redis {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.redis.database_index
+              - db.redis.args_length
+              - db.redis.index
+              - db.redis.query
+  - keys:
+      - remoulade
+    instrumented_components:
+      - name: Remoulade
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: Remoulade {operation_name}
+            kind: CONSUMER
+            attributes:
+              - remoulade.action
+              - remoulade.actor_name
+              - remoulade.retry_count
+              - messaging.message_id
+  - keys:
+      - requests
+    instrumented_components:
+      - name: Requests
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: CLIENT
+            attributes:
+              - http.method
+              - http.url
+              - http.scheme
+              - http.host
+              - http.target
+              - http.status_code
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - sqlalchemy
+    instrumented_components:
+      - name: SQLAlchemy
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.statement
+              - db.name
+              - db.user
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - sqlite3
+    instrumented_components:
+      - name: SQLite3
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {db.statement}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.statement
+              - db.name
+              - db.operation
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - starlette
+    instrumented_components:
+      - name: Starlette
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - system_metrics
+    instrumented_components:
+      - name: SystemMetrics
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans: []
+  - keys:
+      - threading
+    instrumented_components:
+      - name: Threading
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans: []
+  - keys:
+      - tornado
+    instrumented_components:
+      - name: Tornado
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
+  - keys:
+      - tortoiseorm
+    instrumented_components:
+      - name: TortoiseORM
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: SQL {query}
+            kind: CLIENT
+            attributes:
+              - db.system
+              - db.name
+              - db.statement
+              - db.user
+              - net.peer.name
+              - net.peer.port
+              - db.statement.parameters
+  - keys:
+      - urllib
+    instrumented_components:
+      - name: URLLib
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: CLIENT
+            attributes:
+              - http.method
+              - http.url
+              - http.status_code
+              - net.host.name
+              - net.host.port
+  - keys:
+      - urllib3
+    instrumented_components:
+      - name: URLLib3
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: CLIENT
+            attributes:
+              - http.method
+              - http.url
+              - http.scheme
+              - http.host
+              - http.status_code
+              - net.peer.name
+              - net.peer.port
+  - keys:
+      - wsgi
+    instrumented_components:
+      - name: WSGI
+        supported_versions: varies
+    stability: stable
+    support: official
+    signals:
+      - spans:
+          - name: HTTP {request.method}
+            kind: SERVER
+            attributes:
+              - http.method
+              - http.scheme
+              - http.host
+              - http.target
+              - http.server_name
+              - http.status_code
+              - http.flavor
+              - net.host.port
+              - net.host.name
+              - http.route
