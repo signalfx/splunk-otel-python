@@ -1,271 +1,158 @@
-import argparse
 import os
-import re
+import yaml
+import glob
+import ast
+import sys
+from pathlib import Path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+from splunk_otel.env import DEFAULTS
 
-import tempfile
-import shutil
-import subprocess
+def find_all_yaml_files(yamls_dir):
+    yamls_dir = Path(yamls_dir)
+    return sorted([f for f in yamls_dir.iterdir() if f.is_file() and f.suffix == '.yaml'], key=lambda p: p.name)
 
-from langchain.prompts import PromptTemplate
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
+def load_yaml_file(path):
+    try:
+        with open(path, 'r') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        print(f"[WARN] Could not load {path}: {e}")
+        return None
 
+def extract_instrumentation_fields(data):
+    instr = {}
+    if 'keys' in data:
+        instr['keys'] = data['keys']
+    elif 'instrumentation_name' in data:
+        instr['keys'] = [data['instrumentation_name']]
+    elif 'name' in data:
+        instr['keys'] = [data['name'].lower()]
+    else:
+        instr['keys'] = []
 
-def get_instrumentation_code(path):
-    """
-    Loads relevant Python files from the specified directory, prioritizing key files
-    and limiting content to stay under token limits.
-    """
-    loader = DirectoryLoader(
-        path, 
-        glob="**/*.py",
-        loader_cls=TextLoader,
-        loader_kwargs={'encoding': 'utf-8'},
-        show_progress=True,
-        use_multithreading=True,
-        exclude=["**/tests/**", "**/test_*.py", "**/__pycache__/**"]
-    )
-    docs = loader.load()
-    if not docs:
-        return f"Could not find any .py files in '{path}'"
+    if 'instrumented_components' in data:
+        instr['instrumented_components'] = data['instrumented_components']
+    elif 'name' in data:
+        instr['instrumented_components'] = [{
+            'name': data['name'],
+            'supported_versions': data.get('supported_versions', 'varies')
+        }]
+    else:
+        instr['instrumented_components'] = []
 
-    priority_patterns = [
-        "__init__.py",
-        "instrumentation.py",
-        "patch.py",
-        "middleware.py",
-        "version.py"
-    ]
+    instr['stability'] = data.get('stability', 'stable')
+    instr['support'] = data.get('support', 'official')
 
-    def get_priority(doc, patterns=priority_patterns):
-        filename = os.path.basename(doc.metadata['source'])
-        for i, pattern in enumerate(patterns):
-            if pattern in filename:
-                return i
-        return len(patterns)
+    def norm(attrs):
+        return [a['name'] if isinstance(a, dict) and set(a)=={'name'} else a for a in (attrs or [])]
 
-    def filter_and_limit_docs(docs, max_chars=80000, priority_patterns=priority_patterns, truncate_top_n=3):
-        """
-        Sorts docs by priority and selects/truncates to fit max_chars.
-        Returns a list of selected docs (possibly with truncated content).
-        """
-        docs = sorted(docs, key=lambda doc: get_priority(doc, priority_patterns))
-        total_chars = 0
-        selected_docs = []
-        for doc in docs:
-            doc_chars = len(doc.page_content)
-            if total_chars + doc_chars < max_chars:
-                selected_docs.append(doc)
-                total_chars += doc_chars
-            else:
-                # If this is a high-priority file, include a truncated version
-                if get_priority(doc, priority_patterns) < truncate_top_n:
-                    remaining_chars = max_chars - total_chars - 200  # Leave some buffer
-                    if remaining_chars > 1000:
-                        truncated_content = doc.page_content[:remaining_chars] + "\n\n... [TRUNCATED]"
-                        doc.page_content = truncated_content
-                        selected_docs.append(doc)
-                break
-        return selected_docs
+    signals = []
+    for key in ('spans',):
+        if key in data:
+            spans = [dict(span, attributes=norm(span.get('attributes'))) if 'attributes' in span else dict(span) for span in data[key]]
+            signals.append({'spans': spans})
+    if not signals and 'signals' in data:
+        for s in data['signals']:
+            if 'spans' in s:
+                spans = [dict(span, attributes=norm(span.get('attributes'))) if 'attributes' in span else dict(span) for span in s['spans']]
+                signals.append({'spans': spans})
+    instr['signals'] = signals
 
-    selected_docs = filter_and_limit_docs(docs)
+    return instr
 
-    # Concatenate the content of selected documents
-    return "\n\n---\n\n".join(
-        [f"# Source: {os.path.basename(doc.metadata['source'])}\n\n{doc.page_content}" for doc in selected_docs]
-    )
+def main():
+    yamls_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "yamls")
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "splunk-otel-python-metadata.yaml")
 
+    component = "Splunk Distribution of OpenTelemetry Python"
+    version = "1.0.0"
+    dependencies = []
+    instrumentations = []
 
-def extract_env_vars_from_code(source_code: str):
-    """
-    Extracts environment variable names (OTEL_ and SPLUNK_) from the source code.
-    """
-    return sorted(set(re.findall(r"(?:OTEL|SPLUNK)_[A-Z0-9_]+", source_code)))
-
-
-def estimate_tokens(text: str) -> int:
-    """Rough estimation of tokens (1 token ≈ 4 characters)"""
-    return len(text) // 4
-
-
-def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, max_source_chars=40000):
-    """
-    Generates a metadata.yaml file for a single instrumentation.
-    Args:
-        instrumentation_dir: Path to the instrumentation directory.
-        token_limit: Max allowed tokens for the prompt (default: 25000).
-        max_source_chars: Max allowed characters for source code in prompt (default: 40000).
-    """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)  
-
-    # The example you are happy with, to be used in the prompt
-    example_yaml = """
-name: FastAPI
-instrumentation_name: fastapi
-source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-fastapi
-package_name: opentelemetry-instrumentation-fastapi
-stability: stable
-description: This instrumentation provides automatic tracing for web requests in FastAPI applications.
-settings:
-  - property: otel.python.fastapi.enabled
-    env: OTEL_PYTHON_FASTAPI_ENABLED
-    description: If true, enables the FastAPI instrumentation.
-    default: 'true'
-    type: boolean
-    category: instrumentation
-  - property: otel.instrumentation.http.capture_headers.server.request
-    env: OTEL_PYTHON_SERVER_REQUEST_HEADERS
-    description: A comma-separated list of HTTP request header names to capture.
-    default: ''
-    type: string
-    category: instrumentation
-  - property: otel.instrumentation.http.capture_headers.server.response
-    env: OTEL_PYTHON_SERVER_RESPONSE_HEADERS
-    description: A comma-separated list of HTTP response header names to capture.
-    default: ''
-    type: string
-    category: instrumentation
-spans:
-  - name: 'HTTP {request.method}'
-    kind: SERVER
-    attributes:
-      - name: http.method
-      - name: http.scheme
-      - name: http.host
-      - name: http.target
-      - name: http.server_name
-      - name: http.status_code
-      - name: http.flavor
-      - name: net.host.port
-      - name: net.host.name
-      - name: http.route
-"""
-
-    prompt_template = PromptTemplate(
-        input_variables=["instrumentation_name", "source_code", "example_yaml", "env_vars"],
-        template="""
-        Based on the following source code for the '{instrumentation_name}' instrumentation,
-        and using the provided YAML file as an example, please generate a metadata.yaml file.
-
-        These environment variables were detected in the source code and MUST be included
-        in the `settings` section with correct descriptions, types, and defaults:
-        {env_vars}
-
-        Example YAML:
-        
-        {example_yaml}
-        
-
-        Source Code for '{instrumentation_name}':
-        
-        {source_code}
-        
-
-        Rules:
-        - Always include all env vars listed above in `settings`.
-        - Use clear and concise descriptions for each property.
-        - Infer defaults and types if possible (boolean, string, integer).
-        - Follow the structure in the example exactly.
-        - Include a `spans` section if relevant, based on HTTP server patterns.
-        - Output only valid YAML. Do not add any explanations, comments, or extra text before or after the YAML.
-
-        Generated metadata.yaml:
-        """
-    )
-
-    chain = prompt_template | llm | StrOutputParser()
-
-    instrumentation_name = os.path.basename(instrumentation_dir)
-    source_code = get_instrumentation_code(instrumentation_dir)
-    env_vars = extract_env_vars_from_code(source_code)
-
-    # Check token estimate before sending
-    prompt_text = prompt_template.format(
-        instrumentation_name=instrumentation_name,
-        source_code=source_code,
-        example_yaml=example_yaml,
-        env_vars=env_vars
-    )
-    
-    estimated_tokens = estimate_tokens(prompt_text)
-    
-    
-    if estimated_tokens > token_limit:
-        if len(source_code) > max_source_chars:
-            source_code = source_code[:max_source_chars] + "\n\n... [TRUNCATED FOR TOKEN LIMIT]"
-
-    generated_yaml = chain.invoke({
-        "instrumentation_name": instrumentation_name,
-        "source_code": source_code,
-        "example_yaml": example_yaml,
-        "env_vars": env_vars
-    })
+    for yaml_file in find_all_yaml_files(yamls_dir):
+        data = load_yaml_file(yaml_file)
+        if data:
+            instr = extract_instrumentation_fields(data)
+            instrumentations.append(instr)
 
 
 
-    return generated_yaml
+    # Extract all OTEL_ and SPLUNK_ env var constants from src/splunk_otel
+    settings = []
+    env_vars = set()
+    for pyfile in glob.glob(os.path.join(os.path.dirname(__file__), '../src/splunk_otel/**/*.py'), recursive=True):
+        with open(pyfile, 'r') as f:
+            tree = ast.parse(f.read(), filename=pyfile)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            if (isinstance(node.value, ast.Str) and (node.value.s.startswith('OTEL_') or node.value.s.startswith('SPLUNK_'))):
+                                env_vars.add(node.value.s)
+    # Add also those from DEFAULTS (for default values)
+    env_vars.update(DEFAULTS.keys())
+    seen = set()
+    for env in sorted(env_vars):
+        if env in seen:
+            continue
+        seen.add(env)
+        # Auto property: convert env to lower, replace _ with . and remove leading otel_/splunk_
+        prop = env.lower()
+        if prop.startswith("otel_"):
+            prop = prop.replace("otel_", "otel.", 1)
+        elif prop.startswith("splunk_"):
+            prop = prop.replace("splunk_", "splunk.", 1)
+        prop = prop.replace("_", ".")
+        # Auto type
+        if "enabled" in env.lower():
+            typ = "boolean"
+        elif any(x in env.lower() for x in ["interval", "limit", "count"]):
+            typ = "int"
+        else:
+            typ = "string"
+        # Auto category
+        if "exporter" in env.lower():
+            cat = "exporter"
+        elif "instrumentation" in env.lower():
+            cat = "instrumentation"
+        elif "splunk" in env.lower():
+            cat = "splunk"
+        else:
+            cat = "general"
+        # Auto description
+        if typ == "boolean":
+            desc = f"Enable or disable {prop.replace('.', ' ')}."
+        elif typ == "int":
+            desc = f"Integer value for {prop.replace('.', ' ')}."
+        else:
+            desc = f"Value for {prop.replace('.', ' ')}."
+        settings.append({
+            "property": prop,
+            "env": env,
+            "description": desc,
+            "default": DEFAULTS.get(env, ""),
+            "type": typ,
+            "category": cat,
+        })
+    # Sort settings by property for more readable YAML
+    settings = sorted(settings, key=lambda s: s["property"])
 
+    final_metadata = {
+        "component": component,
+        "version": version,
+        "dependencies": dependencies,
+        "settings": settings,
+        "instrumentations": instrumentations
+    }
 
+    class IndentDumper(yaml.SafeDumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super(IndentDumper, self).increase_indent(flow, False)
 
-def save_yaml(generated_yaml, instrumentation_dir, yamls_dir):
-    """
-    Saves YAML to the 'yamls' folder in the current directory, with a filename matching the instrumentation name.
-    """
-    clean_yaml = generated_yaml.replace("```yaml", "").replace("```", "").strip()
-    if "---" in clean_yaml:
-        yaml_parts = clean_yaml.split("---")
-        for part in yaml_parts:
-            part = part.strip()
-            if part and ("name:" in part or "instrumentation_name:" in part):
-                clean_yaml = part
-                break
-
-    instr_name = os.path.basename(instrumentation_dir)
-    yamls_dir = os.path.abspath(yamls_dir)
-    os.makedirs(yamls_dir, exist_ok=True)
-    output_path = os.path.join(yamls_dir, f"{instr_name}.yaml")
     with open(output_path, 'w') as f:
-        f.write(clean_yaml)
+        yaml.dump(final_metadata, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, indent=2)
 
-def clone_repo(repo_url, branch=None):
-    temp_dir = tempfile.mkdtemp(prefix="otel-python-contrib-")
-    clone_cmd = ["git", "clone"]
-    if branch:
-        clone_cmd += ["-b", branch]
-    clone_cmd += [repo_url, temp_dir]
-    subprocess.run(clone_cmd, check=True)
-    return temp_dir
-
-def find_instrumentation_dirs(base_dir):
-    instr_dirs = []
-    instr_root = os.path.join(base_dir, "instrumentation")
-    if not os.path.isdir(instr_root):
-        return instr_dirs
-    for name in os.listdir(instr_root):
-        path = os.path.join(instr_root, name)
-        if os.path.isdir(path) and name.startswith("opentelemetry-instrumentation-"):
-            instr_dirs.append(path)
-    return instr_dirs
+    print(f"[SUCCESS] Aggregated {len(instrumentations)} instrumentations into {output_path}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Clone opentelemetry-python-contrib and generate metadata.yaml for all instrumentations.")
-    parser.add_argument("--repo", default="https://github.com/open-telemetry/opentelemetry-python-contrib", help="GitHub repo URL")
-    parser.add_argument("--branch", default=None, help="Branch to clone (optional)")
-    args = parser.parse_args()
-
-    yamls_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "yamls")
-
-    temp_repo_dir = clone_repo(args.repo, args.branch)
-    try:
-        instr_dirs = find_instrumentation_dirs(temp_repo_dir)
-        print(f"Found {len(instr_dirs)} instrumentations.")
-        for instr_dir in instr_dirs:
-            print(f"Generating metadata for {instr_dir} ...")
-            try:
-                yaml = generate_instrumentation_metadata(instr_dir)
-                save_yaml(yaml, instr_dir, yamls_dir)
-            except Exception as e:
-                print(f"Failed for {instr_dir}: {e}")
-    finally:
-        shutil.rmtree(temp_repo_dir)
+    main()
