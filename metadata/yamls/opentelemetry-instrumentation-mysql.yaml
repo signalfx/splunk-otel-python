@@ -1,0 +1,41 @@
+name: MySQL
+instrumentation_name: mysql
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-mysql
+package_name: opentelemetry-instrumentation-mysql
+stability: stable
+description: This instrumentation provides automatic tracing for MySQL database interactions using mysql-connector.
+settings:
+  - property: otel.python.mysql.enabled
+    env: OTEL_PYTHON_MYSQL_ENABLED
+    description: If true, enables the MySQL instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.mysql.enable_commenter
+    env: OTEL_PYTHON_MYSQL_ENABLE_COMMENTER
+    description: If true, enables SQLCommenter to enrich queries with contextual information.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.mysql.commenter_options
+    env: OTEL_PYTHON_MYSQL_COMMENTER_OPTIONS
+    description: A JSON string of options for SQLCommenter to configure tags appended to SQL queries.
+    default: '{}'
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.mysql.enable_attribute_commenter
+    env: OTEL_PYTHON_MYSQL_ENABLE_ATTRIBUTE_COMMENTER
+    description: If true, appends SQLComment to the span attribute when SQLCommenter is enabled.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.connection_string
+      - name: db.user
+      - name: db.name
+      - name: db.statement
+      - name: db.operation

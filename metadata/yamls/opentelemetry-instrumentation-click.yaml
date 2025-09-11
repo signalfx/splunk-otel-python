@@ -1,0 +1,21 @@
+name: Click
+instrumentation_name: click
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-click
+package_name: opentelemetry-instrumentation-click
+stability: stable
+description: This instrumentation provides automatic tracing for Click CLI applications.
+settings:
+  - property: otel.python.click.enabled
+    env: OTEL_PYTHON_CLICK_ENABLED
+    description: If true, enables the Click instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'Command {command_name}'
+    kind: INTERNAL
+    attributes:
+      - name: process.command.args
+      - name: process.executable.name
+      - name: process.exit.code
+      - name: process.pid

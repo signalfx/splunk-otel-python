@@ -1,0 +1,30 @@
+name: TortoiseORM
+instrumentation_name: tortoiseorm
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-tortoiseorm
+package_name: opentelemetry-instrumentation-tortoiseorm
+stability: stable
+description: This instrumentation provides automatic tracing for SQL queries in Tortoise-ORM applications.
+settings:
+  - property: otel.python.tortoiseorm.enabled
+    env: OTEL_PYTHON_TORTOISEORM_ENABLED
+    description: If true, enables the Tortoise-ORM instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.tortoiseorm.capture_parameters
+    env: OTEL_PYTHON_TORTOISEORM_CAPTURE_PARAMETERS
+    description: If true, captures SQL query parameters in spans.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {query}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.statement
+      - name: db.user
+      - name: net.peer.name
+      - name: net.peer.port
+      - name: db.statement.parameters

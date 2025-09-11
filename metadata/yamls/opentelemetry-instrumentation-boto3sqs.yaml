@@ -1,0 +1,31 @@
+name: Boto3SQS
+instrumentation_name: boto3sqs
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-boto3sqs
+package_name: opentelemetry-instrumentation-boto3sqs
+stability: stable
+description: This instrumentation provides automatic tracing for AWS SQS applications using Boto3.
+settings:
+  - property: otel.python.boto3sqs.enabled
+    env: OTEL_PYTHON_BOTO3SQS_ENABLED
+    description: If true, enables the Boto3 SQS instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: '{queue_name} send'
+    kind: PRODUCER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.destination.kind
+      - name: messaging.url
+      - name: messaging.message_id
+  - name: '{queue_name} receive'
+    kind: CONSUMER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.destination.kind
+      - name: messaging.url
+      - name: messaging.conversation_id
+      - name: messaging.message_id

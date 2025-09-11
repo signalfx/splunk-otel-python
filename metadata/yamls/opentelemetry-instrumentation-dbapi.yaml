@@ -1,0 +1,41 @@
+name: DBAPI
+instrumentation_name: dbapi
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-dbapi
+package_name: opentelemetry-instrumentation-dbapi
+stability: stable
+description: This instrumentation provides automatic tracing for database operations using the Python Database API.
+settings:
+  - property: otel.python.dbapi.enabled
+    env: OTEL_PYTHON_DBAPI_ENABLED
+    description: If true, enables the DBAPI instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.dbapi.capture_parameters
+    env: OTEL_PYTHON_DBAPI_CAPTURE_PARAMETERS
+    description: If true, captures parameters in the db.statement attribute.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.dbapi.enable_commenter
+    env: OTEL_PYTHON_DBAPI_ENABLE_COMMENTER
+    description: If true, enables SQL commenting for queries.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.dbapi.enable_attribute_commenter
+    env: OTEL_PYTHON_DBAPI_ENABLE_ATTRIBUTE_COMMENTER
+    description: If true, includes SQL comments in the db.statement span attribute.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'DB {db.system} {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.statement
+      - name: db.user
+      - name: net.peer.name
+      - name: net.peer.port

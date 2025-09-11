@@ -1,0 +1,41 @@
+name: SQLAlchemy
+instrumentation_name: sqlalchemy
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-sqlalchemy
+package_name: opentelemetry-instrumentation-sqlalchemy
+stability: stable
+description: This instrumentation provides automatic tracing for SQL queries in SQLAlchemy applications.
+settings:
+  - property: otel.python.sqlalchemy.enabled
+    env: OTEL_PYTHON_SQLALCHEMY_ENABLED
+    description: If true, enables the SQLAlchemy instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.sqlalchemy.enable_commenter
+    env: OTEL_PYTHON_SQLALCHEMY_ENABLE_COMMENTER
+    description: If true, enables SQLCommenter to enrich SQL queries with contextual information.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.sqlalchemy.commenter_options
+    env: OTEL_PYTHON_SQLALCHEMY_COMMENTER_OPTIONS
+    description: A JSON string of options for SQLCommenter configuration.
+    default: '{}'
+    type: string
+    category: instrumentation
+  - property: otel.python.sqlalchemy.enable_attribute_commenter
+    env: OTEL_PYTHON_SQLALCHEMY_ENABLE_ATTRIBUTE_COMMENTER
+    description: If true, appends SQLComment to the `db.statement` span attribute.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.statement
+      - name: db.name
+      - name: db.user
+      - name: net.peer.name
+      - name: net.peer.port

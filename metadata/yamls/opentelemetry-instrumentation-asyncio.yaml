@@ -1,0 +1,42 @@
+name: AsyncIO
+instrumentation_name: asyncio
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-asyncio
+package_name: opentelemetry-instrumentation-asyncio
+stability: stable
+description: This instrumentation provides automatic tracing for asyncio applications.
+settings:
+  - property: otel.python.asyncio.coroutine.names.to.trace
+    env: OTEL_PYTHON_ASYNCIO_COROUTINE_NAMES_TO_TRACE
+    description: A comma-separated list of coroutine names to trace.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.python.asyncio.future.trace.enabled
+    env: OTEL_PYTHON_ASYNCIO_FUTURE_TRACE_ENABLED
+    description: If true, enables tracing for Future objects in asyncio.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.asyncio.to.thread.function.names.to.trace
+    env: OTEL_PYTHON_ASYNCIO_TO_THREAD_FUNCTION_NAMES_TO_TRACE
+    description: A comma-separated list of function names to trace when using asyncio.to_thread.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'AsyncIO Coroutine {coroutine.name}'
+    kind: INTERNAL
+    attributes:
+      - name: asyncio.coroutine.name
+      - name: asyncio.coroutine.state
+      - name: asyncio.coroutine.duration
+  - name: 'AsyncIO Future {future.state}'
+    kind: INTERNAL
+    attributes:
+      - name: asyncio.future.state
+      - name: asyncio.future.duration
+  - name: 'AsyncIO to_thread {function.name}'
+    kind: INTERNAL
+    attributes:
+      - name: asyncio.to_thread.function.name
+      - name: asyncio.to_thread.state

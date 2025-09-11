@@ -1,0 +1,31 @@
+name: AsyncPG
+instrumentation_name: asyncpg
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-asyncpg
+package_name: opentelemetry-instrumentation-asyncpg
+stability: stable
+description: This instrumentation provides automatic tracing for PostgreSQL queries made by the asyncpg library.
+settings:
+  - property: otel.python.asyncpg.enabled
+    env: OTEL_PYTHON_ASYNCPG_ENABLED
+    description: If true, enables the AsyncPG instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.asyncpg.capture_parameters
+    env: OTEL_PYTHON_ASYNCPG_CAPTURE_PARAMETERS
+    description: If true, captures query parameters in spans.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.user
+      - name: db.statement
+      - name: db.statement.parameters
+      - name: net.peer.name
+      - name: net.peer.port
+      - name: net.transport

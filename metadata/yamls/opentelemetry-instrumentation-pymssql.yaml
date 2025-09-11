@@ -1,0 +1,30 @@
+name: PyMSSQL
+instrumentation_name: pymssql
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-pymssql
+package_name: opentelemetry-instrumentation-pymssql
+stability: stable
+description: This instrumentation provides automatic tracing for database operations using the pymssql library.
+settings:
+  - property: otel.python.pymssql.enabled
+    env: OTEL_PYTHON_PYMSSQL_ENABLED
+    description: If true, enables the PyMSSQL instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.pymssql.tracer_provider
+    env: OTEL_PYTHON_PYMSSQL_TRACER_PROVIDER
+    description: The optional tracer provider to use for instrumentation.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'DB {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.user
+      - name: net.peer.name
+      - name: net.peer.port
+      - name: db.protocol.tds.version
+      - name: db.charset

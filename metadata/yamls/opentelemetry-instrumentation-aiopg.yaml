@@ -1,0 +1,29 @@
+name: Aiopg
+instrumentation_name: aiopg
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-aiopg
+package_name: opentelemetry-instrumentation-aiopg
+stability: stable
+description: This instrumentation provides automatic tracing for PostgreSQL database operations using the aiopg library.
+settings:
+  - property: otel.python.aiopg.enabled
+    env: OTEL_PYTHON_AIOPG_ENABLED
+    description: If true, enables the aiopg instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.aiopg.capture_attributes
+    env: OTEL_PYTHON_AIOPG_CAPTURE_ATTRIBUTES
+    description: A comma-separated list of connection attributes to capture (e.g., database, user, host).
+    default: 'database,user,host'
+    type: string
+    category: instrumentation
+spans:
+  - name: 'SQL {query}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.user
+      - name: db.statement
+      - name: net.peer.name
+      - name: net.peer.port

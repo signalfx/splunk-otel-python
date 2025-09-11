@@ -1,0 +1,41 @@
+name: PyMySQL
+instrumentation_name: pymysql
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-pymysql
+package_name: opentelemetry-instrumentation-pymysql
+stability: stable
+description: This instrumentation provides automatic tracing for database operations using the PyMySQL library.
+settings:
+  - property: otel.python.pymysql.enabled
+    env: OTEL_PYTHON_PYMYSQL_ENABLED
+    description: If true, enables the PyMySQL instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.pymysql.enable_commenter
+    env: OTEL_PYTHON_PYMYSQL_ENABLE_COMMENTER
+    description: If true, enables SQL Commenter to enrich queries with contextual information.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.pymysql.commenter_options
+    env: OTEL_PYTHON_PYMYSQL_COMMENTER_OPTIONS
+    description: A JSON string containing options for SQL Commenter.
+    default: '{}'
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.pymysql.enable_attribute_commenter
+    env: OTEL_PYTHON_PYMYSQL_ENABLE_ATTRIBUTE_COMMENTER
+    description: If true, appends SQL comments to the query span attribute.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.connection_string
+      - name: db.user
+      - name: db.name
+      - name: db.statement
+      - name: db.operation

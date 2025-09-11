@@ -1,0 +1,38 @@
+name: AioPika
+instrumentation_name: aio_pika
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-aio-pika
+package_name: opentelemetry-instrumentation-aio-pika
+stability: stable
+description: This instrumentation provides automatic tracing for RabbitMQ applications using aio_pika.
+settings:
+  - property: otel.python.aio_pika.enabled
+    env: OTEL_PYTHON_AIO_PIKA_ENABLED
+    description: If true, enables the AioPika instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.messaging.capture_headers
+    env: OTEL_PYTHON_MESSAGING_CAPTURE_HEADERS
+    description: A comma-separated list of messaging header names to capture.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Messaging {operation}'
+    kind: PRODUCER
+    attributes:
+      - messaging.system
+      - messaging.destination
+      - messaging.message_id
+      - messaging.conversation_id
+      - net.peer.name
+      - net.peer.port
+  - name: 'Messaging {operation}'
+    kind: CONSUMER
+    attributes:
+      - messaging.system
+      - messaging.destination
+      - messaging.message_id
+      - messaging.conversation_id
+      - net.peer.name
+      - net.peer.port

@@ -1,0 +1,36 @@
+name: Confluent Kafka
+instrumentation_name: confluent_kafka
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-confluent-kafka
+package_name: opentelemetry-instrumentation-confluent-kafka
+stability: stable
+description: This instrumentation provides automatic tracing for message production and consumption in Confluent Kafka applications.
+settings:
+  - property: otel.python.confluent_kafka.enabled
+    env: OTEL_PYTHON_CONFLUENT_KAFKA_ENABLED
+    description: If true, enables the Confluent Kafka instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.kafka.bootstrap.servers
+    env: OTEL_PYTHON_CONFLUENT_KAFKA_BOOTSTRAP_SERVERS
+    description: Comma-separated list of Kafka bootstrap servers to connect to.
+    default: 'localhost:9092'
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Kafka Produce {topic}'
+    kind: PRODUCER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.kafka.partition
+      - name: messaging.message_id
+      - name: messaging.operation
+  - name: 'Kafka Consume {topic}'
+    kind: CONSUMER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.kafka.partition
+      - name: messaging.message_id
+      - name: messaging.operation

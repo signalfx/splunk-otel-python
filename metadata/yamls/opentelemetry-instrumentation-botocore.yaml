@@ -1,0 +1,23 @@
+name: Botocore
+instrumentation_name: botocore
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-botocore
+package_name: opentelemetry-instrumentation-botocore
+stability: stable
+description: This instrumentation provides automatic tracing for AWS service requests made using Botocore.
+settings:
+  - property: otel.instrumentation.genai.capture_message_content
+    env: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+    description: If true, captures the content of messages in GenAI interactions.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'AWS {call_context.operation}'
+    kind: CLIENT
+    attributes:
+      - name: aws.request_id
+      - name: aws.queue_url
+      - name: aws.dynamodb.table_names
+      - name: aws.step_functions.activity_arn
+      - name: aws.step_functions.state_machine_arn
+      - name: http.status_code

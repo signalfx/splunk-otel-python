@@ -1,0 +1,23 @@
+name: SQLite3
+instrumentation_name: sqlite3
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-sqlite3
+package_name: opentelemetry-instrumentation-sqlite3
+stability: stable
+description: This instrumentation provides automatic tracing for SQLite database operations.
+settings:
+  - property: otel.python.sqlite3.enabled
+    env: OTEL_PYTHON_SQLITE3_ENABLED
+    description: If true, enables the SQLite3 instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.statement
+      - name: db.name
+      - name: db.operation
+      - name: net.peer.name
+      - name: net.peer.port

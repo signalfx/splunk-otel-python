@@ -1,0 +1,40 @@
+name: Kafka
+instrumentation_name: kafka
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-kafka
+package_name: opentelemetry-instrumentation-kafka
+stability: stable
+description: This instrumentation provides automatic tracing for Kafka producers and consumers.
+settings:
+  - property: otel.python.kafka.enabled
+    env: OTEL_PYTHON_KAFKA_ENABLED
+    description: If true, enables the Kafka instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.kafka.produce_hook
+    env: OTEL_PYTHON_KAFKA_PRODUCE_HOOK
+    description: A callable to be executed just before producing a message.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.python.kafka.consume_hook
+    env: OTEL_PYTHON_KAFKA_CONSUME_HOOK
+    description: A callable to be executed just after consuming a message.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Kafka {topic} send'
+    kind: PRODUCER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.kafka.partition
+      - name: messaging.url
+  - name: 'Kafka {topic} receive'
+    kind: CONSUMER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.kafka.partition
+      - name: messaging.url

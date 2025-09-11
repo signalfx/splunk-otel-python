@@ -1,0 +1,28 @@
+name: Jinja2
+instrumentation_name: jinja2
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-jinja2
+package_name: opentelemetry-instrumentation-jinja2
+stability: stable
+description: This instrumentation provides automatic tracing for template loading, compilation, and rendering in Jinja2 applications.
+settings:
+  - property: otel.python.jinja2.enabled
+    env: OTEL_PYTHON_JINJA2_ENABLED
+    description: If true, enables the Jinja2 instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'jinja2.render'
+    kind: INTERNAL
+    attributes:
+      - name: jinja2.template_name
+      - name: jinja2.template_path
+  - name: 'jinja2.compile'
+    kind: INTERNAL
+    attributes:
+      - name: jinja2.template_name
+  - name: 'jinja2.load'
+    kind: INTERNAL
+    attributes:
+      - name: jinja2.template_name
+      - name: jinja2.template_path

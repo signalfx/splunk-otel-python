@@ -1,0 +1,39 @@
+name: AioHttpServer
+instrumentation_name: aiohttp_server
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-aiohttp-server
+package_name: opentelemetry-instrumentation-aiohttp-server
+stability: stable
+description: This instrumentation provides automatic tracing for HTTP requests in aiohttp server applications.
+settings:
+  - property: otel.python.aiohttp_server.enabled
+    env: OTEL_PYTHON_AIOHTTP_SERVER_ENABLED
+    description: If true, enables the aiohttp server instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.http.capture_headers.server.request
+    env: OTEL_PYTHON_SERVER_REQUEST_HEADERS
+    description: A comma-separated list of HTTP request header names to capture.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.http.capture_headers.server.response
+    env: OTEL_PYTHON_SERVER_RESPONSE_HEADERS
+    description: A comma-separated list of HTTP response header names to capture.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'HTTP {request.method}'
+    kind: SERVER
+    attributes:
+      - http.method
+      - http.scheme
+      - http.host
+      - http.target
+      - http.server_name
+      - http.status_code
+      - http.flavor
+      - net.host.port
+      - net.host.name
+      - http.route

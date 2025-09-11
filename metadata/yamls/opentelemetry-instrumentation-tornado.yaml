@@ -1,0 +1,50 @@
+name: Tornado
+instrumentation_name: tornado
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-tornado
+package_name: opentelemetry-instrumentation-tornado
+stability: stable
+description: This instrumentation provides automatic tracing for web requests in Tornado applications.
+settings:
+  - property: otel.python.tornado.excluded_urls
+    env: OTEL_PYTHON_TORNADO_EXCLUDED_URLS
+    description: A comma-separated list of paths that should not be automatically traced.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.python.tornado.traced_request_attrs
+    env: OTEL_PYTHON_TORNADO_TRACED_REQUEST_ATTRS
+    description: A comma-separated list of request attribute names to extract and use as span attributes.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.http.capture_headers.server.request
+    env: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST
+    description: A comma-separated list of HTTP request header names to capture.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.http.capture_headers.server.response
+    env: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE
+    description: A comma-separated list of HTTP response header names to capture.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.patched.key
+    env: OTEL_PATCHED_KEY
+    description: A key used to track if the Tornado handlers have been patched for instrumentation.
+    default: '_otel_patched_key'
+    type: string
+    category: instrumentation
+spans:
+  - name: 'HTTP {request.method}'
+    kind: SERVER
+    attributes:
+      - name: http.method
+      - name: http.scheme
+      - name: http.host
+      - name: http.target
+      - name: http.status_code
+      - name: http.flavor
+      - name: net.host.port
+      - name: net.host.name
+      - name: http.route

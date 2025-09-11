@@ -1,0 +1,37 @@
+name: AIOKafka
+instrumentation_name: aiokafka
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-aiokafka
+package_name: opentelemetry-instrumentation-aiokafka
+stability: stable
+description: This instrumentation provides automatic tracing for Kafka producers and consumers using aiokafka.
+settings:
+  - property: otel.python.aiokafka.enabled
+    env: OTEL_PYTHON_AIOKAFKA_ENABLED
+    description: If true, enables the AIOKafka instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.kafka.async_produce_hook
+    env: OTEL_PYTHON_AIOKAFKA_ASYNC_PRODUCE_HOOK
+    description: A user-defined async function to be executed before producing a message.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.kafka.async_consume_hook
+    env: OTEL_PYTHON_AIOKAFKA_ASYNC_CONSUME_HOOK
+    description: A user-defined async function to be executed after consuming a message.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Kafka {operation} {topic}'
+    kind: CONSUMER
+    attributes:
+      - name: messaging.system
+      - name: messaging.kafka.message.key
+      - name: messaging.destination.name
+      - name: messaging.destination.partition.id
+      - name: messaging.kafka.message.offset
+      - name: messaging.operation.name
+      - name: messaging.operation.type
+      - name: messaging.consumer.group.name

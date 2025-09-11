@@ -1,0 +1,45 @@
+name: WSGI
+instrumentation_name: wsgi
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-wsgi
+package_name: opentelemetry-instrumentation-wsgi
+stability: stable
+description: This instrumentation provides automatic tracing for WSGI applications, enabling tracking of request timing through OpenTelemetry.
+settings:
+  - property: otel.instrumentation.http.capture_headers.sanitize_fields
+    env: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SANITIZE_FIELDS
+    description: A comma-separated list of HTTP header names to sanitize in spans to prevent sensitive data exposure.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.http.capture_headers.server.request
+    env: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST
+    description: A comma-separated list of HTTP request header names to capture as span attributes.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.http.capture_headers.server.response
+    env: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE
+    description: A comma-separated list of HTTP response header names to capture as span attributes.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.python.instrumentation.http.capture_all_methods
+    env: OTEL_PYTHON_INSTRUMENTATION_HTTP_CAPTURE_ALL_METHODS
+    description: If true, captures all HTTP methods, including nonstandard ones.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'HTTP {request.method}'
+    kind: SERVER
+    attributes:
+      - name: http.method
+      - name: http.scheme
+      - name: http.host
+      - name: http.target
+      - name: http.server_name
+      - name: http.status_code
+      - name: http.flavor
+      - name: net.host.port
+      - name: net.host.name
+      - name: http.route

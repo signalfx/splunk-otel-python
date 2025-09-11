@@ -1,0 +1,28 @@
+name: URLLib
+instrumentation_name: urllib
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-urllib
+package_name: opentelemetry-instrumentation-urllib
+stability: stable
+description: This instrumentation provides automatic tracing for HTTP requests made by the urllib library.
+settings:
+  - property: otel.python.urllib.excluded_urls
+    env: OTEL_PYTHON_URLLIB_EXCLUDED_URLS
+    description: A comma-delimited list of regexes representing which URLs to exclude from tracing.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.python.excluded_urls
+    env: OTEL_PYTHON_EXCLUDED_URLS
+    description: A fallback environment variable for excluding URLs from tracing.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'HTTP {request.method}'
+    kind: CLIENT
+    attributes:
+      - name: http.method
+      - name: http.url
+      - name: http.status_code
+      - name: net.host.name
+      - name: net.host.port

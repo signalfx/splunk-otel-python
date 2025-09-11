@@ -1,0 +1,21 @@
+name: AsyncClick
+instrumentation_name: asyncclick
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-asyncclick
+package_name: opentelemetry-instrumentation-asyncclick
+stability: stable
+description: This instrumentation provides automatic tracing for CLI applications built with asyncclick.
+settings:
+  - property: otel.python.asyncclick.enabled
+    env: OTEL_PYTHON_ASYNCCLICK_ENABLED
+    description: If true, enables the AsyncClick instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'Command {ctx.info_name}'
+    kind: INTERNAL
+    attributes:
+      - name: process.command.args
+      - name: process.executable.name
+      - name: process.exit.code
+      - name: process.pid

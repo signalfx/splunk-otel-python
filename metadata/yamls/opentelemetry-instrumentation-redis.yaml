@@ -1,0 +1,34 @@
+name: Redis
+instrumentation_name: redis
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-redis
+package_name: opentelemetry-instrumentation-redis
+stability: stable
+description: This instrumentation provides automatic tracing for Redis queries.
+settings:
+  - property: otel.python.redis.enabled
+    env: OTEL_PYTHON_REDIS_ENABLED
+    description: If true, enables the Redis instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.redis.request_hook
+    env: OTEL_PYTHON_REDIS_REQUEST_HOOK
+    description: A user-defined function to run before performing the Redis request.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.redis.response_hook
+    env: OTEL_PYTHON_REDIS_RESPONSE_HOOK
+    description: A user-defined function to run after the Redis request is complete.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Redis {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.redis.database_index
+      - name: db.redis.args_length
+      - name: db.redis.index
+      - name: db.redis.query

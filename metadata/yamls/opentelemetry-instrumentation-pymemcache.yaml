@@ -1,0 +1,22 @@
+name: Pymemcache
+instrumentation_name: pymemcache
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-pymemcache
+package_name: opentelemetry-instrumentation-pymemcache
+stability: stable
+description: This instrumentation provides automatic tracing for pymemcache client operations.
+settings:
+  - property: otel.python.pymemcache.enabled
+    env: OTEL_PYTHON_PYMEMCACHE_ENABLED
+    description: If true, enables the pymemcache instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'Pymemcache {command}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.statement
+      - name: net.peer.name
+      - name: net.peer.port
+      - name: net.transport

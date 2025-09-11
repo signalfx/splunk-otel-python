@@ -1,0 +1,29 @@
+name: Celery
+instrumentation_name: celery
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-celery
+package_name: opentelemetry-instrumentation-celery
+stability: stable
+description: This instrumentation provides automatic tracing for Celery applications.
+settings:
+  - property: otel.python.celery.enabled
+    env: OTEL_PYTHON_CELERY_ENABLED
+    description: If true, enables the Celery instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.celery.capture_headers
+    env: OTEL_PYTHON_CELERY_CAPTURE_HEADERS
+    description: A comma-separated list of headers to capture for Celery tasks.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Celery {task.name}'
+    kind: CONSUMER
+    attributes:
+      - name: celery.action
+      - name: celery.task_name
+      - name: messaging.message_id
+      - name: messaging.conversation_id
+      - name: celery.retry.reason
+      - name: celery.revoked.reason

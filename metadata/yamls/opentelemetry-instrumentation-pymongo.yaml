@@ -1,0 +1,29 @@
+name: Pymongo
+instrumentation_name: pymongo
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-pymongo
+package_name: opentelemetry-instrumentation-pymongo
+stability: stable
+description: This instrumentation provides automatic tracing for MongoDB operations using the pymongo library.
+settings:
+  - property: otel.python.pymongo.enabled
+    env: OTEL_PYTHON_PYMONGO_ENABLED
+    description: If true, enables the Pymongo instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.pymongo.capture_statement
+    env: OTEL_PYTHON_PYMONGO_CAPTURE_STATEMENT
+    description: If true, captures the database statement being executed.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: '{event.database_name}.{event.command_name}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.statement
+      - name: db.mongodb.collection
+      - name: net.peer.name
+      - name: net.peer.port

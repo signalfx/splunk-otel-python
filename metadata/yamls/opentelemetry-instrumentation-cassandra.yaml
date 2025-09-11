@@ -1,0 +1,27 @@
+name: Cassandra
+instrumentation_name: cassandra
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-cassandra
+package_name: opentelemetry-instrumentation-cassandra
+stability: stable
+description: This instrumentation provides automatic tracing for Cassandra and Scylla database operations.
+settings:
+  - property: otel.python.cassandra.enabled
+    env: OTEL_PYTHON_CASSANDRA_ENABLED
+    description: If true, enables the Cassandra instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.cassandra.include_db_statement
+    env: OTEL_PYTHON_CASSANDRA_INCLUDE_DB_STATEMENT
+    description: If true, includes the database statement in the span attributes.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'Cassandra {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.name
+      - name: db.statement
+      - name: net.peer.name

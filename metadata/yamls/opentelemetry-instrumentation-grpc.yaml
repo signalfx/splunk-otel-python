@@ -1,0 +1,21 @@
+name: gRPC
+instrumentation_name: grpc
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-grpc
+package_name: opentelemetry-instrumentation-grpc
+stability: stable
+description: This instrumentation provides automatic tracing for gRPC requests and responses.
+settings:
+  - property: otel.python.grpc.excluded_services
+    env: OTEL_PYTHON_GRPC_EXCLUDED_SERVICES
+    description: A comma-separated list of gRPC service names to exclude from instrumentation.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'gRPC {request.method}'
+    kind: SERVER
+    attributes:
+      - name: rpc.method
+      - name: rpc.service
+      - name: rpc.system
+      - name: rpc.grpc.status_code

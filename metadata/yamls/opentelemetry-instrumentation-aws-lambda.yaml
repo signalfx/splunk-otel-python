@@ -1,0 +1,24 @@
+name: AWS Lambda
+instrumentation_name: aws_lambda
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-aws-lambda
+package_name: opentelemetry-instrumentation-aws-lambda
+stability: stable
+description: This instrumentation provides automatic tracing for AWS Lambda functions.
+settings:
+  - property: otel.instrumentation.aws_lambda.flush_timeout
+    env: OTEL_INSTRUMENTATION_AWS_LAMBDA_FLUSH_TIMEOUT
+    description: The timeout in milliseconds for flushing traces before the Lambda function exits.
+    default: '30000'
+    type: integer
+    category: instrumentation
+spans:
+  - name: 'AWS Lambda Invocation'
+    kind: SERVER
+    attributes:
+      - name: faas.invocation_id
+      - name: cloud.account.id
+      - name: cloud.resource_id
+      - name: faas.trigger
+      - name: http.method
+      - name: http.route
+      - name: http.status_code

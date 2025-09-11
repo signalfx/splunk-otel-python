@@ -1,0 +1,23 @@
+name: Boto
+instrumentation_name: boto
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-boto
+package_name: opentelemetry-instrumentation-boto
+stability: stable
+description: This instrumentation provides automatic tracing for AWS service requests made using Boto.
+settings:
+  - property: otel.python.boto.enabled
+    env: OTEL_PYTHON_BOTO_ENABLED
+    description: If true, enables the Boto instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: '{endpoint}.command'
+    kind: CONSUMER
+    attributes:
+      - name: endpoint
+      - name: http_method
+      - name: aws.agent
+      - name: aws.operation
+      - name: aws.region
+      - name: http.status_code

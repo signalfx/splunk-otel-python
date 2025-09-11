@@ -1,0 +1,44 @@
+name: Pika
+instrumentation_name: pika
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-pika
+package_name: opentelemetry-instrumentation-pika
+stability: stable
+description: This instrumentation provides automatic tracing for RabbitMQ applications using Pika.
+settings:
+  - property: otel.python.pika.enabled
+    env: OTEL_PYTHON_PIKA_ENABLED
+    description: If true, enables the Pika instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.pika.publish_hook
+    env: OTEL_PYTHON_PIKA_PUBLISH_HOOK
+    description: A callable that will be called when a message is published.
+    default: ''
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.pika.consume_hook
+    env: OTEL_PYTHON_PIKA_CONSUME_HOOK
+    description: A callable that will be called when a message is consumed.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Pika {operation}'
+    kind: PRODUCER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.message_id
+      - name: messaging.conversation_id
+      - name: net.peer.name
+      - name: net.peer.port
+  - name: 'Pika {operation}'
+    kind: CONSUMER
+    attributes:
+      - name: messaging.system
+      - name: messaging.destination
+      - name: messaging.message_id
+      - name: messaging.conversation_id
+      - name: net.peer.name
+      - name: net.peer.port

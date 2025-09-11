@@ -1,0 +1,20 @@
+name: SystemMetrics
+instrumentation_name: system_metrics
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-system-metrics
+package_name: opentelemetry-instrumentation-system-metrics
+stability: stable
+description: This instrumentation reports system and process metrics such as CPU, memory, and network usage.
+settings:
+  - property: otel.python.system_metrics.enabled
+    env: OTEL_PYTHON_SYSTEM_METRICS_ENABLED
+    description: If true, enables the System Metrics instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.python.system_metrics.config
+    env: OTEL_PYTHON_SYSTEM_METRICS_CONFIG
+    description: A JSON string to configure custom metrics collection.
+    default: '{}'
+    type: string
+    category: instrumentation
+spans: []

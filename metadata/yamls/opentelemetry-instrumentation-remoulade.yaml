@@ -1,0 +1,27 @@
+name: Remoulade
+instrumentation_name: remoulade
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-remoulade
+package_name: opentelemetry-instrumentation-remoulade
+stability: stable
+description: This instrumentation provides automatic tracing for message processing in Remoulade applications.
+settings:
+  - property: otel.python.remoulade.enabled
+    env: OTEL_PYTHON_REMoulaDE_ENABLED
+    description: If true, enables the Remoulade instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.remoulade.capture_headers
+    env: OTEL_PYTHON_REMoulaDE_CAPTURE_HEADERS
+    description: A comma-separated list of message headers to capture.
+    default: ''
+    type: string
+    category: instrumentation
+spans:
+  - name: 'Remoulade {operation_name}'
+    kind: CONSUMER
+    attributes:
+      - name: remoulade.action
+      - name: remoulade.actor_name
+      - name: remoulade.retry_count
+      - name: messaging.message_id

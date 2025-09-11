@@ -1,0 +1,42 @@
+name: MySQLClient
+instrumentation_name: mysqlclient
+source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-mysqlclient
+package_name: opentelemetry-instrumentation-mysqlclient
+stability: stable
+description: This instrumentation provides automatic tracing for MySQL database operations using the MySQLClient library.
+settings:
+  - property: otel.python.mysqlclient.enabled
+    env: OTEL_PYTHON_MYSQLCLIENT_ENABLED
+    description: If true, enables the MySQLClient instrumentation.
+    default: 'true'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.mysqlclient.enable_commenter
+    env: OTEL_PYTHON_MYSQLCLIENT_ENABLE_COMMENTER
+    description: If true, enables SQLCommenter to enrich queries with contextual information.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+  - property: otel.instrumentation.mysqlclient.commenter_options
+    env: OTEL_PYTHON_MYSQLCLIENT_COMMENTER_OPTIONS
+    description: A JSON string of options for SQLCommenter configuration.
+    default: '{}'
+    type: string
+    category: instrumentation
+  - property: otel.instrumentation.mysqlclient.enable_attribute_commenter
+    env: OTEL_PYTHON_MYSQLCLIENT_ENABLE_ATTRIBUTE_COMMENTER
+    description: If true, appends SQLComment to query span attributes.
+    default: 'false'
+    type: boolean
+    category: instrumentation
+spans:
+  - name: 'SQL {db.statement}'
+    kind: CLIENT
+    attributes:
+      - name: db.system
+      - name: db.connection_string
+      - name: db.user
+      - name: db.name
+      - name: db.statement
+      - name: net.peer.name
+      - name: net.peer.port
