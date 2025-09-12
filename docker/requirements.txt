@@ -47,4 +47,4 @@ opentelemetry-instrumentation-tornado==0.57b0
 opentelemetry-instrumentation-tortoiseorm==0.57b0
 opentelemetry-instrumentation-urllib==0.57b0
 opentelemetry-instrumentation-urllib3==0.57b0
-opentelemetry-instrumentation-wsgi==0.57b0
+opentelemetry-instrumentation-wsgi==0.58b0
