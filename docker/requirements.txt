@@ -15,7 +15,7 @@ opentelemetry-instrumentation-cassandra==0.57b0
 opentelemetry-instrumentation-celery==0.57b0
 opentelemetry-instrumentation-click==0.57b0
 opentelemetry-instrumentation-confluent-kafka==0.57b0
-opentelemetry-instrumentation-dbapi==0.57b0
+opentelemetry-instrumentation-dbapi==0.58b0
 opentelemetry-instrumentation-django==0.57b0
 opentelemetry-instrumentation-elasticsearch==0.57b0
 opentelemetry-instrumentation-falcon==0.57b0
