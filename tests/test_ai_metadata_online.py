@@ -1,13 +1,19 @@
-from metadata import ai_metadata_generator
-import shutil
+import logging
+
+logging.basicConfig(level=logging.INFO, force=True)
 import os
+import shutil
+
 import pytest
+from metadata import ai_metadata_generator
 
 # This test is marked as manual and will not run in CI by default.
 # Run manually:
-#     pytest -m manual -s   # show print/debug output    
+#     pytest -m manual -s   # show output
 # To run all tests except manual ones :
 #     pytest -m "not manual"
+
+MIN_OVERLAP = 0.7
 
 @pytest.mark.manual
 def test_repeatability_flask():
@@ -17,7 +23,7 @@ def test_repeatability_flask():
     temp_dir = ai_metadata_generator.clone_repo(repo_url)
     instr_dir = os.path.join(temp_dir, "instrumentation", "opentelemetry-instrumentation-django")
     if not os.path.isdir(instr_dir):
-        print("Instrumentation not found: skipping test.")
+        logging.warning("Instrumentation not found: skipping test.")
         shutil.rmtree(temp_dir)
         return
 
@@ -28,24 +34,24 @@ def test_repeatability_flask():
     assert isinstance(yaml2, str)
 
     if yaml1 != yaml2:
-        # Print all lines that differ
+        # Log all lines that differ
         lines1 = set(yaml1.splitlines())
         lines2 = set(yaml2.splitlines())
         only_in_1 = lines1 - lines2
         only_in_2 = lines2 - lines1
         overlap = len(lines1 & lines2) / max(len(lines1), len(lines2))
-        print(f"Differences detected, overlap: {overlap:.2f}")
+        logging.info("Differences detected, overlap: %.2f", overlap)
         if only_in_1:
-            print("Lines only in first YAML:")
+            logging.info("Lines only in first YAML:")
             for line in only_in_1:
-                print(line)
+                logging.info(line)
         if only_in_2:
-            print("Lines only in second YAML:")
+            logging.info("Lines only in second YAML:")
             for line in only_in_2:
-                print(line)
-        assert overlap > 0.7
+                logging.info(line)
+        assert overlap > MIN_OVERLAP
     else:
-        print("No differences detected.")
+        logging.info("No differences detected.")
 
     # delete cloned repo after test
     shutil.rmtree(temp_dir)
