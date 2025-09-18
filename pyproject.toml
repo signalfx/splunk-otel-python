@@ -104,3 +104,8 @@ exclude_lines = [
 [tool.ruff.lint]
 ignore = ["INP001", "FA100", "ARG002"]
 exclude = ["src/splunk_otel/profile_pb2.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["manual: tests that should only be run manually (excluded from CI)"]

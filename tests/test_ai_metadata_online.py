@@ -1,11 +1,18 @@
 from metadata import ai_metadata_generator
 import shutil
 import os
+import pytest
 
+# This test is marked as manual and will not run in CI by default.
+# Run manually:
+#     pytest -m manual -s   # show print/debug output    
+# To run all tests except manual ones :
+#     pytest -m "not manual"
+
+@pytest.mark.manual
 def test_repeatability_flask():
     """Runs metadata generation twice for one instrumentation and compares results.
     Treat as 'online' test."""
-    # Clone the repo
     repo_url = "https://github.com/open-telemetry/opentelemetry-python-contrib.git"
     temp_dir = ai_metadata_generator.clone_repo(repo_url)
     instr_dir = os.path.join(temp_dir, "instrumentation", "opentelemetry-instrumentation-django")
