@@ -11,6 +11,12 @@ from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 
+# Load example_yaml from an external YAML file
+def load_example_yaml(yaml_path="example.yaml"):
+    with open(yaml_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 
 def get_instrumentation_code(path):
     """
@@ -99,48 +105,8 @@ def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, ma
     """
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)  
 
-    # The example you are happy with, to be used in the prompt
-    example_yaml = """
-name: FastAPI
-instrumentation_name: fastapi
-source_href: https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-fastapi
-package_name: opentelemetry-instrumentation-fastapi
-stability: stable
-description: This instrumentation provides automatic tracing for web requests in FastAPI applications.
-settings:
-  - property: otel.python.fastapi.enabled
-    env: OTEL_PYTHON_FASTAPI_ENABLED
-    description: If true, enables the FastAPI instrumentation.
-    default: 'true'
-    type: boolean
-    category: instrumentation
-  - property: otel.instrumentation.http.capture_headers.server.request
-    env: OTEL_PYTHON_SERVER_REQUEST_HEADERS
-    description: A comma-separated list of HTTP request header names to capture.
-    default: ''
-    type: string
-    category: instrumentation
-  - property: otel.instrumentation.http.capture_headers.server.response
-    env: OTEL_PYTHON_SERVER_RESPONSE_HEADERS
-    description: A comma-separated list of HTTP response header names to capture.
-    default: ''
-    type: string
-    category: instrumentation
-spans:
-  - name: 'HTTP {request.method}'
-    kind: SERVER
-    attributes:
-      - name: http.method
-      - name: http.scheme
-      - name: http.host
-      - name: http.target
-      - name: http.server_name
-      - name: http.status_code
-      - name: http.flavor
-      - name: net.host.port
-      - name: net.host.name
-      - name: http.route
-"""
+        # The example you are happy with, to be used in the prompt
+
 
     prompt_template = PromptTemplate(
         input_variables=["instrumentation_name", "source_code", "example_yaml", "env_vars"],
@@ -176,9 +142,11 @@ spans:
 
     chain = prompt_template | llm | StrOutputParser()
 
+
     instrumentation_name = os.path.basename(instrumentation_dir)
     source_code = get_instrumentation_code(instrumentation_dir)
     env_vars = extract_env_vars_from_code(source_code)
+    example_yaml = load_example_yaml()
 
     # Check token estimate before sending
     prompt_text = prompt_template.format(
@@ -187,10 +155,7 @@ spans:
         example_yaml=example_yaml,
         env_vars=env_vars
     )
-    
     estimated_tokens = estimate_tokens(prompt_text)
-    
-    
     if estimated_tokens > token_limit:
         if len(source_code) > max_source_chars:
             source_code = source_code[:max_source_chars] + "\n\n... [TRUNCATED FOR TOKEN LIMIT]"
