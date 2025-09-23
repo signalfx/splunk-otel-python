@@ -95,7 +95,7 @@ def estimate_tokens(text: str) -> int:
     return len(text) // 4
 
 
-def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, max_source_chars=40000):
+def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, max_source_chars=40000, model_name="gpt-4o-mini"):
     """
     Generates a metadata.yaml file for a single instrumentation.
     Args:
@@ -103,9 +103,7 @@ def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, ma
         token_limit: Max allowed tokens for the prompt (default: 25000).
         max_source_chars: Max allowed characters for source code in prompt (default: 40000).
     """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-
-        # The example you are happy with, to be used in the prompt
+    llm = ChatOpenAI(model=model_name, temperature=0)
 
 
     prompt_template = PromptTemplate(
@@ -212,9 +210,11 @@ def find_instrumentation_dirs(base_dir):
     return instr_dirs
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description="Clone opentelemetry-python-contrib and generate metadata.yaml for all instrumentations.")
     parser.add_argument("--repo", default="https://github.com/open-telemetry/opentelemetry-python-contrib", help="GitHub repo URL")
     parser.add_argument("--branch", default=None, help="Branch to clone (optional)")
+    parser.add_argument("--model", default="gpt-4o-mini", help="OpenAI model name to use (default: gpt-4o-mini)")
     args = parser.parse_args()
 
     yamls_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "yamls")
@@ -224,7 +224,7 @@ if __name__ == "__main__":
         instr_dirs = find_instrumentation_dirs(temp_repo_dir)
         for instr_dir in instr_dirs:
             try:
-                yaml = generate_instrumentation_metadata(instr_dir)
+                yaml = generate_instrumentation_metadata(instr_dir, model_name=args.model)
                 save_yaml(yaml, instr_dir, yamls_dir)
             except Exception:
                 pass
