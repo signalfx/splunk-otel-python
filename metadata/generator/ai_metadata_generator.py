@@ -1,19 +1,19 @@
 import argparse
 import os
 import re
-
-import tempfile
 import shutil
 import subprocess
+import tempfile
 
 from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 
+
 # Load example_yaml from an external YAML file
 def load_example_yaml(yaml_path="example.yaml"):
-    with open(yaml_path, "r", encoding="utf-8") as f:
+    with open(yaml_path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -24,7 +24,7 @@ def get_instrumentation_code(path):
     and limiting content to stay under token limits.
     """
     loader = DirectoryLoader(
-        path, 
+        path,
         glob="**/*.py",
         loader_cls=TextLoader,
         loader_kwargs={'encoding': 'utf-8'},
@@ -103,7 +103,7 @@ def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, ma
         token_limit: Max allowed tokens for the prompt (default: 25000).
         max_source_chars: Max allowed characters for source code in prompt (default: 40000).
     """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)  
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
         # The example you are happy with, to be used in the prompt
 
@@ -119,14 +119,14 @@ def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, ma
         {env_vars}
 
         Example YAML:
-        
+
         {example_yaml}
-        
+
 
         Source Code for '{instrumentation_name}':
-        
+
         {source_code}
-        
+
 
         Rules:
         - Always include all env vars listed above in `settings`.
@@ -156,11 +156,10 @@ def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, ma
         env_vars=env_vars
     )
     estimated_tokens = estimate_tokens(prompt_text)
-    if estimated_tokens > token_limit:
-        if len(source_code) > max_source_chars:
-            source_code = source_code[:max_source_chars] + "\n\n... [TRUNCATED FOR TOKEN LIMIT]"
+    if estimated_tokens > token_limit and len(source_code) > max_source_chars:
+        source_code = source_code[:max_source_chars] + "\n\n... [TRUNCATED FOR TOKEN LIMIT]"
 
-    generated_yaml = chain.invoke({
+    return chain.invoke({
         "instrumentation_name": instrumentation_name,
         "source_code": source_code,
         "example_yaml": example_yaml,
@@ -169,7 +168,6 @@ def generate_instrumentation_metadata(instrumentation_dir, token_limit=25000, ma
 
 
 
-    return generated_yaml
 
 
 
@@ -224,13 +222,11 @@ if __name__ == "__main__":
     temp_repo_dir = clone_repo(args.repo, args.branch)
     try:
         instr_dirs = find_instrumentation_dirs(temp_repo_dir)
-        print(f"Found {len(instr_dirs)} instrumentations.")
         for instr_dir in instr_dirs:
-            print(f"Generating metadata for {instr_dir} ...")
             try:
                 yaml = generate_instrumentation_metadata(instr_dir)
                 save_yaml(yaml, instr_dir, yamls_dir)
-            except Exception as e:
-                print(f"Failed for {instr_dir}: {e}")
+            except Exception:
+                pass
     finally:
         shutil.rmtree(temp_repo_dir)
