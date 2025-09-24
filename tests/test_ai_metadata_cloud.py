@@ -1,11 +1,13 @@
 import logging
-
-logging.basicConfig(level=logging.INFO, force=True)
 import os
 import shutil
+import sys
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../metadata/generator")))
+import ai_metadata_generator
 import pytest
-from metadata import ai_metadata_generator
+
+logging.basicConfig(level=logging.INFO, force=True)
 
 # This test is marked as manual and will not run in CI by default.
 # Run manually:
@@ -14,6 +16,7 @@ from metadata import ai_metadata_generator
 #     pytest -m "not manual"
 
 MIN_OVERLAP = 0.7
+
 
 @pytest.mark.manual
 def test_repeatability_flask():
@@ -30,8 +33,8 @@ def test_repeatability_flask():
     yaml1 = ai_metadata_generator.generate_instrumentation_metadata(instr_dir)
     yaml2 = ai_metadata_generator.generate_instrumentation_metadata(instr_dir)
 
-    assert isinstance(yaml1, str)
-    assert isinstance(yaml2, str)
+    assert isinstance(yaml1, str)  # noqa: S101
+    assert isinstance(yaml2, str)  # noqa: S101
 
     if yaml1 != yaml2:
         # Log all lines that differ
@@ -49,7 +52,7 @@ def test_repeatability_flask():
             logging.info("Lines only in second YAML:")
             for line in only_in_2:
                 logging.info(line)
-        assert overlap > MIN_OVERLAP
+        assert overlap > MIN_OVERLAP  # noqa: S101
     else:
         logging.info("No differences detected.")
 
