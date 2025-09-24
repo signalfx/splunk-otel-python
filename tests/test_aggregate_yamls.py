@@ -5,7 +5,7 @@ from metadata import aggregate_yamls
 def test_extract_instrumentation_fields_minimal():
     data = {'name': 'TestInstr'}
     instr = aggregate_yamls.extract_instrumentation_fields(data)
-    assert instr['keys'] == ['testinstr']
+    assert instr['keys'] == ['testinstr']  
     assert instr['instrumented_components'][0]['name'] == 'TestInstr'
     assert instr['stability'] == 'stable'
     assert instr['support'] == 'official'
