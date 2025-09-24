@@ -2,11 +2,6 @@ import yaml
 from metadata import aggregate_yamls
 
 
-def load_yaml_file_with_ctx(path):
-    with open(path) as f:
-        return yaml.safe_load(f)
-
-
 def test_extract_instrumentation_fields_minimal():
     data = {'name': 'TestInstr'}
     instr = aggregate_yamls.extract_instrumentation_fields(data)
@@ -40,22 +35,25 @@ def test_main_creates_yaml(tmp_path, monkeypatch):
     # Create a sample yaml file
     sample_yaml = yamls_dir / "test.yaml"
     sample_yaml.write_text("""
-        name: testinstr
-        instrumented_components:
-        - name: testcomp
-            supported_versions: 1.0
-        stability: beta
-        support: community
-        spans:
-        - name: span1
-            attributes:
-            - name: attr1
-            - name: attr2
-        - name: span2
-        """)
+name: testinstr
+instrumented_components:
+  - name: testcomp
+    supported_versions: 1.0
+stability: beta
+support: community
+spans:
+  - name: span1
+    attributes:
+      - name: attr1
+      - name: attr2
+  - name: span2
+""")
     # Patch yamls_dir and output_path in main
     out_yaml = tmp_path / "splunk-otel-python-metadata.yaml"
     monkeypatch.setattr(aggregate_yamls, 'find_all_yaml_files', lambda _: [sample_yaml])
+    def load_yaml_file_with_ctx(path):
+        with open(path) as f:
+            return yaml.safe_load(f)
     monkeypatch.setattr(aggregate_yamls, 'load_yaml_file', load_yaml_file_with_ctx)
     monkeypatch.setattr(aggregate_yamls.os.path, 'dirname', lambda _: str(tmp_path))
     monkeypatch.setattr(aggregate_yamls.os.path, 'abspath', lambda x: str(x))
