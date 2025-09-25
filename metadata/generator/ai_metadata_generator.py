@@ -132,6 +132,14 @@ def generate_instrumentation_metadata(
         - Follow the structure in the example exactly.
         - Include a `spans` section if relevant, based on HTTP server patterns.
         - Output only valid YAML. Do not add any explanations, comments, or extra text before or after the YAML.
+        - Analyze the code and identify all metrics (counters, histograms, gauges) that are created.
+        - For each metric, provide:
+            1. The metric name
+            2. The metric type (counter, histogram, gauge)
+            3. The unit of measurement
+            4. A description
+            5. All attributes/labels used with the metric
+        - Format the response as a list of metric objects.
 
         Generated metadata.yaml:
         """,
