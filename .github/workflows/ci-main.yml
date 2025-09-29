@@ -39,7 +39,7 @@ jobs:
       run: hatch fmt --check
 
     - name: Run unit tests with coverage
-      run: hatch run cov
+      run: hatch run cov -- -m "not manual"
 
     - name: Install oteltest
       run: pip install oteltest
