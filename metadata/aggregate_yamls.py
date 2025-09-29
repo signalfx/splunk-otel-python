@@ -160,7 +160,7 @@ def main():
     }
 
     class IndentDumper(yaml.SafeDumper):
-        def increase_indent(self, flow=False, indentless=False):
+        def increase_indent(self, *, flow=False, indentless=False):
             return super().increase_indent(flow=flow, indentless=False)
 
     with open(output_path, "w") as f:
