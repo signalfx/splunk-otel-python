@@ -160,8 +160,8 @@ def main():
     }
 
     class IndentDumper(yaml.SafeDumper):
-        def increase_indent(self, flow=False, indentless=False):  
-            return super().increase_indent(flow, False)
+        def increase_indent(self, flow=False, indentless=False):
+            return super().increase_indent(flow=flow, indentless=False)
 
     with open(output_path, "w") as f:
         yaml.dump(final_metadata, f, default_flow_style=False, sort_keys=False, Dumper=IndentDumper, indent=2)
