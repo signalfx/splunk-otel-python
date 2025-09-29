@@ -50,21 +50,43 @@ def extract_instrumentation_fields(data):
         return [a["name"] if isinstance(a, dict) and set(a) == {"name"} else a for a in (attrs or [])]
 
     signals = []
-    for key in ("spans",):
-        if key in data:
-            spans = [
-                dict(span, attributes=norm(span.get("attributes"))) if "attributes" in span else dict(span)
-                for span in data[key]
-            ]
-            signals.append({"spans": spans})
-    if not signals and "signals" in data:
+    # Extract spans
+    spans = []
+    if "spans" in data:
+        spans = [
+            dict(span, attributes=norm(span.get("attributes"))) if "attributes" in span else dict(span)
+            for span in data["spans"]
+        ]
+    # Extract metrics
+    metrics = []
+    if "metrics" in data:
+        metrics = [
+            dict(metric, attributes=norm(metric.get("attributes"))) if "attributes" in metric else dict(metric)
+            for metric in data["metrics"]
+        ]
+    # Combine signals
+    signal_obj = {}
+    if spans:
+        signal_obj["spans"] = spans
+    if metrics:
+        signal_obj["metrics"] = metrics
+    if signal_obj:
+        signals.append(signal_obj)
+    elif "signals" in data:
         for s in data["signals"]:
+            sig = {}
             if "spans" in s:
-                spans = [
+                sig["spans"] = [
                     dict(span, attributes=norm(span.get("attributes"))) if "attributes" in span else dict(span)
                     for span in s["spans"]
                 ]
-                signals.append({"spans": spans})
+            if "metrics" in s:
+                sig["metrics"] = [
+                    dict(metric, attributes=norm(metric.get("attributes"))) if "attributes" in metric else dict(metric)
+                    for metric in s["metrics"]
+                ]
+            if sig:
+                signals.append(sig)
     instr["signals"] = signals
 
     return instr
