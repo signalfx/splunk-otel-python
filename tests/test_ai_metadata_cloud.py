@@ -33,8 +33,8 @@ def test_repeatability_flask():
     yaml1 = ai_metadata_generator.generate_instrumentation_metadata(instr_dir)
     yaml2 = ai_metadata_generator.generate_instrumentation_metadata(instr_dir)
 
-    assert isinstance(yaml1, str)  
-    assert isinstance(yaml2, str)  
+    assert isinstance(yaml1, str)
+    assert isinstance(yaml2, str)
 
     if yaml1 != yaml2:
         # Log all lines that differ
@@ -52,7 +52,7 @@ def test_repeatability_flask():
             logging.info("Lines only in second YAML:")
             for line in only_in_2:
                 logging.info(line)
-        assert overlap > MIN_OVERLAP  
+        assert overlap > MIN_OVERLAP
     else:
         logging.info("No differences detected.")
 
