@@ -2,7 +2,9 @@ import os
 import sys
 import textwrap
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../metadata/generator")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../metadata/generator"))
+)
 import ai_metadata_generator
 
 # Constants for test values
@@ -27,7 +29,10 @@ def test_env_vars_empty():
 
 
 def test_tokens():
-    assert ai_metadata_generator.estimate_tokens("abcd" * EXPECTED_TOKEN_10) == EXPECTED_TOKEN_10
+    assert (
+        ai_metadata_generator.estimate_tokens("abcd" * EXPECTED_TOKEN_10)
+        == EXPECTED_TOKEN_10
+    )
     assert ai_metadata_generator.estimate_tokens("a" * 100) == EXPECTED_TOKEN_25
     assert ai_metadata_generator.estimate_tokens("") == 0
 

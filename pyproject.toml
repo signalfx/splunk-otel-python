@@ -54,6 +54,8 @@ dependencies = [
   "pytest",
   "ruff",
   "oteltest",
+  "pyyaml",
+  "langchain",
 ]
 
 [tool.hatch.envs.default.scripts]

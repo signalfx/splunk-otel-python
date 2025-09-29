@@ -3,7 +3,9 @@ import os
 import shutil
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../metadata/generator")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../metadata/generator"))
+)
 import ai_metadata_generator
 import pytest
 
@@ -24,7 +26,9 @@ def test_repeatability_flask():
     Treat as 'online' test."""
     repo_url = "https://github.com/open-telemetry/opentelemetry-python-contrib.git"
     temp_dir = ai_metadata_generator.clone_repo(repo_url)
-    instr_dir = os.path.join(temp_dir, "instrumentation", "opentelemetry-instrumentation-django")
+    instr_dir = os.path.join(
+        temp_dir, "instrumentation", "opentelemetry-instrumentation-django"
+    )
     if not os.path.isdir(instr_dir):
         logging.warning("Instrumentation not found: skipping test.")
         shutil.rmtree(temp_dir)
