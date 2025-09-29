@@ -37,5 +37,20 @@ spans:
       - name: net.host.port
       - name: net.host.name
       - name: http.route
-
+metrics:
+  - name: HTTP_SERVER_ACTIVE_REQUESTS
+    type: up_down_counter
+    unit: requests
+    description: Measures the number of concurrent HTTP requests that are currently in-flight.
+    attributes: []
+  - name: HTTP_SERVER_DURATION
+    type: histogram
+    unit: ms
+    description: Measures the duration of inbound HTTP requests.
+    attributes: []
+  - name: HTTP_SERVER_REQUEST_DURATION
+    type: histogram
+    unit: s
+    description: Duration of HTTP server requests.
+    attributes: []
     
