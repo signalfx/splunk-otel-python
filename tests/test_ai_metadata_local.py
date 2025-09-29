@@ -17,19 +17,19 @@ def test_env_vars_found():
     # OTEL_BAZ in a comment
     """
     vars_found = ai_metadata_generator.extract_env_vars_from_code(code)
-    assert set(vars_found) == {"OTEL_FOO", "SPLUNK_BAR", "OTEL_BAZ"}  
+    assert set(vars_found) == {"OTEL_FOO", "SPLUNK_BAR", "OTEL_BAZ"}
 
 
 def test_env_vars_empty():
     code = "print('no envs here')"
     vars_found = ai_metadata_generator.extract_env_vars_from_code(code)
-    assert vars_found == []  
+    assert vars_found == []
 
 
 def test_tokens():
-    assert ai_metadata_generator.estimate_tokens("abcd" * EXPECTED_TOKEN_10) == EXPECTED_TOKEN_10  
-    assert ai_metadata_generator.estimate_tokens("a" * 100) == EXPECTED_TOKEN_25  
-    assert ai_metadata_generator.estimate_tokens("") == 0  
+    assert ai_metadata_generator.estimate_tokens("abcd" * EXPECTED_TOKEN_10) == EXPECTED_TOKEN_10
+    assert ai_metadata_generator.estimate_tokens("a" * 100) == EXPECTED_TOKEN_25
+    assert ai_metadata_generator.estimate_tokens("") == 0
 
 
 def test_code_prioritizes_init(tmp_path):
@@ -39,9 +39,9 @@ def test_code_prioritizes_init(tmp_path):
     (instr_dir / "foo.py").write_text("print('foo')\n")
 
     code = ai_metadata_generator.get_instrumentation_code(str(instr_dir))
-    assert "# Source: __init__.py" in code  
-    assert "hello" in code  
-    assert "foo" in code  
+    assert "# Source: __init__.py" in code
+    assert "hello" in code
+    assert "foo" in code
 
 
 def test_code_empty_dir(tmp_path):
@@ -73,4 +73,4 @@ def test_yaml_write(tmp_path):
 
     out_file = yamls_dir / "instr.yaml"
     content = out_file.read_text()
-    assert "OTEL_TEST_ENABLED" in content  
+    assert "OTEL_TEST_ENABLED" in content
