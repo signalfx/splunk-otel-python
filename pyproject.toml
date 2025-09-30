@@ -54,6 +54,11 @@ dependencies = [
   "pytest",
   "ruff",
   "oteltest",
+  "pyyaml",
+  "langchain",
+  "langchain_community",
+  "langchain_openai",
+  "langchain_core",
 ]
 
 [tool.hatch.envs.default.scripts]
