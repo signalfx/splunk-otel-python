@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
