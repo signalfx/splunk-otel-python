@@ -19,7 +19,7 @@ opentelemetry-instrumentation-dbapi==0.57b0
 opentelemetry-instrumentation-django==0.57b0
 opentelemetry-instrumentation-elasticsearch==0.57b0
 opentelemetry-instrumentation-falcon==0.57b0
-opentelemetry-instrumentation-fastapi==0.57b0
+opentelemetry-instrumentation-fastapi==0.59b0
 opentelemetry-instrumentation-flask==0.57b0
 opentelemetry-instrumentation-grpc==0.57b0
 opentelemetry-instrumentation-httpx==0.57b0
