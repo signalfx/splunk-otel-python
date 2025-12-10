@@ -17,6 +17,7 @@ from opentelemetry.instrumentation.propagators import (
     get_global_response_propagator,
     set_global_response_propagator,
 )
+
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
