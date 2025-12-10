@@ -3,7 +3,6 @@ import time
 
 from opentelemetry import trace
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
-
 from splunk_otel import init_splunk_otel
 from splunk_otel.env import SPLUNK_ACCESS_TOKEN, SPLUNK_REALM
 
