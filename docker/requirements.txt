@@ -22,7 +22,7 @@ opentelemetry-instrumentation-falcon==0.59b0
 opentelemetry-instrumentation-fastapi==0.59b0
 opentelemetry-instrumentation-flask==0.59b0
 opentelemetry-instrumentation-grpc==0.59b0
-opentelemetry-instrumentation-httpx==0.59b0
+opentelemetry-instrumentation-httpx==0.60b0
 opentelemetry-instrumentation-jinja2==0.59b0
 opentelemetry-instrumentation-kafka-python==0.59b0
 opentelemetry-instrumentation-logging==0.59b0
