@@ -102,7 +102,7 @@ exclude_lines = [
 ]
 
 [tool.ruff.lint]
-ignore = ["INP001", "FA100", "ARG002"]
+ignore = ["INP001", "FA100", "ARG002", "I001", "PLC0415"]
 exclude = ["src/splunk_otel/profile_pb2.py"]
 
 [tool.pytest.ini_options]
