@@ -4,16 +4,15 @@ import logging
 import sys
 import threading
 import time
-import traceback
 from collections import OrderedDict
 from traceback import StackSummary
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import Logger, SeverityNumber, get_logger
+from opentelemetry._logs import Logger, SeverityNumber, get_logger, LogRecord
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
-from opentelemetry.sdk._logs import LogRecord
+from opentelemetry.sdk._logs import ReadWriteLogRecord
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import TraceFlags
@@ -172,28 +171,33 @@ class _ProfileScraper:
     def mk_log_record(self, stacktraces):
         lengths = (len(trace["frames"]) for trace in stacktraces)
         total_frame_count = sum(lengths)
-
         time_seconds = self.time()
 
         pb_profile = _stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.interval_millis, time_seconds)
         pb_profile_str = _pb_profile_to_str(pb_profile)
 
-        return LogRecord(
-            timestamp=int(time_seconds * 1e9),
+        context = Context(
             trace_id=0,
             span_id=0,
             trace_flags=TraceFlags(0x01),
-            severity_number=SeverityNumber.UNSPECIFIED,
-            body=pb_profile_str,
-            resource=self.resource,
-            attributes={
-                "profiling.data.format": "pprof-gzip-base64",
-                "profiling.data.type": "cpu",
-                "com.splunk.sourcetype": "otel.profiling",
-                "profiling.data.total.frame.count": total_frame_count,
-            },
         )
 
+        return ReadWriteLogRecord._from_api_log_record(
+            record=LogRecord(
+                timestamp=int(time_seconds * 1e9),
+                observed_timestamp=int(time_seconds * 1e9),
+                context=context,
+                severity_number=SeverityNumber.UNSPECIFIED,
+                body=pb_profile_str,
+                attributes={
+                    "profiling.data.format": "pprof-gzip-base64",
+                    "profiling.data.type": "cpu",
+                    "com.splunk.sourcetype": "otel.profiling",
+                    "profiling.data.total.frame.count": total_frame_count,
+                },
+            ),
+            resource=self.resource,
+        )
 
 def _pb_profile_to_str(pb_profile) -> str:
     serialized = pb_profile.SerializeToString()
