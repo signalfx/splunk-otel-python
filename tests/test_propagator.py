@@ -32,4 +32,7 @@ def test_inject():
     carrier = {}
     prop.inject(carrier, ctx)
     assert carrier["Access-Control-Expose-Headers"] == "Server-Timing"
-    assert carrier["Server-Timing"] == 'traceparent;desc="00-00000000000000000000000000000001-0000000000000002-01"'
+    assert (
+        carrier["Server-Timing"]
+        == 'traceparent;desc="00-00000000000000000000000000000001-0000000000000002-01"'
+    )

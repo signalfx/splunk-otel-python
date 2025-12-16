@@ -17,7 +17,10 @@ if __name__ == "__main__":
 
 class LoggingOtelTest:
     def requirements(self):
-        return project_path(), f"opentelemetry-instrumentation-logging=={UPSTREAM_PRERELEASE_VERSION}"
+        return (
+            project_path(),
+            f"opentelemetry-instrumentation-logging=={UPSTREAM_PRERELEASE_VERSION}",
+        )
 
     def environment_variables(self):
         return {
@@ -46,7 +49,9 @@ def get_scope_log_records(telemetry, scope_name):
     from oteltest.telemetry import extract_leaves
 
     out = []
-    scope_logs = extract_leaves(telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
+    scope_logs = extract_leaves(
+        telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs"
+    )
     for scope_log in scope_logs:
         if scope_log.scope.name == scope_name:
             out.extend(scope_log.log_records)

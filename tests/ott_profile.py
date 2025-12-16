@@ -28,7 +28,15 @@ class ProfileOtelTest:
     def on_stop(self, tel, stdout: str, stderr: str, returncode: int):
         from oteltest.telemetry import extract_leaves, get_attribute
 
-        scope_logs = extract_leaves(tel, "log_requests", "pbreq", "resource_logs", "scope_logs")
-        profiling_scope_logs = [scope_log for scope_log in scope_logs if scope_log.scope.name == "otel.profiling"]
-        fmt_attr = get_attribute(profiling_scope_logs[0].log_records[0].attributes, "profiling.data.format")
+        scope_logs = extract_leaves(
+            tel, "log_requests", "pbreq", "resource_logs", "scope_logs"
+        )
+        profiling_scope_logs = [
+            scope_log
+            for scope_log in scope_logs
+            if scope_log.scope.name == "otel.profiling"
+        ]
+        fmt_attr = get_attribute(
+            profiling_scope_logs[0].log_records[0].attributes, "profiling.data.format"
+        )
         assert fmt_attr.value.string_value == "pprof-gzip-base64"

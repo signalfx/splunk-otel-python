@@ -83,8 +83,12 @@ class SplunkDistro(BaseDistro):
                 self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
 
     def set_resource_attributes(self):
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
+        self.env.list_append(
+            OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}"
+        )
+        self.env.list_append(
+            OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}"
+        )
 
     def handle_realm(self):
         realm = self.env.getval(SPLUNK_REALM)

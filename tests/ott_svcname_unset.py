@@ -32,7 +32,10 @@ class SpecOtelTest:
             "resource",
             "attributes",
         )
-        assert get_attribute(attributes, "service.name").value.string_value == "unnamed-python-service"
+        assert (
+            get_attribute(attributes, "service.name").value.string_value
+            == "unnamed-python-service"
+        )
 
     def is_http(self):
         return False

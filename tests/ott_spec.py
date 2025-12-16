@@ -39,11 +39,16 @@ class SpecOtelTest:
         assert get_attribute(attributes, "telemetry.sdk.language")
 
         assert get_attribute(attributes, "telemetry.distro.version").value.string_value
-        assert get_attribute(attributes, "telemetry.distro.name").value.string_value == "splunk-opentelemetry"
+        assert (
+            get_attribute(attributes, "telemetry.distro.name").value.string_value
+            == "splunk-opentelemetry"
+        )
 
         assert get_attribute(attributes, "process.pid")
 
-        assert get_attribute(attributes, "service.name").value.string_value == SERVICE_NAME
+        assert (
+            get_attribute(attributes, "service.name").value.string_value == SERVICE_NAME
+        )
 
     def is_http(self):
         return False
