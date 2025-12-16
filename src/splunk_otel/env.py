@@ -14,11 +14,7 @@
 import logging
 import os
 
-from opentelemetry.environment_variables import (
-    OTEL_LOGS_EXPORTER,
-    OTEL_METRICS_EXPORTER,
-    OTEL_TRACES_EXPORTER,
-)
+from opentelemetry.environment_variables import OTEL_LOGS_EXPORTER, OTEL_METRICS_EXPORTER, OTEL_TRACES_EXPORTER
 from opentelemetry.sdk.environment_variables import (
     OTEL_ATTRIBUTE_COUNT_LIMIT,
     OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT,
@@ -31,9 +27,7 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_TRACES_SAMPLER,
 )
 
-OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED = (
-    "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
-)
+OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
 
 DEFAULTS = {
     OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: "true",
@@ -88,9 +82,7 @@ class Env:
         try:
             return int(val)
         except ValueError:
-            _pylogger.warning(
-                "Invalid integer value of '%s' for env var '%s'", val, key
-            )
+            _pylogger.warning("Invalid integer value of '%s' for env var '%s'", val, key)
             return default
 
     def setval(self, key, value):

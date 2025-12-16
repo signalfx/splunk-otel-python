@@ -26,14 +26,7 @@ class NumSpansOtelTest:
 
         assert count_spans(telemetry) == NUM_SPANS
 
-        attributes = extract_leaves(
-            telemetry,
-            "trace_requests",
-            "pbreq",
-            "resource_spans",
-            "resource",
-            "attributes",
-        )
+        attributes = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
         assert get_attribute(attributes, "host.name")
 
     def is_http(self):
