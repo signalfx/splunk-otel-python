@@ -13,7 +13,6 @@ import wrapt
 from opentelemetry._logs import Logger, SeverityNumber, get_logger, LogRecord
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
-from opentelemetry.sdk._logs import ReadWriteLogRecord
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import TraceFlags
@@ -183,21 +182,18 @@ class _ProfileScraper:
             trace_flags=TraceFlags(0x01),
         )
 
-        return ReadWriteLogRecord._from_api_log_record(
-            record=LogRecord(
-                timestamp=int(time_seconds * 1e9),
-                observed_timestamp=int(time_seconds * 1e9),
-                context=context,
-                severity_number=SeverityNumber.UNSPECIFIED,
-                body=pb_profile_str,
-                attributes={
-                    "profiling.data.format": "pprof-gzip-base64",
-                    "profiling.data.type": "cpu",
-                    "com.splunk.sourcetype": "otel.profiling",
-                    "profiling.data.total.frame.count": total_frame_count,
-                },
-            ),
-            resource=self.resource,
+        return LogRecord(
+            timestamp=int(time_seconds * 1e9),
+            observed_timestamp=int(time_seconds * 1e9),
+            context=context,
+            severity_number=SeverityNumber.UNSPECIFIED,
+            body=pb_profile_str,
+            attributes={
+                "profiling.data.format": "pprof-gzip-base64",
+                "profiling.data.type": "cpu",
+                "com.splunk.sourcetype": "otel.profiling",
+                "profiling.data.total.frame.count": total_frame_count,
+            },
         )
 
 def _pb_profile_to_str(pb_profile) -> str:

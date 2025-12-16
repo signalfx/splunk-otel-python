@@ -85,9 +85,9 @@ def test_profile_scraper(stacktraces_fixture):
 
     log_record = logger.log_records[0]
 
-    assert log_record.log_record.timestamp == int(time_seconds * 1e9)
-    assert len(MessageToDict(_pb_profile_from_str(log_record.log_record.body))) == 4  # sanity check
-    assert log_record.log_record.attributes["profiling.data.total.frame.count"] == 30
+    assert log_record.timestamp == int(time_seconds * 1e9)
+    assert len(MessageToDict(_pb_profile_from_str(log_record.body))) == 4  # sanity check
+    assert log_record.attributes["profiling.data.total.frame.count"] == 30
 
 
 def _pb_profile_from_str(stringified: str) -> profile_pb2.Profile:
