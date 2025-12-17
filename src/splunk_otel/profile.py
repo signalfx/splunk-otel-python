@@ -43,9 +43,7 @@ def _start_profiling_if_enabled(env=None):
 
 def start_profiling(env=None):
     env = env or Env()
-    interval_millis = env.getint(
-        SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS
-    )
+    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     svcname = env.getval(OTEL_SERVICE_NAME)
 
     tcm = _ThreadContextMapping()
@@ -53,9 +51,7 @@ def start_profiling(env=None):
 
     resource = _mk_resource(svcname)
     logger = get_logger(_SCOPE_NAME, _SCOPE_VERSION)
-    scraper = _ProfileScraper(
-        resource, tcm.get_thread_states(), interval_millis, logger
-    )
+    scraper = _ProfileScraper(resource, tcm.get_thread_states(), interval_millis, logger)
 
     global _timer  # noqa PLW0603
     _timer = _IntervalTimer(interval_millis, scraper.tick)
@@ -83,12 +79,8 @@ class _ThreadContextMapping:
         return self.thread_states
 
     def wrap_context_methods(self):
-        wrapt.wrap_function_wrapper(
-            opentelemetry.context, "attach", self.wrap_context_attach()
-        )
-        wrapt.wrap_function_wrapper(
-            opentelemetry.context, "detach", self.wrap_context_detach()
-        )
+        wrapt.wrap_function_wrapper(opentelemetry.context, "attach", self.wrap_context_attach())
+        wrapt.wrap_function_wrapper(opentelemetry.context, "detach", self.wrap_context_detach())
 
     def wrap_context_attach(self):
         def wrapper(wrapped, _instance, args, kwargs):
@@ -181,9 +173,7 @@ class _ProfileScraper:
         total_frame_count = sum(lengths)
         time_seconds = self.time()
 
-        pb_profile = _stacktraces_to_cpu_profile(
-            stacktraces, self.thread_states, self.interval_millis, time_seconds
-        )
+        pb_profile = _stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.interval_millis, time_seconds)
         pb_profile_str = _pb_profile_to_str(pb_profile)
 
         context = Context(
@@ -271,9 +261,7 @@ def _get_location(functions_table, str_table, locations_table, frame):
 
 def _get_line(functions_table, str_table, file_name, function_name, line_no):
     line = profile_pb2.Line()
-    line.function_id = _get_function(
-        functions_table, str_table, file_name, function_name
-    ).id
+    line.function_id = _get_function(functions_table, str_table, file_name, function_name).id
     if line_no is None or line_no == 0:
         line.line = -1
     else:
@@ -304,9 +292,7 @@ def _extract_stack_summary(frame):
     return out
 
 
-def _stacktraces_to_cpu_profile(
-    stacktraces, thread_states, interval_millis, time_seconds
-):
+def _stacktraces_to_cpu_profile(stacktraces, thread_states, interval_millis, time_seconds):
     str_table = _StringTable()
     locations_table = OrderedDict()
     functions_table = OrderedDict()
