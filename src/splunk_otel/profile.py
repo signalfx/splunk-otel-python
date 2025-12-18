@@ -176,11 +176,15 @@ class _ProfileScraper:
         pb_profile = _stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.interval_millis, time_seconds)
         pb_profile_str = _pb_profile_to_str(pb_profile)
 
-        return LogRecord(
-            timestamp=int(time_seconds * 1e9),
+        context = Context(
             trace_id=0,
             span_id=0,
             trace_flags=TraceFlags(0x01),
+        )
+
+        return LogRecord(
+            timestamp=int(time_seconds * 1e9),
+            context=context,
             severity_number=SeverityNumber.UNSPECIFIED,
             body=pb_profile_str,
             attributes={
