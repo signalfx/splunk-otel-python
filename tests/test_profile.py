@@ -97,6 +97,7 @@ def test_profile_scraper(stacktraces_fixture):
     assert len(MessageToDict(_pb_profile_from_str(log_record.body))) == 4  # sanity check
     assert log_record.attributes["profiling.data.total.frame.count"] == 30
 
+
 # The "override the current context" stuff for the log record is weird,
 # so test it more thorougly
 def test_profile_scraper_log_context_overrides_current_span():
