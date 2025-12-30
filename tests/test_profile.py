@@ -9,7 +9,15 @@ from os.path import abspath, dirname
 import pytest
 from google.protobuf.json_format import MessageToDict
 from opentelemetry._logs import Logger
+from opentelemetry.context import attach, detach
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.trace import (
+    NonRecordingSpan,
+    SpanContext,
+    TraceFlags,
+    get_current_span,
+    set_span_in_context,
+)
 from splunk_otel import profile_pb2
 from splunk_otel.profile import (
     _get_line,
@@ -83,11 +91,35 @@ def test_profile_scraper(stacktraces_fixture):
     )
     ps.tick()
 
-    log_record = logger.log_records[0]
+    log_record = logger.log_records[0].log_record
 
     assert log_record.timestamp == int(time_seconds * 1e9)
     assert len(MessageToDict(_pb_profile_from_str(log_record.body))) == 4  # sanity check
     assert log_record.attributes["profiling.data.total.frame.count"] == 30
+
+# The "override the current context" stuff for the log record is weird,
+# so test it more thorougly
+def test_profile_scraper_log_context_overrides_current_span():
+    logger = _FakeLogger()
+    ps = _ProfileScraper(Resource({}), {}, 100, logger, time_func=lambda: 1726760000)
+    span_context = SpanContext(
+        trace_id=1,
+        span_id=2,
+        is_remote=False,
+        trace_flags=TraceFlags(0x00),
+    )
+    token = attach(set_span_in_context(NonRecordingSpan(span_context)))
+    try:
+        log_record = ps.mk_log_record([])
+        # make sure that the fake log emission context set didn't affect "reality"
+        assert get_current_span().get_span_context().trace_id == 1
+    finally:
+        detach(token)
+
+    record = log_record.log_record
+    assert record.trace_id == 0
+    assert record.span_id == 0
+    assert record.trace_flags == TraceFlags(0x01)
 
 
 def _pb_profile_from_str(stringified: str) -> profile_pb2.Profile:

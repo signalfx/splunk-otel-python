@@ -10,13 +10,18 @@ from traceback import StackSummary
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import Logger, SeverityNumber, get_logger
+from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
-from opentelemetry.sdk._logs import LogRecord
+from opentelemetry.sdk._logs import ReadWriteLogRecord
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.trace import TraceFlags
+from opentelemetry.trace import (
+    NonRecordingSpan,
+    SpanContext,
+    TraceFlags,
+    set_span_in_context,
+)
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
@@ -178,20 +183,34 @@ class _ProfileScraper:
         pb_profile = _stacktraces_to_cpu_profile(stacktraces, self.thread_states, self.interval_millis, time_seconds)
         pb_profile_str = _pb_profile_to_str(pb_profile)
 
-        return LogRecord(
-            timestamp=int(time_seconds * 1e9),
+        span_context = SpanContext(
             trace_id=0,
             span_id=0,
+            is_remote=False,
             trace_flags=TraceFlags(0x01),
+        )
+        # Build an explicit Context so LogRecord doesn't fall back to the current span
+        # (trace_id/span_id=0 are falsy) and keeps the wire format unchanged.
+        log_context = set_span_in_context(
+            NonRecordingSpan(span_context),
+            Context(),
+        )
+        log_record = LogRecord(
+            timestamp=int(time_seconds * 1e9),
+            context=log_context,
             severity_number=SeverityNumber.UNSPECIFIED,
             body=pb_profile_str,
-            resource=self.resource,
             attributes={
                 "profiling.data.format": "pprof-gzip-base64",
                 "profiling.data.type": "cpu",
                 "com.splunk.sourcetype": "otel.profiling",
                 "profiling.data.total.frame.count": total_frame_count,
             },
+        )
+        return ReadWriteLogRecord(
+            log_record=log_record,
+            resource=self.resource,
+            instrumentation_scope=None,
         )
 
 
