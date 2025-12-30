@@ -207,10 +207,15 @@ class _ProfileScraper:
                 "profiling.data.total.frame.count": total_frame_count,
             },
         )
+        instrumentation_scope = getattr(
+            self.logger,
+            "_instrumentation_scope",
+            None,
+        )
         return ReadWriteLogRecord(
             log_record=log_record,
             resource=self.resource,
-            instrumentation_scope=None,
+            instrumentation_scope=instrumentation_scope,
         )
 
 
