@@ -23,14 +23,14 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "opentelemetry-api==1.38.0",
-  "opentelemetry-sdk==1.38.0",
-  "opentelemetry-propagator-b3==1.38.0",
-  "opentelemetry-exporter-otlp-proto-grpc==1.38.0",
-  "opentelemetry-exporter-otlp-proto-http==1.38.0",
-  "opentelemetry-instrumentation==0.59b0",
-  "opentelemetry-instrumentation-system-metrics==0.59b0",
-  "opentelemetry-semantic-conventions==0.59b0",
+  "opentelemetry-api==1.39.1",
+  "opentelemetry-sdk==1.39.1",
+  "opentelemetry-propagator-b3==1.39.1",
+  "opentelemetry-exporter-otlp-proto-grpc==1.39.1",
+  "opentelemetry-exporter-otlp-proto-http==1.39.1",
+  "opentelemetry-instrumentation==0.60b1",
+  "opentelemetry-instrumentation-system-metrics==0.60b1",
+  "opentelemetry-semantic-conventions==0.60b1",
   "protobuf>=6.31.1", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565)
 ]
 
