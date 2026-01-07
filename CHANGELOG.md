@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.9.0 - 2026-01-07
+- Upgrade Otel dependencies to 1.39.1 / 0.60b1
+
 ## 2.8.0 - 2025-10-27
 - Upgrade Otel dependencies to 1.38.0 / 0.59b0
 
