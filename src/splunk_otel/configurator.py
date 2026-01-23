@@ -15,9 +15,11 @@
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 
 from splunk_otel.profile import _start_profiling_if_enabled
+from splunk_otel.callgraphs import start_callgraphs_if_enabled
 
 
 class SplunkConfigurator(_OTelSDKConfigurator):
     def _configure(self, **kwargs):
         super()._configure(**kwargs)
         _start_profiling_if_enabled()
+        start_callgraphs_if_enabled()

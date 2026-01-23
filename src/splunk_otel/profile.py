@@ -1,12 +1,12 @@
 import base64
 import gzip
-import logging
 import sys
 import threading
 import time
 import traceback
 from collections import OrderedDict
 from traceback import StackSummary
+from typing import Callable, Optional, Literal
 
 import opentelemetry.context
 import wrapt
@@ -37,8 +37,41 @@ _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
 
-_timer = None
-_pylogger = logging.getLogger(__name__)
+_thread_states = {}
+_context_tracking_started = False
+
+
+class ProfilingContext:
+    _timer = None
+
+    def __init__(
+        self,
+        service_name: str,
+        interval_millis: int,
+        stacktrace_filter: Optional[Callable[[list[dict], dict], list[dict]]] = None,
+        instrumentation_source: Optional[Literal["continuous", "snapshot"]] = "continuous",
+    ):
+        start_thread_context_tracking()
+        resource = _mk_resource(service_name)
+        logger = get_logger(_SCOPE_NAME, _SCOPE_VERSION)
+        scraper = _ProfileScraper(
+            resource,
+            _thread_states,
+            interval_millis,
+            logger,
+            stacktrace_filter=stacktrace_filter,
+            instrumentation_source=instrumentation_source,
+        )
+        self._timer = _IntervalTimer(interval_millis, scraper.tick)
+
+    def start(self):
+        self._timer.start()
+
+    def stop(self):
+        self._timer.stop()
+
+    def pause_after(self, seconds: float):
+        self._timer.pause_after(seconds)
 
 
 def _start_profiling_if_enabled(env=None):
@@ -52,20 +85,9 @@ def start_profiling(env=None):
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     svcname = env.getval(OTEL_SERVICE_NAME)
 
-    tcm = _ThreadContextMapping()
-    tcm.wrap_context_methods()
-
-    resource = _mk_resource(svcname)
-    logger = get_logger(_SCOPE_NAME, _SCOPE_VERSION)
-    scraper = _ProfileScraper(resource, tcm.get_thread_states(), interval_millis, logger)
-
-    global _timer  # noqa PLW0603
-    _timer = _IntervalTimer(interval_millis, scraper.tick)
-    _timer.start()
-
-
-def stop_profiling():
-    _timer.stop()
+    ctx = ProfilingContext(svcname, interval_millis)
+    ctx.start()
+    return ctx
 
 
 def _mk_resource(service_name) -> Resource:
@@ -77,61 +99,55 @@ def _mk_resource(service_name) -> Resource:
     )
 
 
-class _ThreadContextMapping:
-    def __init__(self):
-        self.thread_states = {}
+def start_thread_context_tracking():
+    global _context_tracking_started  # noqa PLW0603
+    if _context_tracking_started:
+        return
+    _context_tracking_started = True
 
-    def get_thread_states(self):
-        return self.thread_states
+    wrapt.wrap_function_wrapper(opentelemetry.context, "attach", _wrap_context_attach)
+    wrapt.wrap_function_wrapper(opentelemetry.context, "detach", _wrap_context_detach)
 
-    def wrap_context_methods(self):
-        wrapt.wrap_function_wrapper(opentelemetry.context, "attach", self.wrap_context_attach())
-        wrapt.wrap_function_wrapper(opentelemetry.context, "detach", self.wrap_context_detach())
 
-    def wrap_context_attach(self):
-        def wrapper(wrapped, _instance, args, kwargs):
-            token = wrapped(*args, **kwargs)
+def _wrap_context_attach(wrapped, _instance, args, kwargs):
+    token = wrapped(*args, **kwargs)
 
-            maybe_context = args[0] if args else None
+    maybe_context = args[0] if args else None
 
-            if maybe_context:
-                span = maybe_context.get(_SPAN_KEY)
+    if maybe_context:
+        span = maybe_context.get(_SPAN_KEY)
 
-                if span:
-                    thread_id = threading.get_ident()
-                    context = span.get_span_context()
-                    self.thread_states[thread_id] = (
-                        context.trace_id,
-                        context.span_id,
-                    )
+        if span:
+            thread_id = threading.get_ident()
+            context = span.get_span_context()
+            _thread_states[thread_id] = (
+                context.trace_id,
+                context.span_id,
+            )
 
-            return token
+    return token
 
-        return wrapper
 
-    def wrap_context_detach(self):
-        def wrapper(wrapped, _instance, args, kwargs):
-            token = args[0] if args else None
+def _wrap_context_detach(wrapped, _instance, args, kwargs):
+    token = args[0] if args else None
 
-            if token:
-                prev = token.old_value
-                thread_id = threading.get_ident()
-                if isinstance(prev, Context):
-                    span = prev.get(_SPAN_KEY)
+    if token:
+        prev = token.old_value
+        thread_id = threading.get_ident()
+        if isinstance(prev, Context):
+            span = prev.get(_SPAN_KEY)
 
-                    if span:
-                        context = span.get_span_context()
-                        self.thread_states[thread_id] = (
-                            context.trace_id,
-                            context.span_id,
-                        )
-                    else:
-                        self.thread_states[thread_id] = None
-                else:
-                    self.thread_states[thread_id] = None
-            return wrapped(*args, **kwargs)
-
-        return wrapper
+            if span:
+                context = span.get_span_context()
+                _thread_states[thread_id] = (
+                    context.trace_id,
+                    context.span_id,
+                )
+            else:
+                _thread_states[thread_id] = None
+        else:
+            _thread_states[thread_id] = None
+    return wrapped(*args, **kwargs)
 
 
 def _collect_stacktraces():
@@ -161,6 +177,8 @@ class _ProfileScraper:
         logger: Logger,
         collect_stacktraces_func=_collect_stacktraces,
         time_func=time.time,
+        stacktrace_filter: Optional[Callable[[list[dict], dict], list[dict]]] = None,
+        instrumentation_source: Optional[Literal["continuous", "snapshot"]] = "continuous",
     ):
         self.resource = resource
         self.thread_states = thread_states
@@ -168,9 +186,18 @@ class _ProfileScraper:
         self.collect_stacktraces = collect_stacktraces_func
         self.time = time_func
         self.logger = logger
+        self.stacktrace_filter = stacktrace_filter
+        self.instrumentation_source = instrumentation_source
 
     def tick(self):
         stacktraces = self.collect_stacktraces()
+
+        if self.stacktrace_filter is not None:
+            stacktraces = self.stacktrace_filter(stacktraces, self.thread_states)
+
+        if len(stacktraces) == 0:
+            return
+
         log_record = self.mk_log_record(stacktraces)
         self.logger.emit(log_record)
 
@@ -205,6 +232,7 @@ class _ProfileScraper:
                 "profiling.data.type": "cpu",
                 "com.splunk.sourcetype": "otel.profiling",
                 "profiling.data.total.frame.count": total_frame_count,
+                "profiling.instrumentation.source": self.instrumentation_source,
             },
         )
         instrumentation_scope = getattr(
@@ -231,21 +259,44 @@ class _IntervalTimer:
         self.interval_seconds = interval_millis / 1e3
         self.target = target
         self.thread = threading.Thread(target=self._loop, daemon=True)
-        self.sleep = time.sleep
+        self.running = False
+        self.pause_at = None
+        self.wakeup_event = threading.Event()
 
     def start(self):
+        self.pause_at = None
+        self.wakeup_event.set()
+
+        if self.running:
+            return
+
+        self.running = True
         self.thread.start()
 
     def _loop(self):
-        while True:
-            start_time_seconds = time.time()
+        while self.running:
+            start_time_seconds = time.monotonic()
+
+            # Pause has been been requested, sleep until pause_at or until woken.
+            if self.pause_at is not None and start_time_seconds < self.pause_at:
+                if not self.wakeup_event.wait(timeout=self.pause_at - start_time_seconds):
+                    self.pause_at = None
+                self.wakeup_event.clear()
+                continue
+
             self.target()
-            elapsed_seconds = time.time() - start_time_seconds
+            elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             time.sleep(sleep_seconds)
 
     def stop(self):
+        self.running = False
+        self.wakeup_event.set()
         self.thread.join()
+
+    def pause_after(self, seconds: float):
+        self.pause_at = time.monotonic() + seconds
+        self.wakeup_event.clear()
 
 
 class _StringTable:

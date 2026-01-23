@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import typing
+import random
 
-from opentelemetry import trace
+from opentelemetry import baggage, trace
 from opentelemetry.context.context import Context
 from opentelemetry.instrumentation.propagators import (
     _HTTP_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS,
@@ -22,7 +23,10 @@ from opentelemetry.instrumentation.propagators import (
     default_setter,
 )
 from opentelemetry.propagators import textmap
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased, Decision
 from opentelemetry.trace import format_span_id, format_trace_id
+
+_SPLUNK_TRACE_SNAPSHOT_VOLUME = "splunk.trace.snapshot.volume"
 
 
 class ServerTimingResponsePropagator(ResponsePropagator):
@@ -58,3 +62,47 @@ class ServerTimingResponsePropagator(ResponsePropagator):
             _HTTP_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS,
             header_name,
         )
+
+
+def _with_volume_baggage(is_selected: bool, context: typing.Optional[Context]) -> Context:  # noqa FBT001
+    baggage_value = "highest" if is_selected else "off"
+    return baggage.set_baggage(_SPLUNK_TRACE_SNAPSHOT_VOLUME, baggage_value, context)
+
+
+class CallgraphsPropagator(textmap.TextMapPropagator):
+    selection_probability: float
+
+    def __init__(self, selection_probability: float = 0.01):
+        self.selection_probability = selection_probability
+        self.sampler = TraceIdRatioBased(selection_probability)
+
+    def extract(self, carrier, context, getter):
+        volume_baggage = baggage.get_baggage(_SPLUNK_TRACE_SNAPSHOT_VOLUME, context)
+
+        if volume_baggage is None:
+            return self._attach_volume_baggage(context)
+
+        if volume_baggage in {"highest", "off"}:
+            return context
+
+        return self._attach_volume_baggage(context)
+
+    def inject(self, carrier, context, setter):
+        pass
+
+    def fields(self) -> set[str]:
+        return set()
+
+    def _attach_volume_baggage(self, context: typing.Optional[Context]) -> Context:
+        span = trace.get_current_span(context)
+
+        if span is None:
+            is_selected = random.random() < self.selection_probability  # noqa S311
+            return _with_volume_baggage(is_selected, context)
+
+        is_selected = (
+            self.sampler.should_sample(context, span.get_span_context().trace_id, "splunk.snapshot.profiling").decision
+            == Decision.RECORD_AND_SAMPLE
+        )
+
+        return _with_volume_baggage(is_selected, context)
