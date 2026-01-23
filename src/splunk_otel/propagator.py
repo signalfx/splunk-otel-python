@@ -96,7 +96,7 @@ class CallgraphsPropagator(textmap.TextMapPropagator):
     def _attach_volume_baggage(self, context: typing.Optional[Context]) -> Context:
         span = trace.get_current_span(context)
 
-        if span is None:
+        if not span.get_span_context().is_valid:
             is_selected = random.random() < self.selection_probability  # noqa S311
             return _with_volume_baggage(is_selected, context)
 

@@ -67,7 +67,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
             return
 
         del self.span_id_to_trace_id[span_id]
-        self.active_traces.remove(trace_id)
+        self.active_traces.discard(trace_id)
 
         if len(self.span_id_to_trace_id) == 0:
             self.profiler.pause_after(60.0)
