@@ -1,7 +1,8 @@
 import logging
 
 from opentelemetry import trace
-from ott_lib import UPSTREAM_PRERELEASE_VERSION, project_path
+
+from ott_lib import project_path
 
 MESSAGE = "uh oh!"
 LOGGER_NAME = "logging-ott"
