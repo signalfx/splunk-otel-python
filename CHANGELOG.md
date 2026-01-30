@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 2.10.0 - 2026-01-30
 - Add opentelemetry-instrumentation-logging dependency
 
 ## 2.9.0 - 2026-01-07
