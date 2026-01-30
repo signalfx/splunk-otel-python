@@ -29,6 +29,7 @@ dependencies = [
   "opentelemetry-exporter-otlp-proto-grpc==1.39.1",
   "opentelemetry-exporter-otlp-proto-http==1.39.1",
   "opentelemetry-instrumentation==0.60b1",
+  "opentelemetry-instrumentation-logging==0.60b1",
   "opentelemetry-instrumentation-system-metrics==0.60b1",
   "opentelemetry-semantic-conventions==0.60b1",
   "protobuf>=6.31.1", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565)

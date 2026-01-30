@@ -17,12 +17,13 @@ if __name__ == "__main__":
 
 class LoggingOtelTest:
     def requirements(self):
-        return project_path(), f"opentelemetry-instrumentation-logging=={UPSTREAM_PRERELEASE_VERSION}"
+        return (project_path(),)
 
     def environment_variables(self):
         return {
             "OTEL_SERVICE_NAME": "mysvc",
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
+            "OTEL_PYTHON_LOG_CORRELATION": "true",  # off by default, puts trace info in console logs
         }
 
     def wrapper_command(self):
@@ -40,6 +41,7 @@ class LoggingOtelTest:
         record = records[0]
         assert record.body.string_value == MESSAGE
         assert record.trace_id
+        assert "trace_id" in stderr
 
 
 def get_scope_log_records(telemetry, scope_name):

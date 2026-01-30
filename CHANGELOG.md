@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add opentelemetry-instrumentation-logging dependency
 
 ## 2.9.0 - 2026-01-07
 - Upgrade Otel dependencies to 1.39.1 / 0.60b1
