@@ -9,7 +9,7 @@ from splunk_otel.env import (
 )
 
 
-def start_callgraphs_if_enabled(env=None):
+def _configure_callgraphs_if_enabled(env=None):
     env = env or Env()
     if env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED):
         trace.get_tracer_provider().add_span_processor(

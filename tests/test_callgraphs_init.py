@@ -14,7 +14,7 @@
 
 from unittest.mock import patch
 
-from splunk_otel.callgraphs import start_callgraphs_if_enabled
+from splunk_otel.callgraphs import _configure_callgraphs_if_enabled
 from splunk_otel.env import Env
 
 
@@ -24,7 +24,7 @@ class TestStartCallgraphsIfEnabled:
         env_store = {}
         env = Env(env_store)
 
-        start_callgraphs_if_enabled(env)
+        _configure_callgraphs_if_enabled(env)
 
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_not_called()
 
@@ -37,7 +37,7 @@ class TestStartCallgraphsIfEnabled:
         }
         env = Env(env_store)
 
-        start_callgraphs_if_enabled(env)
+        _configure_callgraphs_if_enabled(env)
 
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once()
         mock_processor.assert_called_once_with("test-service", 10)
@@ -52,6 +52,6 @@ class TestStartCallgraphsIfEnabled:
         }
         env = Env(env_store)
 
-        start_callgraphs_if_enabled(env)
+        _configure_callgraphs_if_enabled(env)
 
         mock_processor.assert_called_once_with("test-service", 50)
