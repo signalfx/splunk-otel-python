@@ -19,6 +19,7 @@ from opentelemetry.context import Context
 from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
 
 from splunk_otel.profile import ProfilingContext
+from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 
 
 def _should_process_context(context: Optional[Context]) -> bool:
@@ -41,7 +42,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
         if not _should_process_context(parent_context):
             return
 
-        ctx_baggage = baggage.get_baggage("splunk.trace.snapshot.volume", parent_context)
+        ctx_baggage = baggage.get_baggage(_SPLUNK_TRACE_SNAPSHOT_VOLUME, parent_context)
 
         if ctx_baggage is None:
             return
