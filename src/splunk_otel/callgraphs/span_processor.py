@@ -33,7 +33,6 @@ def _should_process_context(context: Optional[Context]) -> bool:
 class CallgraphsSpanProcessor(SpanProcessor):
     def __init__(self, service_name: str, sampling_interval: Optional[int] = 10):
         self.span_id_to_trace_id: dict[int, int] = {}
-        self.active_traces = set()
         self.profiler = ProfilingContext(
             service_name, sampling_interval, self._filter_stacktraces, instrumentation_source="snapshot"
         )
@@ -56,7 +55,6 @@ class CallgraphsSpanProcessor(SpanProcessor):
                 return
 
             self.span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            self.active_traces.add(span_ctx.trace_id)
             self.profiler.start()
 
     def on_end(self, span: ReadableSpan) -> None:
@@ -67,7 +65,6 @@ class CallgraphsSpanProcessor(SpanProcessor):
             return
 
         del self.span_id_to_trace_id[span_id]
-        self.active_traces.discard(trace_id)
 
         if len(self.span_id_to_trace_id) == 0:
             self.profiler.pause_after(60.0)
@@ -88,7 +85,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             if maybe_context is not None:
                 (trace_id, _span_id) = maybe_context
-                if trace_id in self.active_traces:
+                if trace_id in self.span_id_to_trace_id.values():
                     filtered.append(stacktrace)
 
         return filtered
