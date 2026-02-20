@@ -21,6 +21,8 @@ from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
 from splunk_otel.profile import ProfilingContext
 from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 
+import threading
+
 
 def _should_process_context(context: Optional[Context]) -> bool:
     parent_span = trace.get_current_span(context).get_span_context()
@@ -33,8 +35,9 @@ def _should_process_context(context: Optional[Context]) -> bool:
 
 class CallgraphsSpanProcessor(SpanProcessor):
     def __init__(self, service_name: str, sampling_interval: Optional[int] = 10):
-        self.span_id_to_trace_id: dict[int, int] = {}
-        self.profiler = ProfilingContext(
+        self._span_id_to_trace_id: dict[int, int] = {}
+        self._lock = threading.Lock()
+        self._profiler = ProfilingContext(
             service_name, sampling_interval, self._filter_stacktraces, instrumentation_source="snapshot"
         )
 
@@ -55,20 +58,22 @@ class CallgraphsSpanProcessor(SpanProcessor):
             if span_ctx is None:
                 return
 
-            self.span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            self.profiler.start()
+            with self._lock:
+                self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
+            self._profiler.start()
 
     def on_end(self, span: ReadableSpan) -> None:
         span_id = span.get_span_context().span_id
-        trace_id = self.span_id_to_trace_id.get(span_id)
+        trace_id = self._span_id_to_trace_id.get(span_id)
 
         if trace_id is None:
             return
 
-        del self.span_id_to_trace_id[span_id]
+        with self._lock:
+            self._span_id_to_trace_id.pop(span_id, None)
 
-        if len(self.span_id_to_trace_id) == 0:
-            self.profiler.pause_after(60.0)
+            if len(self._span_id_to_trace_id) == 0:
+                self._profiler.pause_after(60.0)
 
     def shutdown(self) -> None:
         pass
@@ -78,6 +83,8 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
     def _filter_stacktraces(self, stacktraces, active_trace_contexts):
         filtered = []
+        with self._lock:
+            trace_ids = set(self._span_id_to_trace_id.values())
 
         for stacktrace in stacktraces:
             thread_id = stacktrace["tid"]
@@ -86,7 +93,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             if maybe_context is not None:
                 (trace_id, _span_id) = maybe_context
-                if trace_id in self.span_id_to_trace_id.values():
+                if trace_id in trace_ids:
                     filtered.append(stacktrace)
 
         return filtered
