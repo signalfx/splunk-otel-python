@@ -16,6 +16,7 @@ import logging
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
+from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
@@ -25,6 +26,7 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_RESOURCE_ATTRIBUTES,
     OTEL_SERVICE_NAME,
 )
+from opentelemetry.propagate import get_global_textmap, set_global_textmap
 
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.env import (
@@ -33,10 +35,12 @@ from splunk_otel.env import (
     SPLUNK_PROFILER_ENABLED,
     SPLUNK_PROFILER_LOGS_ENDPOINT,
     SPLUNK_REALM,
+    SPLUNK_SNAPSHOT_PROFILER_ENABLED,
+    SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     Env,
 )
-from splunk_otel.propagator import ServerTimingResponsePropagator
+from splunk_otel.propagator import CallgraphsPropagator, ServerTimingResponsePropagator
 
 _DISTRO_NAME = "splunk-opentelemetry"
 
@@ -66,6 +70,7 @@ class SplunkDistro(BaseDistro):
         self.handle_realm()
         self.configure_token_headers()
         self.set_server_timing_propagator()
+        self.set_callgraphs_propagator()
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
@@ -110,3 +115,14 @@ class SplunkDistro(BaseDistro):
     def set_server_timing_propagator(self):
         if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
             set_global_response_propagator(ServerTimingResponsePropagator())
+
+    def set_callgraphs_propagator(self):
+        if self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"):
+            set_global_textmap(
+                CompositePropagator(
+                    [
+                        get_global_textmap(),
+                        CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)),
+                    ]
+                )
+            )
