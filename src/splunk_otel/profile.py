@@ -280,7 +280,6 @@ class _IntervalTimer:
             if self.pause_at is not None and start_time_seconds >= self.pause_at:
                 # The pause deadline has been reached, sleep until woken again.
                 self.wakeup_event.wait()
-                self.pause_at = None
                 continue
 
             self.target()
