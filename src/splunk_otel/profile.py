@@ -277,11 +277,10 @@ class _IntervalTimer:
         while self.running:
             start_time_seconds = time.monotonic()
 
-            # Pause has been been requested, sleep until pause_at or until woken.
-            if self.pause_at is not None and start_time_seconds < self.pause_at:
-                if not self.wakeup_event.wait(timeout=self.pause_at - start_time_seconds):
-                    self.pause_at = None
-                self.wakeup_event.clear()
+            if self.pause_at is not None and start_time_seconds >= self.pause_at:
+                # The pause deadline has been reached, sleep until woken again.
+                self.wakeup_event.wait()
+                self.pause_at = None
                 continue
 
             self.target()
@@ -291,10 +290,12 @@ class _IntervalTimer:
 
     def stop(self):
         self.running = False
+        self.pause_at = None
         self.wakeup_event.set()
         self.thread.join()
 
     def pause_after(self, seconds: float):
+        # The timer will stay running until pause_at has been reached.
         self.pause_at = time.monotonic() + seconds
         self.wakeup_event.clear()
 
