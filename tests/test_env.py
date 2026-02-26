@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import logging
+import pytest
 
 from splunk_otel.env import Env
 
@@ -21,6 +22,7 @@ def test_env():
     e.store = {
         "PREEXISTING": "preexisting",
         "FAVORITE_NUMBER": "42",
+        "FLOATY_NUMBER": "0.56",
     }
 
     e.setdefault("PREEXISTING", "default")
@@ -45,6 +47,9 @@ def test_env():
 
     assert e.getint("FAVORITE_NUMBER", 111) == 42
     assert e.getint("NOT_SET", 222) == 222
+
+    assert pytest.approx(e.getfloat("FLOATY_NUMBER", 0.1), 0.001) == 0.56
+    assert pytest.approx(e.getfloat("NOT_SET", 0.234), 0.001) == 0.234
 
 
 def test_get_invalid_int(caplog):

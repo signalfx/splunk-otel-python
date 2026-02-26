@@ -17,9 +17,13 @@ from opentelemetry.instrumentation.propagators import (
     get_global_response_propagator,
     set_global_response_propagator,
 )
+from opentelemetry.propagate import get_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
+
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
+from splunk_otel.propagator import CallgraphsPropagator
 
 
 def test_distro_env():
@@ -106,6 +110,44 @@ def test_realm():
     assert env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/trace/otlp"
     assert env_store["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == "https://ingest.us2.signalfx.com/v2/datapoint/otlp"
     assert env_store["OTEL_EXPORTER_OTLP_PROTOCOL"] == "http/protobuf"
+
+
+def test_callgraphs_propagator_disabled_by_default():
+    env_store = {}
+    configure_distro(env_store)
+
+    textmap = get_global_textmap()
+    if isinstance(textmap, CompositePropagator):
+        propagators = textmap._propagators  # noqa SLF001
+        callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
+        assert len(callgraphs_propagators) == 0
+    else:
+        assert not isinstance(textmap, CallgraphsPropagator)
+
+
+def test_callgraphs_propagator_enabled():
+    env_store = {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}
+    configure_distro(env_store)
+
+    textmap = get_global_textmap()
+    assert isinstance(textmap, CompositePropagator)
+
+    propagators = textmap._propagators  # noqa SLF001
+    callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
+    assert len(callgraphs_propagators) == 1
+
+
+def test_callgraphs_propagator_selection_probability():
+    env_store = {
+        "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
+        "SPLUNK_SNAPSHOT_SELECTION_PROBABILITY": "0.5",
+    }
+    configure_distro(env_store)
+
+    textmap = get_global_textmap()
+    propagators = textmap._propagators  # noqa SLF001
+    callgraphs_propagator = next(p for p in propagators if isinstance(p, CallgraphsPropagator))
+    assert callgraphs_propagator.selection_probability == 0.5
 
 
 def configure_distro(env_store):
