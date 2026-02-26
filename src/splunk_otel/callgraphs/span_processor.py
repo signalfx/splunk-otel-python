@@ -27,10 +27,9 @@ import threading
 def _should_process_context(context: Optional[Context]) -> bool:
     parent_span = trace.get_current_span(context).get_span_context()
 
-    if not parent_span.is_valid:
-        return True
+    is_root_span = not parent_span.is_valid
 
-    return parent_span.is_remote
+    return is_root_span or parent_span.is_remote
 
 
 class CallgraphsSpanProcessor(SpanProcessor):
@@ -76,7 +75,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
                 self._profiler.pause_after(60.0)
 
     def shutdown(self) -> None:
-        pass
+        self._profiler.stop()
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
         return True
