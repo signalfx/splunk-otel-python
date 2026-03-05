@@ -8,7 +8,7 @@ opentelemetry-instrumentation-asgi==0.60b1
 opentelemetry-instrumentation-asyncio==0.60b1
 opentelemetry-instrumentation-asyncpg==0.60b1
 opentelemetry-instrumentation-aws-lambda==0.60b1
-opentelemetry-instrumentation-boto==0.60b1
+opentelemetry-instrumentation-boto==0.61b0
 opentelemetry-instrumentation-boto3sqs==0.60b1
 opentelemetry-instrumentation-botocore==0.60b1
 opentelemetry-instrumentation-cassandra==0.60b1
