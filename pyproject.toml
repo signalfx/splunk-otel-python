@@ -35,6 +35,8 @@ dependencies = [
   "opentelemetry-semantic-conventions==0.62b0",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
   "wrapt>=1.0.0,<2.0.0", # wrapt 2 breaks TracedCursorProxy iteration in opentelemetry-instrumentation-dbapi 0.62b0
+  "opentelemetry-opamp-client==0.1b0",
+  "requests>=2.20.0", # OpAMP: HTTP transport (already transitive dep, making explicit)
 ]
 
 [project.urls]

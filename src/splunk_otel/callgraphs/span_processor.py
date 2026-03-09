@@ -74,6 +74,9 @@ class CallgraphsSpanProcessor(SpanProcessor):
             if len(self._span_id_to_trace_id) == 0:
                 self._profiler.pause_after(60.0)
 
+    def interval_millis(self) -> int:
+        return int(self._profiler.interval_seconds * 1000)
+
     def shutdown(self) -> None:
         self._profiler.stop()
 
