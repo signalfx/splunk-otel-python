@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from __future__ import annotations
 
-from opentelemetry.sdk.resources import (
-    TELEMETRY_SDK_LANGUAGE,
-    TELEMETRY_SDK_NAME,
-    TELEMETRY_SDK_VERSION,
-)
+import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 from opentelemetry._opamp.agent import OpAMPAgent
+from opentelemetry._opamp.callbacks import Callbacks, MessageData
 from opentelemetry._opamp.client import OpAMPClient
-from opentelemetry._opamp.proto import opamp_pb2
 
 from splunk_otel.env import (
     Env,
@@ -31,112 +30,123 @@ from splunk_otel.env import (
     SPLUNK_OPAMP_POLLING_INTERVAL,
     SPLUNK_OPAMP_TOKEN,
 )
-from splunk_otel.distro import _DISTRO_NAME
-from splunk_otel.opamp.config_registry import ConfigRegistry
+
+if TYPE_CHECKING:
+    from splunk_otel.opamp.config_registry import ConfigRegistry
 
 logger = logging.getLogger(__name__)
-
-_IDENTIFYING_RESOURCE_KEYS = (
-    "service.name",
-    "service.namespace",
-    "service.instance.id",
-    "service.version",
-)
-
-_NON_IDENTIFYING_RESOURCE_KEYS = (
-    "os.type",
-    "os.name",
-    "os.version",
-    "host.name",
-    "host.arch",
-    "process.pid",
-    "process.runtime.name",
-    "process.runtime.version",
-    # Note: deployment.environment.name may need to move: splunk-otel-java puts this in identifying
-    "deployment.environment.name",
-)
 
 _DEFAULT_POLLING_INTERVAL_MS = 30000
 
 
-def _start_opamp_if_enabled(resource_attrs, registry: ConfigRegistry, env: Env) -> None:
-    if not env.is_true(SPLUNK_OPAMP_ENABLED):
-        logger.debug("OpAMP disabled (SPLUNK_OPAMP_ENABLED not set to true)")
-        return
+# ---------------------------------------------------------------------------
+# Config: pure data extracted from env vars
+# ---------------------------------------------------------------------------
 
-    endpoint = env.getval(SPLUNK_OPAMP_ENDPOINT)
-    if not endpoint:
-        logger.warning("SPLUNK_OPAMP_ENABLED=true but SPLUNK_OPAMP_ENDPOINT is not set; OpAMP disabled")
-        return
 
-    token = env.getval(SPLUNK_OPAMP_TOKEN) or env.getval(SPLUNK_ACCESS_TOKEN)
-    polling_interval_ms = env.getint(SPLUNK_OPAMP_POLLING_INTERVAL, _DEFAULT_POLLING_INTERVAL_MS)
+@dataclass(frozen=True)
+class OpAMPConfig:
+    endpoint: str
+    token: str
+    polling_interval_ms: int
 
-    logger.info("Starting OpAMP client: %s", endpoint)
+    @classmethod
+    def from_env(cls, env: Env) -> OpAMPConfig | None:
+        if not env.is_true(SPLUNK_OPAMP_ENABLED):
+            logger.debug("OpAMP disabled (SPLUNK_OPAMP_ENABLED not set to true)")
+            return None
+
+        endpoint = env.getval(SPLUNK_OPAMP_ENDPOINT)
+        if not endpoint:
+            logger.warning("SPLUNK_OPAMP_ENABLED=true but SPLUNK_OPAMP_ENDPOINT is not set; OpAMP disabled")
+            return None
+
+        token = env.getval(SPLUNK_OPAMP_TOKEN) or env.getval(SPLUNK_ACCESS_TOKEN)
+        polling_interval_ms = env.getint(SPLUNK_OPAMP_POLLING_INTERVAL, _DEFAULT_POLLING_INTERVAL_MS)
+
+        return cls(endpoint=endpoint, token=token, polling_interval_ms=polling_interval_ms)
+
+
+# ---------------------------------------------------------------------------
+# Callbacks
+# ---------------------------------------------------------------------------
+
+
+class _SplunkCallbacks(Callbacks):
+    def on_connect_failed(
+        self,
+        _agent: OpAMPAgent,
+        _client: OpAMPClient,
+        error: Exception,
+    ) -> None:
+        logger.warning("Connection to OpAMP server failed", exc_info=error)
+
+    def on_error(
+        self,
+        _agent: OpAMPAgent,
+        _client: OpAMPClient,
+        error_response,
+    ) -> None:
+        logger.warning("OpAMP server returned error: %s", error_response)
+
+    def on_message(
+        self,
+        _agent: OpAMPAgent,
+        _client: OpAMPClient,
+        message: MessageData,
+    ) -> None:
+        logger.debug("ServerToAgent message received: remote_config=%s", message.remote_config is not None)
+
+
+# ---------------------------------------------------------------------------
+# Entry point (called from SplunkConfigurator)
+# ---------------------------------------------------------------------------
+
+
+def _start_opamp_if_enabled(
+    resource_attrs,
+    registry: ConfigRegistry,
+    env: Env,
+    client_factory=OpAMPClient,
+    agent_factory=OpAMPAgent,
+) -> OpAMPAgent | None:
+    config = OpAMPConfig.from_env(env)
+    if config is None:
+        return None
 
     try:
-        _start_opamp(endpoint, token, polling_interval_ms, registry, resource_attrs)
-
+        client = _build_client(config, resource_attrs, client_factory=client_factory)
+        return _start_opamp(config, registry, client, agent_factory=agent_factory)
     except Exception:
         logger.exception("Failed to start OpAMP client")
+        return None
 
 
-def _start_opamp(endpoint: str, token: str, polling_interval_ms: int, registry: ConfigRegistry, resource_attrs):
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-
-    identifying_attrs, non_identifying_attrs = _build_agent_attributes(resource_attrs)
-    client = OpAMPClient(
-        endpoint=endpoint,
-        headers=headers,
-        agent_identifying_attributes=identifying_attrs,
-        agent_non_identifying_attributes=non_identifying_attrs,
-    )
+def _start_opamp(config, registry, client, agent_factory=OpAMPAgent):
     client.update_effective_config(
         {"": registry.get_all()},
         content_type="application/json",
     )
-    agent = OpAMPAgent(
-        interval=polling_interval_ms / 1000,
-        message_handler=_handle_server_message,
+    agent = agent_factory(
+        interval=config.polling_interval_ms / 1000,
+        callbacks=_SplunkCallbacks(),
         client=client,
     )
     agent.start()
-    logger.info("OpAMP client started")
+    logger.info("OpAMP client started: %s", config.endpoint)
+    return agent
 
 
-def _build_agent_attributes(resource_attrs) -> tuple[dict, dict]:
-    from splunk_otel.__about__ import __version__ as distro_version
+def _build_client(config: OpAMPConfig, resource_attrs, client_factory=OpAMPClient):
+    headers = {}
+    if config.token:
+        headers["Authorization"] = f"Bearer {config.token}"
 
-    identifying_attrs = {}
-    for key in _IDENTIFYING_RESOURCE_KEYS:
-        val = resource_attrs.get(key)
-        if val is not None:
-            identifying_attrs[key] = str(val)
+    identifying = {str(k): str(v) for k, v in resource_attrs.items()}
 
-    identifying_attrs.update(
-        {
-            TELEMETRY_SDK_LANGUAGE: "python",
-            TELEMETRY_SDK_NAME: "opentelemetry",
-            TELEMETRY_SDK_VERSION: str(resource_attrs.get(TELEMETRY_SDK_VERSION, "unknown")),
-            "telemetry.distro.name": _DISTRO_NAME,
-            "telemetry.distro.version": distro_version,
-        }
+    return client_factory(
+        endpoint=config.endpoint,
+        headers=headers,
+        agent_identifying_attributes=identifying,
+        agent_non_identifying_attributes={},
     )
-
-    non_identifying_attrs = {}
-    for key in _NON_IDENTIFYING_RESOURCE_KEYS:
-        val = resource_attrs.get(key)
-        if val is not None:
-            non_identifying_attrs[key] = str(val)
-
-    return identifying_attrs, non_identifying_attrs
-
-
-def _handle_server_message(
-    _agent: OpAMPAgent,
-    _client: OpAMPClient,
-    message: opamp_pb2.ServerToAgent,
-) -> None:
-    logger.debug("ServerToAgent: flags=%s", message.flags)

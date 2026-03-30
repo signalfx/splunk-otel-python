@@ -41,11 +41,11 @@ class SplunkConfigurator(_OTelSDKConfigurator):
         profiling = _start_profiling_if_enabled(env)
         callgraphs = _configure_callgraphs_if_enabled(env)
 
-        registry = self._build_registry(profiling, callgraphs, env)
+        opamp_registry = self._build_opamp_registry(profiling, callgraphs, env)
         resource = trace.get_tracer_provider().resource
-        _start_opamp_if_enabled(resource.attributes, registry, env)
+        _start_opamp_if_enabled(resource.attributes, opamp_registry, env)
 
-    def _build_registry(self, profiling_state, callgraphs_state, env) -> ConfigRegistry:
+    def _build_opamp_registry(self, profiling_state, callgraphs_state, env) -> ConfigRegistry:
         registry = ConfigRegistry()
         registry.register(SPLUNK_PROFILER_ENABLED, getter=lambda: str(profiling_state.is_enabled()).lower())
         registry.register(SPLUNK_PROFILER_CALL_STACK_INTERVAL, getter=lambda: str(profiling_state.interval_millis()))

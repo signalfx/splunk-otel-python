@@ -19,7 +19,7 @@ def _raise(exc):
     raise exc
 
 
-class TestConfigRegistry:
+class TestOpampConfigRegistry:
     def test_get_all_returns_registered_values(self):
         registry = ConfigRegistry()
         registry.register("KEY_A", getter=lambda: "val_a")
