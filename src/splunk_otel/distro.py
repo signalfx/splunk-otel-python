@@ -15,6 +15,7 @@
 import logging
 
 from opentelemetry.instrumentation.distro import BaseDistro
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.environment_variables import (
@@ -71,6 +72,14 @@ class SplunkDistro(BaseDistro):
         self.configure_token_headers()
         self.set_server_timing_propagator()
         self.set_callgraphs_propagator()
+        # Previously, the SDK's LoggingHandler was enabled by setting
+        # OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true (our default). That handler
+        # has been deprecated in the SDK and moved to opentelemetry-instrumentation-logging.
+        # We call instrument() explicitly here to ensure the handler is installed for users
+        # who don't run under `opentelemetry-instrument` (which would auto-discover it via
+        # entry points). This is safe when running under `opentelemetry-instrument` because
+        # LoggingInstrumentor is a singleton and its instrument() call is idempotent.
+        LoggingInstrumentor().instrument()
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():

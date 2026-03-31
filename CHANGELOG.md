@@ -4,6 +4,7 @@
 
 ## 2.10.0 - 2026-03-31
 - Upgrade Otel dependencies to 1.40.0 / 0.61b0
+- Add `opentelemetry-instrumentation-logging` as a direct dependency; the logging handler has migrated from the SDK to contrib and is now explicitly instrumented by the distro
 
 ## 2.9.0 - 2026-01-07
 - Upgrade Otel dependencies to 1.39.1 / 0.60b1
