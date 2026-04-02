@@ -13,6 +13,7 @@
 #  limitations under the License.
 
 import logging
+import os
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
