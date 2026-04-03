@@ -91,7 +91,10 @@ class SplunkDistro(BaseDistro):
             self.env.setval(OTEL_SERVICE_NAME, _DEFAULT_SERVICE_NAME)
 
     def set_profiling_env(self):
-        if self.env.is_true(SPLUNK_PROFILER_ENABLED, "false"):
+        profiling_active = self.env.is_true(SPLUNK_PROFILER_ENABLED, "false") or self.env.is_true(
+            SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"
+        )
+        if profiling_active:
             logs_endpt = self.env.getval(SPLUNK_PROFILER_LOGS_ENDPOINT)
             if logs_endpt:
                 self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
