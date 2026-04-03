@@ -3,42 +3,42 @@
 ## Unreleased
 
 ## 2.10.0 - 2026-03-31
-- Upgrade Otel dependencies to 1.40.0 / 0.61b0
+- Upgrade Otel dependencies to [1.40.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.40.0) / [0.61b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.61b0)
 - Add `opentelemetry-instrumentation-logging` as a direct dependency; the logging handler has migrated from the SDK to contrib and is now explicitly instrumented by the distro
 
 ## 2.9.0 - 2026-01-07
-- Upgrade Otel dependencies to 1.39.1 / 0.60b1
+- Upgrade Otel dependencies to [1.39.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.39.1) / [0.60b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.60b1)
 
 ## 2.8.0 - 2025-10-27
-- Upgrade Otel dependencies to 1.38.0 / 0.59b0
+- Upgrade Otel dependencies to [1.38.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.38.0) / [0.59b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.59b0)
 
 ## 2.7.0 - 2025-08-20
-- Upgrade Otel dependencies to 1.36.0 / 0.57b0
+- Upgrade Otel dependencies to [1.36.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.36.0) / [0.57b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.57b0)
 
 ## 2.6.0 - 2025-07-30
 - Bump versions of some dependencies to address security issues
 
 ## 2.5.0 - 2025-07-16
-- Upgrade Otel dependencies to 1.35.0 / 0.56b0
+- Upgrade Otel dependencies to [1.35.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.35.0) / [0.56b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.56b0)
 
 ## 2.4.0 - 2025-05-29
-- Upgrade Otel dependencies to 1.33.1 / 0.54b1
+- Upgrade Otel dependencies to [1.33.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.33.1) / [0.54b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.54b1)
 - Fix profiling bug where line number could be None [#627](https://github.com/signalfx/splunk-otel-python/pull/627/)
 
 ## 2.3.0 - 2025-04-29
-- Upgrade Otel dependencies to 1.32.1 / 0.53b1
+- Upgrade Otel dependencies to [1.32.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.32.1) / [0.53b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.53b1)
 
 ## 2.2.0 - 2025-04-03
-- Upgrade Otel dependencies to 1.31.1 / 0.52b1
+- Upgrade Otel dependencies to [1.31.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.31.1) / [0.52b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.52b1)
 
 ## 2.1.0 - 2025-02-18
-- Upgrade Otel dependencies to 1.30.0 / 0.51b0
+- Upgrade Otel dependencies to [1.30.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.30.0) / [0.51b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.51b0)
 
 ## 2.0.0 - 2025-01-28
 - See [VERSION_2_RELEASE_NOTES.md](VERSION_2_RELEASE_NOTES.md)
 
 ## 1.20.0 - 2024-08-08
-- Upgrade Otel dependencies to 1.26.0 / 0.47b0
+- Upgrade Otel dependencies to [1.26.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.26.0) / [0.47b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.47b0)
 
 ## 1.19.1 - 2024-05-29
 - Fixed an issue with metrics exporting in a lambda environment
@@ -46,10 +46,10 @@
 ## 1.19.0 - 2024-05-01
 
 - Profiling: fix access to context in case of `NonRecordingSpan`.
-- Upgraded Otel dependencies to 1.24.0 / 0.45b0
+- Upgraded Otel dependencies to [1.24.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.24.0) / [0.45b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.45b0)
 
 ## 1.18.0 - 2024-03-06
-- Upgraded Otel dependencies to 1.23.0 / 0.44b0
+- Upgraded Otel dependencies to [1.23.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.23.0) / [0.44b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.44b0)
 
 - Changed the return type of start_tracing from sdk.TracerProvider to api.TracerProvider
 - Profiling: fix the reported frame count when exporting stacktraces.
@@ -62,7 +62,7 @@
 - Removed support for Jaeger as it has been removed from otel python as well
 
 ## 1.16.0 - 2023-12-04
-- Upgraded Otel dependencies to 1.21.0 / 0.42b0
+- Upgraded Otel dependencies to [1.21.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.21.0) / [0.42b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.42b0)
 - Fix trace and span id formatting for profiling
   [#372](https://github.com/signalfx/splunk-otel-python/pull/372)
 
@@ -78,39 +78,39 @@
 - Added support for metrics autoinstrumentation
 
 ## 1.13.0 - 2023-09-28
-- Upgraded Otel dependencies to 1.20.0 and 0.41b0
+- Upgraded Otel dependencies to [1.20.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.20.0) and [0.41b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.41b0)
 
 ## 1.12.0 - 2023-07-17
-- Upgraded Otel dependencies to 1.19.0 and 0.40b0
+- Upgraded Otel dependencies to [1.19.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.19.0) and [0.40b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.40b0)
 
 ## 1.11.0 - 2023-05-24
-- Upgraded Otel dependencies to 1.18.0 and 0.39b0
+- Upgraded Otel dependencies to [1.18.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.18.0) and [0.39b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.39b0)
 
 ## 1.10.0 - 2023-05-01
-- Upgraded Otel dependencies to 1.17.0 and 0.38b0.
+- Upgraded Otel dependencies to [1.17.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.17.0) and [0.38b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.38b0).
 - Pinned flake8 at ~3.7 to match OTel requirements
 ## 1.9.0 - 2023-02-13
 
-- Upgraded Otel dependencies to 1.15.0 and 0.36b0.  This removes support for Python 3.6.
+- Upgraded Otel dependencies to [1.15.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.15.0) and [0.36b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.36b0).  This removes support for Python 3.6.
 
 ## 1.8.0 - 2022-08-10
 
-- Upgraded Otel dependencies to 1.12.0 and 0.33b0
+- Upgraded Otel dependencies to [1.12.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.12.0) and [0.33b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.33b0)
 - Vendored in githubrelease package
 
 ## 1.7.0 - 2022-07-14
 
-- Upgraded Otel dependencies to 1.12.0rc2 and 0.32b0
+- Upgraded Otel dependencies to [1.12.0rc2](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.12.0rc2) and [0.32b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.32b0)
 
 ## 1.6.0 - 2022-04-27
 
-- Upgraded Otel dependencies to 1.11.1 and 0.30b1
+- Upgraded Otel dependencies to [1.11.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.11.1) and [0.30b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.30b1)
   [#226](https://github.com/signalfx/splunk-otel-python/pull/226)
 
 
 ## 1.5.0 - 2022-03-14
 
-- Upgraded Otel dependencies to 1.10.0 and 0.29b0
+- Upgraded Otel dependencies to [1.10.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.10.0) and [0.29b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.29b0)
   [#212](https://github.com/signalfx/splunk-otel-python/pull/212)
 
 ## 1.4.1 - 2022-01-31
@@ -119,7 +119,7 @@
 
 ### General
 
-- Upgraded Otel dependencies to 1.9.0 and 0.28b0
+- Upgraded Otel dependencies to [1.9.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.9.0) and [0.28b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.28b0)
   [#200](https://github.com/signalfx/splunk-otel-python/pull/200)
 - Add support for OTEL_TRACE_ENABLED to splunk-py-trace command.
   [#199](https://github.com/signalfx/splunk-otel-python/pull/199)
@@ -128,14 +128,14 @@
 
 ### General
 
-- Upgraded Otel dependencies to 1.8.0 and 0.27b0
+- Upgraded Otel dependencies to [1.8.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.8.0) and [0.27b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.27b0)
   [#190](https://github.com/signalfx/splunk-otel-python/pull/190)
 
 ## 1.2.0 - 2021-11-12
 
 ### General
 
-- Upgraded Otel dependencies to 1.7.1 and 0.26b1
+- Upgraded Otel dependencies to [1.7.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.7.1) and [0.26b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.26b1)
   [#177](https://github.com/signalfx/splunk-otel-python/pull/177)
 
 ## 1.1.0 - 2021-10-20
@@ -144,7 +144,7 @@
 
 - `start_tracing()` now returns a `TracerProvider`
   [#160](https://github.com/signalfx/splunk-otel-python/pull/160)
-- Upgraded Otel dependencies to 1.6.2 and 0.25.0b2
+- Upgraded Otel dependencies to [1.6.2](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.6.2) and [0.25.0b2](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.25b2)
   [#161](https://github.com/signalfx/splunk-otel-python/pull/161)
 
 ## 1.0.0 - 2021-09-20
@@ -164,7 +164,7 @@
 
 ### General
 
-- Upgraded Otel dependencies to 1.5.0 and 0.24.0b0
+- Upgraded Otel dependencies to [1.5.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.5.0) and [0.24.0b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.24b0)
   [#116](https://github.com/signalfx/splunk-otel-python/pull/116)
 
 ### Breaking Changes
@@ -177,14 +177,14 @@
 
 ### General
 
-- Upgraded Otel dependencies to 1.4.1 and 0.23.0b2
+- Upgraded Otel dependencies to [1.4.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.4.1) and [0.23.0b2](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.23b2)
   [#113](https://github.com/signalfx/splunk-otel-python/pull/113)
 
 ## 0.16.0 - 2021-08-04
 
 ### General
 
-- Upgraded Otel dependencies to 1.4.1 and 0.23.0b2
+- Upgraded Otel dependencies to [1.4.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.4.1) and [0.23.0b2](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.23b2)
   [#113](https://github.com/signalfx/splunk-otel-python/pull/113)
 
 ## 1.0.0rc3 - 2021-06-08
@@ -198,7 +198,7 @@
 
 ### General
 
-- Upgrade OpenTelemetry Python to 1.3.0 and 0.22b0
+- Upgrade OpenTelemetry Python to [1.3.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.3.0) and [0.22b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.22b0)
   [#85](https://github.com/signalfx/splunk-otel-python/pull/85)
 
 ## 1.0.0-rc1 - 2021-06-01
@@ -285,7 +285,7 @@
 
 ### General
 
-- Upgraded OpenTelemetry to 1.0 and 0.19b0
+- Upgraded OpenTelemetry to [1.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.0.0) and [0.19b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.19b0)
   ([#34](https://github.com/signalfx/splunk-otel-python/pull/34))
 
 ### Breaking Changes
