@@ -279,7 +279,7 @@ class _IntervalTimer:
 
             if self.pause_at is not None and start_time_seconds >= self.pause_at:
                 self.wakeup_event.clear()  # clear event so next line will block
-                self.wakeup_event.wait()  # deadline reached, now wait for event.set() (either via start() or stop())
+                self.wakeup_event.wait()  # wait for event.set() (either via start() or stop())
                 continue
 
             self.target()
@@ -290,7 +290,7 @@ class _IntervalTimer:
     def stop(self):
         self.running = False
         self.pause_at = None
-        self.wakeup_event.set()  # unblock _loop() if waiting, so _loop() can return and thread can exit
+        self.wakeup_event.set()  # unblock _loop() if waiting, so it can return and thread can exit
         if self.thread.is_alive():
             self.thread.join()
 
