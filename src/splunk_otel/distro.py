@@ -103,7 +103,7 @@ class SplunkDistro(BaseDistro):
     def handle_realm(self):
         realm = self.env.getval(SPLUNK_REALM)
         if len(realm):
-            ingest_url = f"https://ingest.{realm}.signalfx.com"
+            ingest_url = f"https://ingest.{realm}.observability.splunkcloud.com"
             self.env.setdefault(
                 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
                 f"{ingest_url}/v2/trace/otlp",
