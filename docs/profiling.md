@@ -23,18 +23,18 @@ opentelemetry-instrument python app.py
 
 ### Configuration
 
-| Environment variable | Default | Description |
-|---|---|---|
-| `SPLUNK_PROFILER_ENABLED` | `false` | Set to `true` to enable continuous profiling. |
-| `SPLUNK_PROFILER_CALL_STACK_INTERVAL` | `1000` | How often (in milliseconds) to collect a stack sample from all threads. |
-| `SPLUNK_PROFILER_LOGS_ENDPOINT` | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes. |
+| Environment variable                  | Default                                     | Description                                                                          |
+|---------------------------------------|---------------------------------------------|--------------------------------------------------------------------------------------|
+| `SPLUNK_PROFILER_ENABLED`             | `false`                                     | Set to `true` to enable continuous profiling.                                        |
+| `SPLUNK_PROFILER_CALL_STACK_INTERVAL` | `1000`                                      | How often (in milliseconds) to collect a stack sample from all threads.              |
+| `SPLUNK_PROFILER_LOGS_ENDPOINT`       | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes. |
 
 ### How it works
 
 A background thread fires at each `SPLUNK_PROFILER_CALL_STACK_INTERVAL` tick, collects
 stack traces from every thread in the process (excluding the profiler thread itself),
 and emits a `pprof` log record. If a thread is currently executing a span, that span's
-`trace_id` and `span_id` are embedded as labels in the pprof sample, enabling
+`trace_id` and `span_id` are embedded as labels in the `pprof` sample, enabling
 trace-to-profile correlation in the UI. Over time, this builds a picture of where your
 application is spending its CPU time.
 
@@ -56,17 +56,14 @@ OTEL_SERVICE_NAME=my-service \
 opentelemetry-instrument python app.py
 ```
 
-No other activation steps are required. The distro automatically installs the
-propagator and span processor needed to collect and export call graph data.
-
 ### Configuration
 
-| Environment variable | Default | Description |
-|---|---|---|
-| `SPLUNK_SNAPSHOT_PROFILER_ENABLED` | `false` | Set to `true` to enable call graph profiling. |
-| `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY` | `0.01` | Fraction of traces to profile, as a float between `0.0` and `1.0`. `0.01` means 1% of traces. |
-| `SPLUNK_SNAPSHOT_SAMPLING_INTERVAL` | `10` | How often (in milliseconds) to collect a stack sample during an active profiled trace. |
-| `SPLUNK_PROFILER_LOGS_ENDPOINT` | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes. |
+| Environment variable                    | Default                                     | Description                                                                                   |
+|-----------------------------------------|---------------------------------------------|-----------------------------------------------------------------------------------------------|
+| `SPLUNK_SNAPSHOT_PROFILER_ENABLED`      | `false`                                     | Set to `true` to enable call graph profiling.                                                 |
+| `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY` | `0.01`                                      | Fraction of traces to profile, as a float between `0.0` and `1.0`. `0.01` means 1% of traces. |
+| `SPLUNK_SNAPSHOT_SAMPLING_INTERVAL`     | `10`                                        | How often (in milliseconds) to collect a stack sample during an active profiled trace.        |
+| `SPLUNK_PROFILER_LOGS_ENDPOINT`         | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes.          |
 
 ### How it works
 
@@ -85,15 +82,15 @@ span ends, then pauses until the next selected trace arrives.
 Both modes export profiles as `pprof` data (gzip-compressed, base64-encoded) via the
 OTel logs exporter. Each log record carries these attributes:
 
-| Attribute | Value |
-|---|---|
-| `profiling.data.format` | `pprof-gzip-base64` |
-| `profiling.data.type` | `cpu` |
-| `profiling.instrumentation.source` | `continuous` or `snapshot` |
-| `com.splunk.sourcetype` | `otel.profiling` |
+| Attribute                          | Value                                      |
+|------------------------------------|--------------------------------------------|
+| `profiling.data.format`            | `pprof-gzip-base64`                        |
+| `profiling.data.type`              | `cpu`                                      |
+| `profiling.instrumentation.source` | `continuous` or `snapshot`                 |
+| `com.splunk.sourcetype`            | `otel.profiling`                           |
 | `profiling.data.total.frame.count` | total number of stack frames in the record |
 
-Each pprof sample includes labels for `trace_id`, `span_id`, `thread.id`,
+Each `pprof` sample includes labels for `trace_id`, `span_id`, `thread.id`,
 `source.event.time`, and `source.event.period`.
 
 ---
