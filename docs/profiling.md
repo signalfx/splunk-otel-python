@@ -76,24 +76,6 @@ span ends, then pauses until the next selected trace arrives.
 
 ---
 
-## Export format
-
-Both modes export profiles as `pprof` data (gzip-compressed, base64-encoded) via the
-OTel logs exporter. Each log record carries these attributes:
-
-| Attribute                          | Value                                      |
-|------------------------------------|--------------------------------------------|
-| `profiling.data.format`            | `pprof-gzip-base64`                        |
-| `profiling.data.type`              | `cpu`                                      |
-| `profiling.instrumentation.source` | `continuous` or `snapshot`                 |
-| `com.splunk.sourcetype`            | `otel.profiling`                           |
-| `profiling.data.total.frame.count` | total number of stack frames in the record |
-
-Each `pprof` sample includes labels for `trace_id`, `span_id`, `thread.id`,
-`source.event.time`, and `source.event.period`.
-
----
-
 ## Troubleshooting
 
 ### A selected trace has no call graph data
