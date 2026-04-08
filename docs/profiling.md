@@ -5,8 +5,6 @@ profiling** (also called snapshot profiling). Both modes collect CPU stack trace
 export them as `pprof` data via the OTel logs exporter, with trace and span IDs
 embedded so profiles can be correlated with traces in Splunk APM.
 
-The two modes can be enabled independently or together.
-
 ## Continuous profiling
 
 Continuous profiling samples all threads at a fixed interval, regardless of whether
