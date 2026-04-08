@@ -35,8 +35,7 @@ A background thread fires at each `SPLUNK_PROFILER_CALL_STACK_INTERVAL` tick, co
 stack traces from every thread in the process (excluding the profiler thread itself),
 and emits a `pprof` log record. If a thread is currently executing a span, that span's
 `trace_id` and `span_id` are embedded as labels in the `pprof` sample, enabling
-trace-to-profile correlation in the UI. Over time, this builds a picture of where your
-application is spending its CPU time.
+trace-to-profile correlation in the UI.
 
 ---
 
@@ -67,12 +66,14 @@ opentelemetry-instrument python app.py
 
 ### How it works
 
-The distro randomly selects a fraction of traces to profile, controlled by
-`SPLUNK_SNAPSHOT_SELECTION_PROBABILITY`. The decision propagates to downstream
-services so the entire trace is profiled consistently. For each selected trace, the
-profiler collects stack traces from the active thread at the interval set by
-`SPLUNK_SNAPSHOT_SAMPLING_INTERVAL`, filtering out threads not executing spans from
-that trace. The profiler continues running for up to 60 seconds after the last selected
+A trace is selected for profiling in one of two ways: the distro randomly selects it
+based on `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY`, or an upstream service has already
+selected it and propagated that decision via baggage. In the latter case this service
+profiles the request regardless of the local probability setting. Either way, the
+decision propagates to downstream services so the entire trace is profiled consistently.
+For each selected trace, the profiler collects stack traces from the active thread at the
+interval set by `SPLUNK_SNAPSHOT_SAMPLING_INTERVAL`, filtering out threads not executing spans
+from that trace. The profiler continues running for up to 60 seconds after the last selected
 span ends, then pauses until the next selected trace arrives.
 
 ---
