@@ -87,6 +87,17 @@ def test_profiling_endpt():
     assert "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" in env_store
 
 
+def test_snapshot_profiling_endpt():
+    # SPLUNK_PROFILER_LOGS_ENDPOINT should also be forwarded when only snapshot
+    # profiling is enabled. Old code only checked SPLUNK_PROFILER_ENABLED.
+    env_store = {
+        "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
+        "SPLUNK_PROFILER_LOGS_ENDPOINT": "my-logs-endpoint",
+    }
+    configure_distro(env_store)
+    assert env_store.get("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT") == "my-logs-endpoint"
+
+
 def test_resource_attributes():
     env_store = {"OTEL_RESOURCE_ATTRIBUTES": "foo=bar"}
     configure_distro(env_store)
@@ -154,6 +165,29 @@ def test_callgraphs_propagator_selection_probability():
     propagators = textmap._propagators  # noqa SLF001
     callgraphs_propagator = next(p for p in propagators if isinstance(p, CallgraphsPropagator))
     assert callgraphs_propagator.selection_probability == 0.5
+
+
+def test_callgraphs_propagator_idempotent():
+    # Configuring twice with snapshot enabled should not accumulate propagators.
+    env_store = {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}
+    configure_distro(env_store)
+    configure_distro(env_store)
+
+    textmap = get_global_textmap()
+    propagators = textmap._propagators  # noqa SLF001
+    callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
+    assert len(callgraphs_propagators) == 1
+
+
+def test_callgraphs_propagator_removed_when_disabled():
+    # Enabling then disabling snapshot profiling should leave no CallgraphsPropagator.
+    configure_distro({"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"})
+    configure_distro({})
+
+    textmap = get_global_textmap()
+    propagators = textmap._propagators  # noqa SLF001
+    callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
+    assert len(callgraphs_propagators) == 0
 
 
 def configure_distro(env_store):
