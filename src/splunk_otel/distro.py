@@ -128,12 +128,15 @@ class SplunkDistro(BaseDistro):
             set_global_response_propagator(ServerTimingResponsePropagator())
 
     def set_callgraphs_propagator(self):
+        # Strip any existing CallgraphsPropagator before conditionally adding a fresh one,
+        # so this method is idempotent and the result depends only on the current config.
+        current = get_global_textmap()
+        if isinstance(current, CompositePropagator):
+            propagators = [p for p in current._propagators if not isinstance(p, CallgraphsPropagator)]  # noqa SLF001
+        else:
+            propagators = [current]
+
         if self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"):
-            set_global_textmap(
-                CompositePropagator(
-                    [
-                        get_global_textmap(),
-                        CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)),
-                    ]
-                )
-            )
+            propagators.append(CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)))
+
+        set_global_textmap(CompositePropagator(propagators))
