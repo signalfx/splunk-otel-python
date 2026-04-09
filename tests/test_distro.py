@@ -156,6 +156,17 @@ def test_callgraphs_propagator_selection_probability():
     assert callgraphs_propagator.selection_probability == 0.5
 
 
+def test_snapshot_profiling_endpt():
+    # SPLUNK_PROFILER_LOGS_ENDPOINT should also be forwarded when only snapshot
+    # profiling is enabled. Old code only checked SPLUNK_PROFILER_ENABLED.
+    env_store = {
+        "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
+        "SPLUNK_PROFILER_LOGS_ENDPOINT": "my-logs-endpoint",
+    }
+    configure_distro(env_store)
+    assert env_store.get("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT") == "my-logs-endpoint"
+
+
 def configure_distro(env_store):
     sd = SplunkDistro()
     sd.env = Env(env_store)

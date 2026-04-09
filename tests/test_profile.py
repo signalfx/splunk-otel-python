@@ -21,6 +21,7 @@ from opentelemetry.trace import (
 from splunk_otel import profile_pb2
 from splunk_otel.profile import (
     _get_line,
+    _IntervalTimer,
     _pb_profile_to_str,
     _ProfileScraper,
     _stacktraces_to_cpu_profile,
@@ -147,6 +148,36 @@ def _do_work(time_ms):
         time.sleep(0.01)
 
     return total
+
+
+def test_interval_timer_stop_before_start():
+    # stop() must not raise RuntimeError when the thread was never started.
+    # Old code called thread.join() unconditionally; joining an unstarted
+    # thread raises RuntimeError.
+    timer = _IntervalTimer(100, lambda: None)
+    timer.stop()
+
+
+def test_interval_timer_pause_and_resume():
+    # pause_after() should halt ticking; start() should resume it.
+    ticks = []
+    timer = _IntervalTimer(20, lambda: ticks.append(1))
+    timer.start()
+
+    time.sleep(0.1)
+    assert len(ticks) > 0, "timer should have ticked before pause"
+
+    timer.pause_after(0)
+    time.sleep(0.2)  # enough for the timer to reach pause_at and block
+    count_at_pause = len(ticks)
+    time.sleep(0.1)  # confirm no new ticks while paused
+    assert len(ticks) == count_at_pause, "timer should not tick while paused"
+
+    timer.start()
+    time.sleep(0.1)  # let it resume
+    assert len(ticks) > count_at_pause, "timer should tick again after start()"
+
+    timer.stop()
 
 
 class _FakeLogger(Logger):
