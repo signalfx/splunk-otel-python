@@ -278,8 +278,8 @@ class _IntervalTimer:
             start_time_seconds = time.monotonic()
 
             if self.pause_at is not None and start_time_seconds >= self.pause_at:
-                # The pause deadline has been reached, sleep until woken again.
-                self.wakeup_event.wait()
+                self.wakeup_event.clear()  # clear event so next line will block
+                self.wakeup_event.wait()  # wait for event.set() (either via start() or stop())
                 continue
 
             self.target()
@@ -290,13 +290,12 @@ class _IntervalTimer:
     def stop(self):
         self.running = False
         self.pause_at = None
-        self.wakeup_event.set()
-        self.thread.join()
+        self.wakeup_event.set()  # unblock _loop() if waiting, so it can return and thread can exit
+        if self.thread.is_alive():
+            self.thread.join()
 
     def pause_after(self, seconds: float):
-        # The timer will stay running until pause_at has been reached.
         self.pause_at = time.monotonic() + seconds
-        self.wakeup_event.clear()
 
 
 class _StringTable:
