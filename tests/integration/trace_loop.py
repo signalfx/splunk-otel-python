@@ -1,4 +1,4 @@
-from ott_lib import project_path, trace_loop
+from lib import project_path, trace_loop
 
 NUM_SPANS = 12
 

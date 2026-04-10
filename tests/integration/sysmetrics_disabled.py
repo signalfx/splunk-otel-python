@@ -1,17 +1,16 @@
-from ott_lib import project_path, trace_loop
+from lib import project_path, trace_loop
 
 if __name__ == "__main__":
     trace_loop(1)
 
 
-class HttpProtocolOtelTest:
+class SysMetricsOtelTest:
     def requirements(self):
         return (project_path(),)
 
     def environment_variables(self):
         return {
-            "OTEL_SERVICE_NAME": "my-otel-test",
-            "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+            "OTEL_SERVICE_NAME": "my-svc",
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
         }
 
@@ -22,9 +21,9 @@ class HttpProtocolOtelTest:
         return None
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        from oteltest.telemetry import count_spans
+        from oteltest.telemetry import get_metric_names
 
-        assert count_spans(telemetry)
+        assert "system.cpu.time" not in get_metric_names(telemetry)
 
     def is_http(self):
-        return True
+        return False

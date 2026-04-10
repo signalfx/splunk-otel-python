@@ -1,4 +1,4 @@
-from ott_lib import project_path, trace_loop
+from lib import project_path, trace_loop
 
 SERVICE_NAME = "spec-svc"
 
