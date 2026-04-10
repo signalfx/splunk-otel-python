@@ -6,7 +6,7 @@ opentelemetry-instrumentation-aiokafka==0.61b0
 opentelemetry-instrumentation-aiopg==0.61b0
 opentelemetry-instrumentation-asgi==0.61b0
 opentelemetry-instrumentation-asyncio==0.61b0
-opentelemetry-instrumentation-asyncpg==0.61b0
+opentelemetry-instrumentation-asyncpg==0.62b0
 opentelemetry-instrumentation-aws-lambda==0.61b0
 opentelemetry-instrumentation-boto==0.61b0
 opentelemetry-instrumentation-boto3sqs==0.61b0
