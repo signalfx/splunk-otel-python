@@ -7,7 +7,7 @@ UPSTREAM_PRERELEASE_VERSION = "0.61b0"
 
 
 def project_path():
-    return str(Path(__file__).parent.parent)
+    return str(Path(__file__).parent.parent.parent)
 
 
 def trace_loop(loops):

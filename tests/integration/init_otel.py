@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Optional
 
 from oteltest.telemetry import count_spans
-from ott_lib import project_path, trace_loop
+from lib import project_path, trace_loop
 
 NUM_SPANS = 12
 
