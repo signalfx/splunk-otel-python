@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Upgrade `protobuf` minimum version to 6.33.5 to address CVE-2026-0994
+
 ## 2.10.0 - 2026-03-31
 - Upgrade Otel dependencies to [1.40.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.40.0) / [0.61b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.61b0)
 - Add `opentelemetry-instrumentation-logging` as a direct dependency; the logging handler has migrated from the SDK to contrib and is now explicitly instrumented by the distro
