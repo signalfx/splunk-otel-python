@@ -3,7 +3,7 @@ opentelemetry-instrumentation-aio-pika==0.61b0
 opentelemetry-instrumentation-aiohttp-client==0.61b0
 opentelemetry-instrumentation-aiohttp-server==0.61b0
 opentelemetry-instrumentation-aiokafka==0.61b0
-opentelemetry-instrumentation-aiopg==0.61b0
+opentelemetry-instrumentation-aiopg==0.62b0
 opentelemetry-instrumentation-asgi==0.61b0
 opentelemetry-instrumentation-asyncio==0.61b0
 opentelemetry-instrumentation-asyncpg==0.61b0
