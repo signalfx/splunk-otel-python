@@ -19,16 +19,23 @@ How to release a new version of the `splunk-opentelemetry` project:
         - bump our version in `__about__.py`
         - update additional version string locations
         - update CHANGELOG.md
-7) Push the changes to the Github Splunk OTel Python repo
-8) Open a PR and merge after approval
-9) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
-   version number in the `__about__.py` file
-10) When ready to release, create a new tag like `v3.4.5` on main in GitLab
+7) Smoke test the local changes before releasing:
+    ```
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh
+    ```
+8) Push the changes to the Github Splunk OTel Python repo
+9) Open a PR and merge after approval
+10) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
+    version number in the `__about__.py` file
+11) When ready to release, create a new tag like `v3.4.5` on main in GitLab
     - a tag of the format `vX.Y.Z` will trigger the CI pipeline to build and publish the package to PyPI and the Docker
       image to Quay
-11) Monitor the release pipeline in GitLab to ensure it completes successfully
-12) Post release, verify that the new package is available on PyPI and the Docker image is available on Quay
-13) Smoke test the release locally by installing the new package and running it with a small app
+12) Monitor the release pipeline in GitLab to ensure it completes successfully
+13) Smoke test the published PyPI package and Docker image:
+    ```
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
+    ```
 14) Navigate to Pipelines in the GitLab repo, click the download button for the build job that just ran,
     and select the 'build-job' artifact
     - this will download a tarball of the package files
