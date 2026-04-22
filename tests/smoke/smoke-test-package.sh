@@ -25,6 +25,7 @@ else
     echo "==> Installing from local checkout..."
 fi
 
+rm -rf "$SMOKE_VENV"
 python -m venv "$SMOKE_VENV"
 if [ "$USE_PYPI" = "true" ]; then
     "$SMOKE_VENV/bin/pip" install --quiet splunk-opentelemetry
