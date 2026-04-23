@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.10.1 - 2026-04-23
+- Restrict `wrapt` to `<2.0.0` to fix `TypeError: 'TracedCursorProxy' object is not iterable` when using DB instrumentation on fresh installs ([upstream issue](https://github.com/open-telemetry/opentelemetry-python-contrib/issues/4462))
+
 ## 2.10.0 - 2026-04-21
 - Upgrade Otel dependencies to [1.41.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.41.0) / [0.62b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.62b0)
 - Upgrade `protobuf` minimum version to 6.33.5 to address CVE-2026-0994
