@@ -1,4 +1,4 @@
-splunk-opentelemetry==2.10.0
+splunk-opentelemetry==2.10.1
 opentelemetry-instrumentation-aio-pika==0.62b0
 opentelemetry-instrumentation-aiohttp-client==0.62b0
 opentelemetry-instrumentation-aiohttp-server==0.62b0

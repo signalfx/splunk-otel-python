@@ -9,7 +9,7 @@ How to release a new version of the `splunk-opentelemetry` project:
         - `"opentelemetry-instrumentation==0.57b0"`
 3) Bump our version in __about__.py
 4) Update additional version string locations
-    - `ott_lib.py` # this file is used as a library for integration tests
+    - `tests/integration/lib.py` # this file is used as a library for integration tests
     - `docker/requirements.txt` # this file is used to build the docker init image for the operator
     - `docker/example-instrumentation.yaml`  # this file is just an example but would be nice to show the latest version
 5) Add a new entry in CHANGELOG.md
