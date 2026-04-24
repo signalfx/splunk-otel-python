@@ -34,7 +34,7 @@ dependencies = [
   "opentelemetry-instrumentation-system-metrics==0.62b0",
   "opentelemetry-semantic-conventions==0.62b0",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
-  "wrapt>=1.0.0,<2.0.0", # wrapt 2 breaks TracedCursorProxy iteration in opentelemetry-instrumentation-dbapi 0.62b0
+  "wrapt>=2.1.2,<3.0.0", # wrapt 2 breaks TracedCursorProxy iteration in opentelemetry-instrumentation-dbapi 0.62b0
 ]
 
 [project.urls]
