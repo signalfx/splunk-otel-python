@@ -39,7 +39,7 @@ opentelemetry-instrumentation-remoulade==0.62b0
 opentelemetry-instrumentation-requests==0.62b0
 opentelemetry-instrumentation-sqlalchemy==0.62b0
 opentelemetry-instrumentation-sqlite3==0.62b0
-opentelemetry-instrumentation-starlette==0.62b0
+opentelemetry-instrumentation-starlette==0.62b1
 opentelemetry-instrumentation-system-metrics==0.62b0
 opentelemetry-instrumentation-threading==0.62b0
 opentelemetry-instrumentation-tornado==0.62b0
