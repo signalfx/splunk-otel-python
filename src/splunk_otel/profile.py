@@ -64,6 +64,14 @@ class ProfilingContext:
         )
         self._timer = _IntervalTimer(interval_millis, scraper.tick)
 
+    @property
+    def running(self) -> bool:
+        return self._timer is not None and self._timer.running
+
+    @property
+    def interval_seconds(self) -> float:
+        return self._timer.interval_seconds if self._timer is not None else 0.0
+
     def start(self):
         self._timer.start()
 
@@ -74,10 +82,29 @@ class ProfilingContext:
         self._timer.pause_after(seconds)
 
 
-def _start_profiling_if_enabled(env=None):
+class ProfilingState:
+    """Runtime state of the continuous profiler, for OpAMP reporting."""
+
+    def __init__(self, ctx: "Optional[ProfilingContext]", interval_millis: int):
+        self._ctx = ctx
+        self._interval_millis = interval_millis
+
+    def is_enabled(self) -> bool:
+        return self._ctx is not None and self._ctx.running
+
+    def interval_millis(self) -> int:
+        if self._ctx is not None:
+            return int(self._ctx.interval_seconds * 1000)
+        return self._interval_millis
+
+
+def _start_profiling_if_enabled(env=None) -> ProfilingState:
     env = env or Env()
+    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     if env.is_true(SPLUNK_PROFILER_ENABLED):
-        start_profiling(env)
+        ctx = start_profiling(env)
+        return ProfilingState(ctx, interval_millis)
+    return ProfilingState(None, interval_millis)
 
 
 def start_profiling(env=None):
