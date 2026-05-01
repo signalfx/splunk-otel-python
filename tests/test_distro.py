@@ -21,6 +21,7 @@ from opentelemetry.propagate import get_global_textmap
 from opentelemetry.propagators.composite import CompositePropagator
 
 from splunk_otel.__about__ import __version__ as version
+from splunk_otel.config_provider import reset_config_provider
 from splunk_otel.distro import SplunkDistro
 from splunk_otel.env import Env
 from splunk_otel.propagator import CallgraphsPropagator
@@ -84,7 +85,7 @@ def test_profiling_endpt():
         "SPLUNK_PROFILER_LOGS_ENDPOINT": "my-logs-endpoint",
     }
     configure_distro(env_store)
-    assert "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" in env_store
+    assert env_store["OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"] == "my-logs-endpoint"
 
 
 def test_snapshot_profiling_endpt():
@@ -127,6 +128,7 @@ def test_realm():
         == "https://ingest.us2.observability.splunkcloud.com/v2/datapoint/otlp"
     )
     assert env_store["OTEL_EXPORTER_OTLP_PROTOCOL"] == "http/protobuf"
+    assert env_store["OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"] == "http://localhost:4318/v1/logs"
 
 
 def test_callgraphs_propagator_disabled_by_default():
@@ -191,6 +193,6 @@ def test_callgraphs_propagator_removed_when_disabled():
 
 
 def configure_distro(env_store):
-    sd = SplunkDistro()
-    sd.env = Env(env_store)
+    reset_config_provider()
+    sd = SplunkDistro(env=Env(env_store))
     sd.configure()

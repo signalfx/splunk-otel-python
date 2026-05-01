@@ -12,7 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 from splunk_otel.configurator import SplunkConfigurator
+from splunk_otel.config_provider import get_config_provider
 from splunk_otel.distro import SplunkDistro
+from splunk_otel.env import Env
 
 
 def init_splunk_otel():
@@ -20,7 +22,9 @@ def init_splunk_otel():
     Initializes OpenTelemetry Python components (exporters, tracer providers, meter providers, resources etc.).
     Like auto instrumentation (`opentelemetry-instrument`) but without loading instrumentors.
     """
-    sd = SplunkDistro()
+    runtime_env = Env()
+    provider = get_config_provider(runtime_env)
+    sd = SplunkDistro(provider, runtime_env)
     sd.configure()
-    sc = SplunkConfigurator()
+    sc = SplunkConfigurator(provider)
     sc.configure()

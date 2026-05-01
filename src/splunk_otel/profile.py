@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import gzip
 import sys
@@ -6,7 +8,7 @@ import time
 import traceback
 from collections import OrderedDict
 from traceback import StackSummary
-from typing import Callable, Optional, Literal
+from typing import Callable, Literal
 
 import opentelemetry.context
 import wrapt
@@ -14,7 +16,6 @@ from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import ReadWriteLogRecord
-from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import (
     NonRecordingSpan,
@@ -25,13 +26,7 @@ from opentelemetry.trace import (
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel.env import (
-    SPLUNK_PROFILER_CALL_STACK_INTERVAL,
-    SPLUNK_PROFILER_ENABLED,
-    Env,
-)
 
-_DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
 _SERVICE_NAME_ATTR = "service.name"
 _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SCOPE_VERSION = "0.2.0"
@@ -48,8 +43,8 @@ class ProfilingContext:
         self,
         service_name: str,
         interval_millis: int,
-        stacktrace_filter: Optional[Callable[[list[dict], dict], list[dict]]] = None,
-        instrumentation_source: Optional[Literal["continuous", "snapshot"]] = "continuous",
+        stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
+        instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
     ):
         start_thread_context_tracking()
         resource = _mk_resource(service_name)
@@ -74,18 +69,8 @@ class ProfilingContext:
         self._timer.pause_after(seconds)
 
 
-def _start_profiling_if_enabled(env=None):
-    env = env or Env()
-    if env.is_true(SPLUNK_PROFILER_ENABLED):
-        start_profiling(env)
-
-
-def start_profiling(env=None):
-    env = env or Env()
-    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    svcname = env.getval(OTEL_SERVICE_NAME)
-
-    ctx = ProfilingContext(svcname, interval_millis)
+def start_profiling(service_name: str, interval_millis: int):
+    ctx = ProfilingContext(service_name, interval_millis)
     ctx.start()
     return ctx
 
@@ -177,8 +162,8 @@ class _ProfileScraper:
         logger: Logger,
         collect_stacktraces_func=_collect_stacktraces,
         time_func=time.time,
-        stacktrace_filter: Optional[Callable[[list[dict], dict], list[dict]]] = None,
-        instrumentation_source: Optional[Literal["continuous", "snapshot"]] = "continuous",
+        stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
+        instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
     ):
         self.resource = resource
         self.thread_states = thread_states

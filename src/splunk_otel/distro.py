@@ -12,44 +12,27 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, ClassVar
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
-from opentelemetry.propagators.composite import CompositePropagator
-from opentelemetry.sdk.environment_variables import (
-    OTEL_EXPORTER_OTLP_HEADERS,
-    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
-    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
-    OTEL_EXPORTER_OTLP_PROTOCOL,
-    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
-    OTEL_RESOURCE_ATTRIBUTES,
-    OTEL_SERVICE_NAME,
-)
 from opentelemetry.propagate import get_global_textmap, set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
 
-from splunk_otel.__about__ import __version__ as version
-from splunk_otel.env import (
-    DEFAULTS,
-    SPLUNK_ACCESS_TOKEN,
-    SPLUNK_PROFILER_ENABLED,
-    SPLUNK_PROFILER_LOGS_ENDPOINT,
-    SPLUNK_REALM,
-    SPLUNK_SNAPSHOT_PROFILER_ENABLED,
-    SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
-    Env,
-)
+from splunk_otel.config_provider import ConfigProvider, get_config_provider
+from splunk_otel.env import Env
 from splunk_otel.propagator import CallgraphsPropagator, ServerTimingResponsePropagator
 
-_DISTRO_NAME = "splunk-opentelemetry"
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 _NO_SERVICE_NAME_WARNING = """The service.name attribute is not set, which may make your service difficult to identify.
 Set your service name using the OTEL_SERVICE_NAME environment variable.
 e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
-_DEFAULT_SERVICE_NAME = "unnamed-python-service"
-_X_SF_TOKEN = "x-sf-token"  # noqa S105
 
 _pylogger = logging.getLogger(__name__)
 
@@ -59,17 +42,34 @@ class SplunkDistro(BaseDistro):
     Loaded by the opentelemetry-instrumentation package via an entrypoint when running `opentelemetry-instrument`
     """
 
-    def __init__(self):
-        # can't accept an arg here because of the parent class
-        self.env = Env()
+    _splunk_instance: ClassVar[SplunkDistro | None] = None
+
+    # The upstream singleton __new__ forwards constructor args to object.__new__,
+    # so keep a local version that supports our optional args.
+    def __new__(
+        cls,
+        *_args,
+        **_kwargs,
+    ) -> Self:
+        instance = cls._splunk_instance
+        if instance is None:
+            instance = object.__new__(cls)
+            cls._splunk_instance = instance
+        return instance
+
+    def __init__(
+        self,
+        config_provider: ConfigProvider | None = None,
+        env: Env | None = None,
+    ):
+        self.env = env or Env()
+        self.config_provider = config_provider or get_config_provider(self.env)
 
     def _configure(self, **kwargs):
-        self.set_env_defaults()
-        self.check_service_name()
-        self.set_profiling_env()
-        self.set_resource_attributes()
-        self.handle_realm()
-        self.configure_token_headers()
+        if self.config_provider.defaulted_service_name():
+            _pylogger.warning(_NO_SERVICE_NAME_WARNING)
+        self.config_provider.apply_upstream_to_env(self.env)
+
         self.set_server_timing_propagator()
         self.set_callgraphs_propagator()
         # Previously, the SDK's LoggingHandler was enabled by setting
@@ -81,50 +81,8 @@ class SplunkDistro(BaseDistro):
         # LoggingInstrumentor is a singleton and its instrument() call is idempotent.
         LoggingInstrumentor().instrument()
 
-    def set_env_defaults(self):
-        for key, value in DEFAULTS.items():
-            self.env.setdefault(key, value)
-
-    def check_service_name(self):
-        if not len(self.env.getval(OTEL_SERVICE_NAME)):
-            _pylogger.warning(_NO_SERVICE_NAME_WARNING)
-            self.env.setval(OTEL_SERVICE_NAME, _DEFAULT_SERVICE_NAME)
-
-    def set_profiling_env(self):
-        profiler_enabled = self.env.is_true(SPLUNK_PROFILER_ENABLED, "false")
-        snapshot_profiler_enabled = self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false")
-        if profiler_enabled or snapshot_profiler_enabled:
-            logs_endpt = self.env.getval(SPLUNK_PROFILER_LOGS_ENDPOINT)
-            if logs_endpt:
-                self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
-
-    def set_resource_attributes(self):
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
-        self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
-
-    def handle_realm(self):
-        realm = self.env.getval(SPLUNK_REALM)
-        if len(realm):
-            ingest_url = f"https://ingest.{realm}.observability.splunkcloud.com"
-            self.env.setdefault(
-                OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
-                f"{ingest_url}/v2/trace/otlp",
-            )
-            self.env.setdefault(
-                OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
-                f"{ingest_url}/v2/datapoint/otlp",
-            )
-
-            # if realm is set, we assume direct ingest and set the protocol to `http/protobuf`
-            self.env.setdefault(OTEL_EXPORTER_OTLP_PROTOCOL, "http/protobuf")
-
-    def configure_token_headers(self):
-        tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
-        if tok:
-            self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
-
     def set_server_timing_propagator(self):
-        if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
+        if self.config_provider.trace_response_header_enabled():
             set_global_response_propagator(ServerTimingResponsePropagator())
 
     def set_callgraphs_propagator(self):
@@ -132,11 +90,12 @@ class SplunkDistro(BaseDistro):
         # so this method is idempotent and the result depends only on the current config.
         current = get_global_textmap()
         if isinstance(current, CompositePropagator):
-            propagators = [p for p in current._propagators if not isinstance(p, CallgraphsPropagator)]  # noqa SLF001
+            current_propagators = current._propagators  # noqa: SLF001
+            propagators = [p for p in current_propagators if not isinstance(p, CallgraphsPropagator)]
         else:
             propagators = [current]
 
-        if self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"):
-            propagators.append(CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)))
+        if self.config_provider.snapshot_profiler_enabled():
+            propagators.append(CallgraphsPropagator(self.config_provider.snapshot_selection_probability()))
 
         set_global_textmap(CompositePropagator(propagators))
