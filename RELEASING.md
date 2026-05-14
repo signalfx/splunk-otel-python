@@ -36,9 +36,9 @@ How to release a new version of the `splunk-opentelemetry` project:
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
     ```
-14) Navigate to Pipelines in the GitLab repo, click the download button for the build job that just ran,
-    and select the 'build-job' artifact
-    - this will download a tarball of the package files
+14) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
+    and select the 'checksum-signing-job' artifact
+    - this will download a tarball containing the package files, `checksums.txt`, and `checksums.txt.asc`
 15) Navigate to the Splunk OTel Python repo and create a New Release
     - create a new tag on publish with the tag name you created in step 11
     - set the title to that tag name (e.g. `v2.7.0`)
