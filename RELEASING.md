@@ -40,7 +40,7 @@ How to release a new version of the `splunk-opentelemetry` project:
     and select the 'build-job' artifact
     - this will download a tarball of the package files
 15) Navigate to the Splunk OTel Python repo and create a New Release
-    - create a new tag on publish with the tag name you created in step 10
+    - create a new tag on publish with the tag name you created in step 11
     - set the title to that tag name (e.g. `v2.7.0`)
     - unpack the tarball from step 14 and drag its contents onto the attachments section of the New Release page
     - Leave the defaults selected and click Publish
