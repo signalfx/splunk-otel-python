@@ -11,7 +11,7 @@ opentelemetry-instrumentation-aws-lambda==0.62b0
 opentelemetry-instrumentation-boto3sqs==0.62b0
 opentelemetry-instrumentation-botocore==0.62b0
 opentelemetry-instrumentation-cassandra==0.62b0
-opentelemetry-instrumentation-celery==0.62b0
+opentelemetry-instrumentation-celery==0.62b1
 opentelemetry-instrumentation-click==0.62b0
 opentelemetry-instrumentation-confluent-kafka==0.62b0
 opentelemetry-instrumentation-dbapi==0.62b0
