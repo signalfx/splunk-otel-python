@@ -6,6 +6,10 @@ include:
     ref: develop
     file: /templates/.sign-client.yml
 
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+
 stages:
   - build
   - sign
@@ -57,8 +61,7 @@ deploy-job:
 publish-docker-image:
   stage: post-release
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-alpha)?.*/'
-    - when: manual  # allow manual triggering (in which case CI_COMMIT_TAG must be set via the UI)
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-alpha)?$/ && $CI_COMMIT_REF_PROTECTED == "true"'
   variables:
     SIGNING_SERVICE_ADDR: "https://signing.prod.svc.splunk8s.io"
   id_tokens:

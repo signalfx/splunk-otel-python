@@ -4,6 +4,27 @@ set -e
 cd docker
 
 release_tag="$1" # e.g. v1.2.3
+
+if [[ ! "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-alpha)?$ ]]; then
+  echo "ERROR: release tag must match v<major>.<minor>.<patch>[-alpha]"
+  exit 1
+fi
+
+if [ -z "${CI_COMMIT_TAG:-}" ]; then
+  echo "ERROR: CI_COMMIT_TAG is required"
+  exit 1
+fi
+
+if [ "$CI_COMMIT_TAG" != "$release_tag" ]; then
+  echo "ERROR: release tag argument does not match CI_COMMIT_TAG"
+  exit 1
+fi
+
+if [ "${CI_COMMIT_REF_PROTECTED:-}" != "true" ]; then
+  echo "ERROR: publishing is only allowed from protected refs"
+  exit 1
+fi
+
 major_version=$(echo $release_tag | cut -d '.' -f1) # e.g. "v1"
 repo="quay.io/signalfx/splunk-otel-instrumentation-python"
 
