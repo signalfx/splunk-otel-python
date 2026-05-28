@@ -3,7 +3,9 @@ default:
 
 include:
   - project: core-ee/signing/api-integration
-    ref: develop
+    # Keep this pinned to an immutable commit. To update, choose a reviewed commit
+    # from core-ee/signing/api-integration and validate this CI config in GitLab.
+    ref: addd76a1d97a8b19db80f40fe4f7830d2374303d
     file: /templates/.sign-client.yml
 
 workflow:
