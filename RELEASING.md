@@ -27,10 +27,12 @@ How to release a new version of the `splunk-opentelemetry` project:
 9) Open a PR and merge after approval
 10) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
     version number in the `__about__.py` file
-11) When ready to release, create a new tag like `v3.4.5` on main in GitLab
-    - a tag of the format `vX.Y.Z` will trigger the CI pipeline to build and publish the package to PyPI and the Docker
-      image to Quay
-12) Monitor the release pipeline in GitLab to ensure it completes successfully
+11) When ready to release, create a new `vX.Y.Z` tag like `v3.4.5` on main in GitLab
+    - this starts the release pipeline; build and checksum signing run automatically, and PyPI publish is manual
+12) Monitor the release pipeline in GitLab
+    - wait for the build and checksum signing jobs to complete successfully
+    - run the manual deploy job to publish the package to PyPI
+    - confirm the Docker image publish job completes successfully
 13) Smoke test the published PyPI package and Docker image:
     ```
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
