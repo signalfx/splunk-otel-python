@@ -152,6 +152,7 @@ def test_callgraphs_propagator_enabled():
     propagators = textmap._propagators  # noqa SLF001
     callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
     assert len(callgraphs_propagators) == 1
+    assert callgraphs_propagators[0].trust_inbound_baggage is False
 
 
 def test_callgraphs_propagator_selection_probability():
@@ -165,6 +166,19 @@ def test_callgraphs_propagator_selection_probability():
     propagators = textmap._propagators  # noqa SLF001
     callgraphs_propagator = next(p for p in propagators if isinstance(p, CallgraphsPropagator))
     assert callgraphs_propagator.selection_probability == 0.5
+
+
+def test_callgraphs_propagator_trusts_inbound_baggage_when_enabled():
+    env_store = {
+        "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
+        "SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE": "true",
+    }
+    configure_distro(env_store)
+
+    textmap = get_global_textmap()
+    propagators = textmap._propagators  # noqa SLF001
+    callgraphs_propagator = next(p for p in propagators if isinstance(p, CallgraphsPropagator))
+    assert callgraphs_propagator.trust_inbound_baggage is True
 
 
 def test_callgraphs_propagator_idempotent():

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Do not trust inbound snapshot profiling baggage by default. Set `SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE=true` to honor upstream snapshot profiling decisions.
 
 ## 2.10.1 - 2026-04-23
 - Restrict `wrapt` to `<2.0.0` to fix `TypeError: 'TracedCursorProxy' object is not iterable` when using DB instrumentation on fresh installs ([upstream issue](https://github.com/open-telemetry/opentelemetry-python-contrib/issues/4462))

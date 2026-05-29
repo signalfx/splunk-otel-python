@@ -20,6 +20,7 @@ from opentelemetry.sdk.trace import Span
 from opentelemetry.trace import SpanContext
 
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _should_process_context
+from splunk_otel.propagator import CallgraphsPropagator
 
 
 class TestShouldProcessContext:
@@ -103,6 +104,19 @@ class TestCallgraphsSpanProcessor:
         mock_profiling_context.return_value.start.assert_called_once()
         assert 456 in processor._span_id_to_trace_id  # noqa SLF001
         assert processor._span_id_to_trace_id[456] == 123  # noqa SLF001
+
+    @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
+    def test_on_start_does_not_trust_inbound_highest_baggage_by_default(self, mock_profiling_context):
+        processor = CallgraphsSpanProcessor("test-service")
+        span = MagicMock(spec=Span)
+
+        ctx = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+        ctx = CallgraphsPropagator(selection_probability=0.0).extract({}, ctx, None)
+
+        processor.on_start(span, ctx)
+
+        span.set_attribute.assert_not_called()
+        mock_profiling_context.return_value.start.assert_not_called()
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_removes_span_from_tracking(self, mock_profiling_context):
