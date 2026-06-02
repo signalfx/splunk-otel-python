@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Respect `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=logging` when configuring logging instrumentation from the distro
 
 ## 2.10.1 - 2026-04-23
 - Restrict `wrapt` to `<2.0.0` to fix `TypeError: 'TracedCursorProxy' object is not iterable` when using DB instrumentation on fresh installs ([upstream issue](https://github.com/open-telemetry/opentelemetry-python-contrib/issues/4462))
