@@ -39,7 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 secureapp = [
-  "secureapp-python-agent>=26.5.0",
+  "secureapp-python-agent>=26.6.0",
 ]
 
 [project.urls]
