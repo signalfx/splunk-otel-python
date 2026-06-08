@@ -34,6 +34,23 @@ libraries are listed
 For complete instructions on how to get started with the Splunk Distribution of OpenTelemetry Python, see
 [Instrument a Python application for Splunk Observability Cloud](https://quickdraw.splunk.com/redirect/?product=Observability&version=current&location=python.application) in the official documentation.
 
+To also install the [Cisco SecureApp](https://pypi.org/project/secureapp-python-agent/)
+OpenTelemetry extension, specify the `secureapp` extra:
+
+```bash
+pip install "splunk-opentelemetry[secureapp]"
+```
+
+This extra installs the SecureApp Python agent, which reports runtime Python
+package dependencies through OpenTelemetry logs.
+
+SecureApp dependency logs use the `secureapp` instrumentation scope. Collector
+deployments must route those logs to the SecureApp event ingest endpoint
+(`/v3/event`) and add the SecureApp instrumentation header on the outbound
+exporter. See
+[docs/examples/secureapp-collector-config.yaml](docs/examples/secureapp-collector-config.yaml)
+for an example.
+
 
 # License
 
@@ -46,4 +63,3 @@ See [the license file](./LICENSE.txt) for more details.
 ℹ️ The Splunk Distribution of OpenTelemetry Python version 1.X is deprecated as of February 28, 2025 and will reach end of
 support on February 28, 2026. Existing customers should consider migrating to Splunk OpenTelemetry Python 2.0 or higher.
 See [Migrate to the Splunk Python 2.0 instrumentation](https://docs.splunk.com/observability/en/gdi/get-data-in/application/python/migration-guide.html#python-migration-guide).
-

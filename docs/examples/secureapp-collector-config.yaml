@@ -1,0 +1,74 @@
+# Example Splunk OpenTelemetry Collector configuration for SecureApp logs.
+#
+# Applications send standard OTLP telemetry to the collector. The collector
+# routes only SecureApp dependency logs to the SecureApp event endpoint and adds
+# the backend-specific SecureApp header on that outbound exporter.
+#
+# Required environment variables:
+#   SPLUNK_ACCESS_TOKEN
+#   SPLUNK_REALM
+#
+# Python applications using splunk-opentelemetry[secureapp] should send OTLP
+# logs to this collector, for example:
+#   OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://localhost:4318/v1/logs
+#
+# Do not send general application logs to /v3/event. Keep normal logs on their
+# regular logs pipeline and route only instrumentation_scope.name == "secureapp"
+# to the SecureApp pipeline.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+connectors:
+  routing/logs:
+    default_pipelines: [logs/default]
+    table:
+      - context: log
+        condition: instrumentation_scope.name == "secureapp"
+        pipelines: [logs/secureapp]
+
+exporters:
+  otlphttp/secureapp:
+    logs_endpoint: https://ingest.${SPLUNK_REALM}.signalfx.com/v3/event
+    headers:
+      X-SF-TOKEN: ${SPLUNK_ACCESS_TOKEN}
+      X-Splunk-Instrumentation-Library: secureapp
+
+  # Replace this placeholder with the normal logs exporter for your deployment,
+  # for example splunk_hec or otlp/gateway.
+  debug/default_logs:
+    verbosity: basic
+
+  otlphttp/traces:
+    traces_endpoint: https://ingest.${SPLUNK_REALM}.signalfx.com/v2/trace/otlp
+    headers:
+      X-SF-TOKEN: ${SPLUNK_ACCESS_TOKEN}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/traces]
+
+    logs:
+      receivers: [otlp]
+      exporters: [routing/logs]
+
+    logs/default:
+      receivers: [routing/logs]
+      processors: [batch]
+      exporters: [debug/default_logs]
+
+    logs/secureapp:
+      receivers: [routing/logs]
+      processors: [batch]
+      exporters: [otlphttp/secureapp]

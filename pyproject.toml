@@ -37,6 +37,11 @@ dependencies = [
   "wrapt>=1.0.0,<2.0.0", # wrapt 2 breaks TracedCursorProxy iteration in opentelemetry-instrumentation-dbapi 0.62b0
 ]
 
+[project.optional-dependencies]
+secureapp = [
+  "secureapp-python-agent>=26.6.0",
+]
+
 [project.urls]
 Documentation = "https://github.com/signalfx/splunk-otel-python#readme"
 Issues = "https://github.com/signalfx/splunk-otel-python/issues"
