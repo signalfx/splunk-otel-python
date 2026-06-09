@@ -1,8 +1,8 @@
 # Example Splunk OpenTelemetry Collector configuration for SecureApp logs.
 #
-# Applications send standard OTLP telemetry to the collector. The collector
-# routes only SecureApp dependency logs to the SecureApp event endpoint and adds
-# the backend-specific SecureApp header on that outbound exporter.
+# In this setup, applications send standard OTLP telemetry to the collector. The
+# collector routes only SecureApp dependency logs to the SecureApp event endpoint
+# and adds the backend-specific SecureApp header on that outbound exporter.
 #
 # Required environment variables:
 #   SPLUNK_ACCESS_TOKEN

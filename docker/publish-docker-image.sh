@@ -27,6 +27,8 @@ fi
 
 major_version=$(echo $release_tag | cut -d '.' -f1) # e.g. "v1"
 repo="quay.io/signalfx/splunk-otel-instrumentation-python"
+image_name="splunk-otel-instrumentation-python"
+secureapp_image_name="splunk-otel-instrumentation-python-secureapp"
 
 check_package_available() {
   package_name="splunk-opentelemetry"
@@ -52,10 +54,21 @@ check_package_available() {
 
 build_docker_image() {
   echo ">>> Building the operator docker image ..."
-  docker build -t splunk-otel-instrumentation-python .
-  docker tag splunk-otel-instrumentation-python ${repo}:latest
-  docker tag splunk-otel-instrumentation-python ${repo}:${major_version}
-  docker tag splunk-otel-instrumentation-python ${repo}:${release_tag}
+  docker build \
+    --build-arg REQUIREMENTS_FILE=requirements.txt \
+    -t "${image_name}" .
+  docker tag "${image_name}" "${repo}:latest"
+  docker tag "${image_name}" "${repo}:${major_version}"
+  docker tag "${image_name}" "${repo}:${release_tag}"
+
+  echo ">>> Building the SecureApp operator docker image ..."
+  docker build \
+    --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt \
+    --build-arg VERIFY_SECUREAPP=true \
+    -t "${secureapp_image_name}" .
+  docker tag "${secureapp_image_name}" "${repo}:latest-secureapp"
+  docker tag "${secureapp_image_name}" "${repo}:${major_version}-secureapp"
+  docker tag "${secureapp_image_name}" "${repo}:${release_tag}-secureapp"
 }
 
 login_to_quay_io() {
@@ -65,9 +78,14 @@ login_to_quay_io() {
 
 publish_docker_image() {
   echo ">>> Publishing the operator docker image ..."
-  docker push ${repo}:latest
-  docker push ${repo}:${major_version}
-  docker push ${repo}:${release_tag}
+  docker push "${repo}:latest"
+  docker push "${repo}:${major_version}"
+  docker push "${repo}:${release_tag}"
+
+  echo ">>> Publishing the SecureApp operator docker image ..."
+  docker push "${repo}:latest-secureapp"
+  docker push "${repo}:${major_version}-secureapp"
+  docker push "${repo}:${release_tag}-secureapp"
 }
 
 check_package_available

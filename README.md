@@ -47,9 +47,9 @@ package dependencies through OpenTelemetry logs.
 SecureApp dependency logs use the `secureapp` instrumentation scope. Collector
 deployments must route those logs to the SecureApp event ingest endpoint
 (`/v3/event`) and add the SecureApp instrumentation header on the outbound
-exporter. See
+exporter. See [docs/secureapp.md](docs/secureapp.md) for setup details and
 [docs/examples/secureapp-collector-config.yaml](docs/examples/secureapp-collector-config.yaml)
-for an example.
+for a collector example.
 
 
 # License

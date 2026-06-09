@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add a SecureApp variant of the Python auto-instrumentation Docker image
 - Add a `secureapp` extra for installing the Cisco SecureApp Python agent and document collector routing for SecureApp dependency logs
 - Respect `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=logging` when configuring logging instrumentation from the distro
 

@@ -58,6 +58,8 @@ deploy-job:
       when: manual
       allow_failure: false
 
+# The publish script builds and pushes both the standard image and the
+# SecureApp image variant from the same release tag.
 publish-docker-image:
   stage: post-release
   rules:
