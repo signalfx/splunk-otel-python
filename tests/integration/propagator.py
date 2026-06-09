@@ -1,5 +1,4 @@
 from collections.abc import Mapping, Sequence
-from typing import Optional
 
 from lib import UPSTREAM_PRERELEASE_VERSION, project_path
 
@@ -41,7 +40,7 @@ class OtelTest:
     def wrapper_command(self) -> str:
         return "opentelemetry-instrument"
 
-    def on_start(self) -> Optional[float]:
+    def on_start(self) -> float | None:
         import http.client
         import time
 
