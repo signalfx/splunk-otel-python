@@ -7,14 +7,13 @@ name = "splunk-opentelemetry"
 dynamic = ["version"]
 description = ''
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 keywords = []
 authors = []
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -24,17 +23,17 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "opentelemetry-api==1.41.0",
-  "opentelemetry-sdk==1.41.0",
-  "opentelemetry-propagator-b3==1.41.0",
-  "opentelemetry-exporter-otlp-proto-grpc==1.41.0",
-  "opentelemetry-exporter-otlp-proto-http==1.41.0",
-  "opentelemetry-instrumentation==0.62b0",
-  "opentelemetry-instrumentation-logging==0.62b0",
-  "opentelemetry-instrumentation-system-metrics==0.62b0",
-  "opentelemetry-semantic-conventions==0.62b0",
+  "opentelemetry-api==1.42.1",
+  "opentelemetry-sdk==1.42.1",
+  "opentelemetry-propagator-b3==1.42.1",
+  "opentelemetry-exporter-otlp-proto-grpc==1.42.1",
+  "opentelemetry-exporter-otlp-proto-http==1.42.1",
+  "opentelemetry-instrumentation==0.63b1",
+  "opentelemetry-instrumentation-logging==0.63b1",
+  "opentelemetry-instrumentation-system-metrics==0.63b1",
+  "opentelemetry-semantic-conventions==0.63b1",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
-  "wrapt>=1.0.0,<2.0.0", # wrapt 2 breaks TracedCursorProxy iteration in opentelemetry-instrumentation-dbapi 0.62b0
+  "wrapt>=1.0.0",
 ]
 
 [project.optional-dependencies]

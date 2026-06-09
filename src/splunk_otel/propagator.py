@@ -33,7 +33,7 @@ class ServerTimingResponsePropagator(ResponsePropagator):
     def inject(
         self,
         carrier: textmap.CarrierT,
-        context: typing.Optional[Context] = None,
+        context: Context | None = None,
         setter: textmap.Setter = default_setter,  # type: ignore
     ) -> None:
         """
@@ -93,7 +93,7 @@ class CallgraphsPropagator(textmap.TextMapPropagator):
     def fields(self) -> set[str]:
         return set()
 
-    def _attach_volume_baggage(self, context: typing.Optional[Context]) -> Context:
+    def _attach_volume_baggage(self, context: Context | None) -> Context:
         span = trace.get_current_span(context)
 
         if not span.get_span_context().is_valid:

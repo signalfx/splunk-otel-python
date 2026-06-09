@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+
+## 2.11.0 - 2026-06-09
+- Upgrade Otel dependencies to [1.42.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.42.1) / [0.63b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.63b1)
+- Drop Python 3.9 support to match upstream OpenTelemetry Python requirements
+- Remove the temporary `wrapt<2.0.0` restriction now that the upstream DBAPI regression is fixed
 - Add a SecureApp variant of the Python auto-instrumentation Docker image
 - Add a `secureapp` extra for installing the Cisco SecureApp Python agent and document collector routing for SecureApp dependency logs
 - Respect `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=logging` when configuring logging instrumentation from the distro

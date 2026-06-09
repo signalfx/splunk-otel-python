@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 from opentelemetry import baggage, trace
 from opentelemetry.context import Context
@@ -24,7 +23,7 @@ from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 import threading
 
 
-def _should_process_context(context: Optional[Context]) -> bool:
+def _should_process_context(context: Context | None) -> bool:
     parent_span = trace.get_current_span(context).get_span_context()
 
     is_root_span = not parent_span.is_valid
@@ -33,14 +32,14 @@ def _should_process_context(context: Optional[Context]) -> bool:
 
 
 class CallgraphsSpanProcessor(SpanProcessor):
-    def __init__(self, service_name: str, sampling_interval: Optional[int] = 10):
+    def __init__(self, service_name: str, sampling_interval: int | None = 10):
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()
         self._profiler = ProfilingContext(
             service_name, sampling_interval, self._filter_stacktraces, instrumentation_source="snapshot"
         )
 
-    def on_start(self, span: Span, parent_context: Optional[Context] = None) -> None:
+    def on_start(self, span: Span, parent_context: Context | None = None) -> None:
         if not _should_process_context(parent_context):
             return
 
