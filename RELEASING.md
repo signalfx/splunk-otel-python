@@ -33,10 +33,11 @@ How to release a new version of the `splunk-opentelemetry` project:
     - wait for the build and checksum signing jobs to complete successfully
     - run the manual deploy job to publish the package to PyPI
     - confirm the Docker image publish job completes successfully
-13) Smoke test the published PyPI package and Docker image:
+13) Smoke test the published PyPI package and Docker images:
     ```
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
     ```
 14) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
     and select the 'checksum-signing-job' artifact

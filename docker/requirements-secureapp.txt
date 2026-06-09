@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Keep this aligned with pyproject.toml's secureapp extra.
+secureapp-python-agent>=26.6.0
