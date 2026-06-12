@@ -70,6 +70,16 @@ check_package_available() {
   fi
 }
 
+check_about_version() {
+  version_file="../src/splunk_otel/__about__.py"
+  expected_version_line="__version__ = \"${package_version}\""
+
+  if ! grep -qxF "$expected_version_line" "$version_file"; then
+    echo "ERROR: $version_file must contain $expected_version_line"
+    exit 1
+  fi
+}
+
 check_requirements_pin() {
   expected_requirement="splunk-opentelemetry==${package_version}"
 
@@ -123,6 +133,7 @@ publish_docker_image() {
   docker push "${repo}:${release_tag}-secureapp"
 }
 
+check_about_version
 check_requirements_pin
 check_package_available
 build_docker_image
