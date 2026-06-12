@@ -20,6 +20,8 @@ use the PEP 440 form:
 | Release candidate | `vX.Y.Z-rc.N` | `X.Y.ZrcN` |
 
 For example, `v3.4.5-rc.1` maps to the PyPI package version `3.4.5rc1`.
+Prerelease number `N` may be `0` or a positive integer, but must not include
+leading zeroes.
 
 Before publishing Docker images, the release script verifies that these package
 version sources all match the derived PyPI version:

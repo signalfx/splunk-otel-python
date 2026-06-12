@@ -6,7 +6,7 @@ cd docker
 release_tag="$1" # e.g. v1.2.3 or v1.2.3-rc.1
 
 stable_release_regex='^v([0-9]+\.[0-9]+\.[0-9]+)$'
-prerelease_regex='^v([0-9]+\.[0-9]+\.[0-9]+)-(alpha|beta|rc)\.([1-9][0-9]*)$'
+prerelease_regex='^v([0-9]+\.[0-9]+\.[0-9]+)-(alpha|beta|rc)\.(0|[1-9][0-9]*)$'
 
 if [[ "$release_tag" =~ $stable_release_regex ]]; then
   package_version="${BASH_REMATCH[1]}"
