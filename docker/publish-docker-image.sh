@@ -3,13 +3,24 @@ set -e
 
 cd docker
 
-release_tag="$1" # e.g. v1.2.3
+release_tag="$1" # e.g. v1.2.3 or v1.2.3-rc.1
 
-stable_release_regex='^v[0-9]+\.[0-9]+\.[0-9]+$'
-prerelease_regex='^v[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*$'
+stable_release_regex='^v([0-9]+\.[0-9]+\.[0-9]+)$'
+prerelease_regex='^v([0-9]+\.[0-9]+\.[0-9]+)-(alpha|beta|rc)\.([1-9][0-9]*)$'
 
-if [[ ! "$release_tag" =~ $stable_release_regex && ! "$release_tag" =~ $prerelease_regex ]]; then
-  echo "ERROR: release tag must match v<major>.<minor>.<patch> or v<major>.<minor>.<patch>-<prerelease>"
+if [[ "$release_tag" =~ $stable_release_regex ]]; then
+  package_version="${BASH_REMATCH[1]}"
+elif [[ "$release_tag" =~ $prerelease_regex ]]; then
+  base_version="${BASH_REMATCH[1]}"
+  prerelease_phase="${BASH_REMATCH[2]}"
+  prerelease_number="${BASH_REMATCH[3]}"
+  case "$prerelease_phase" in
+    alpha) package_version="${base_version}a${prerelease_number}" ;;
+    beta) package_version="${base_version}b${prerelease_number}" ;;
+    rc) package_version="${base_version}rc${prerelease_number}" ;;
+  esac
+else
+  echo "ERROR: release tag must match v<major>.<minor>.<patch> or v<major>.<minor>.<patch>-(alpha|beta|rc).<number>"
   exit 1
 fi
 
@@ -42,11 +53,11 @@ check_package_available() {
   max_attempts=10
   sleep_seconds=10
 
-  echo "Waiting for $package_name==$release_tag to be available on PyPI..."
+  echo "Waiting for $package_name==$package_version to be available on PyPI..."
 
   for i in $(seq 1 $max_attempts); do
-      if curl --silent --fail "https://pypi.org/pypi/$package_name/$release_tag/json" > /dev/null; then
-          echo "Package $package_name==$release_tag is available on PyPI."
+      if curl --silent --fail "https://pypi.org/pypi/$package_name/$package_version/json" > /dev/null; then
+          echo "Package $package_name==$package_version is available on PyPI."
           break
       fi
       echo "Attempt $i: Package not yet available. Retrying in $sleep_seconds seconds..."
@@ -54,8 +65,17 @@ check_package_available() {
   done
 
   if [ "$i" -eq "$max_attempts" ]; then
-      echo "ERROR: Package $package_name==$release_tag was not found on PyPI after $max_attempts attempts."
+      echo "ERROR: Package $package_name==$package_version was not found on PyPI after $max_attempts attempts."
       exit 1
+  fi
+}
+
+check_requirements_pin() {
+  expected_requirement="splunk-opentelemetry==${package_version}"
+
+  if ! grep -qxF "$expected_requirement" requirements.txt; then
+    echo "ERROR: requirements.txt must contain $expected_requirement"
+    exit 1
   fi
 }
 
@@ -103,6 +123,7 @@ publish_docker_image() {
   docker push "${repo}:${release_tag}-secureapp"
 }
 
+check_requirements_pin
 check_package_available
 build_docker_image
 login_to_quay_io
