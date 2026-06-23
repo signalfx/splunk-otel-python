@@ -130,6 +130,37 @@ def test_realm():
     assert env_store["OTEL_EXPORTER_OTLP_PROTOCOL"] == "http/protobuf"
 
 
+def test_realm_strips_whitespace():
+    env_store = {"SPLUNK_REALM": " us2 "}
+    configure_distro(env_store)
+    assert (
+        env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"]
+        == "https://ingest.us2.observability.splunkcloud.com/v2/trace/otlp"
+    )
+
+
+@pytest.mark.parametrize(
+    "realm",
+    [
+        "attacker.test",
+        "attacker.test/anything",
+        "attacker.test:443/foo",
+        "us2/anything",
+        "us2:443",
+        "-us2",
+        "us2-",
+    ],
+)
+def test_invalid_realm_is_ignored(caplog, realm):
+    env_store = {"SPLUNK_REALM": realm}
+    with caplog.at_level(logging.WARNING):
+        configure_distro(env_store)
+    assert "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" not in env_store
+    assert "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" not in env_store
+    assert "OTEL_EXPORTER_OTLP_PROTOCOL" not in env_store
+    assert "Ignoring invalid SPLUNK_REALM value" in caplog.text
+
+
 def test_callgraphs_propagator_disabled_by_default():
     env_store = {}
     configure_distro(env_store)

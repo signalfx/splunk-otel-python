@@ -13,6 +13,7 @@
 #  limitations under the License.
 
 import logging
+import re
 
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.instrumentation.environment_variables import OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
@@ -53,6 +54,7 @@ _DEFAULT_SERVICE_NAME = "unnamed-python-service"
 _X_SF_TOKEN = "x-sf-token"  # noqa S105
 _DISABLED_INSTRUMENTATIONS_WILDCARD = "*"
 _LOGGING_INSTRUMENTATION_NAME = "logging"
+_REALM_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
 
 _pylogger = logging.getLogger(__name__)
 
@@ -99,8 +101,12 @@ class SplunkDistro(BaseDistro):
         self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
     def handle_realm(self):
-        realm = self.env.getval(SPLUNK_REALM)
+        realm = self.env.getval(SPLUNK_REALM).strip()
         if len(realm):
+            if not _REALM_RE.fullmatch(realm):
+                _pylogger.warning("Ignoring invalid SPLUNK_REALM value: %r", realm)
+                return
+
             ingest_url = f"https://ingest.{realm}.observability.splunkcloud.com"
             self.env.setdefault(
                 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
