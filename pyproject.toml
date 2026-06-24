@@ -33,7 +33,7 @@ dependencies = [
   "opentelemetry-instrumentation-system-metrics==0.63b1",
   "opentelemetry-semantic-conventions==0.63b1",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
-  "wrapt>=1.0.0",
+  "wrapt>=2.2.2",
 ]
 
 [project.optional-dependencies]
