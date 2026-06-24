@@ -1,4 +1,4 @@
 -r requirements.txt
 
-# Keep this aligned with pyproject.toml's secureapp extra.
-secureapp-python-agent>=26.6.0
+# Pin SecureApp for reproducible release images; update intentionally after review.
+secureapp-python-agent==26.6.1

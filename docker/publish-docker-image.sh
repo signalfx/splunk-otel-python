@@ -87,6 +87,11 @@ check_requirements_pin() {
     echo "ERROR: requirements.txt must contain $expected_requirement"
     exit 1
   fi
+
+  if ! grep -qxE 'secureapp-python-agent==[^[:space:]]+' requirements-secureapp.txt; then
+    echo "ERROR: requirements-secureapp.txt must pin secureapp-python-agent with =="
+    exit 1
+  fi
 }
 
 build_docker_image() {
