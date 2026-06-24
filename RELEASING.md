@@ -77,10 +77,16 @@ Use this process for stable releases such as `v3.4.5`:
 14) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
     and select the 'checksum-signing-job' artifact
     - this will download a tarball containing the package files, `checksums.txt`, and `checksums.txt.asc`
-15) Navigate to the Splunk OTel Python repo and create a New Release
+15) Generate the release metadata file from the repository root with the release commit checked out
+    - with your local virtualenv active and the local package installed, run
+      `python tools/generate_metadata.py`
+    - alternatively, run `hatch run python tools/generate_metadata.py`
+    - either command creates `metadata.yaml` for upload as a GitHub Release asset
+16) Navigate to the Splunk OTel Python repo and create a New Release
     - create a new tag on publish with the tag name you created in step 11
     - set the title to that tag name (e.g. `v2.7.0`)
-    - unpack the tarball from step 14 and drag its contents onto the attachments section of the New Release page
+    - unpack the tarball from step 14 and drag its contents and `metadata.yaml` onto the attachments section of the
+      New Release page
     - Leave the defaults selected and click Publish
 
 ## Prerelease Docker image process
