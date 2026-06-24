@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Remove the `process` resource detector from the default `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS` value. Default telemetry no longer includes `process.*` resource attributes such as process IDs, executable paths, runtime details, or command-line arguments. Set `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=host,process` to keep the previous behavior.
 
 ## 2.11.0 - 2026-06-09
 - Upgrade Otel dependencies to [1.42.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.42.1) / [0.63b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.63b1)

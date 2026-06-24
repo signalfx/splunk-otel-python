@@ -31,7 +31,14 @@ def test_distro_env():
     env_store = {}
     configure_distro(env_store)
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
+    assert env_store["OTEL_EXPERIMENTAL_RESOURCE_DETECTORS"] == "host"
     assert len(env_store) > 10
+
+
+def test_distro_preserves_resource_detectors():
+    env_store = {"OTEL_EXPERIMENTAL_RESOURCE_DETECTORS": "host,process"}
+    configure_distro(env_store)
+    assert env_store["OTEL_EXPERIMENTAL_RESOURCE_DETECTORS"] == "host,process"
 
 
 def test_access_token():
