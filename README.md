@@ -34,6 +34,36 @@ libraries are listed
 For complete instructions on how to get started with the Splunk Distribution of OpenTelemetry Python, see
 [Instrument a Python application for Splunk Observability Cloud](https://quickdraw.splunk.com/redirect/?product=Observability&version=current&location=python.application) in the official documentation.
 
+For the standard OpenTelemetry setup, install the Splunk distribution in your
+application environment. The distribution configures OTLP exporters for traces,
+metrics, and logs, includes system metrics instrumentation, and enables Python
+logging instrumentation.
+
+```bash
+pip install splunk-opentelemetry
+```
+
+Install instrumentation packages for the libraries your application uses:
+
+```bash
+opentelemetry-bootstrap -a install
+```
+
+Then run your application with `opentelemetry-instrument`:
+
+```bash
+OTEL_SERVICE_NAME=my-python-service opentelemetry-instrument python app.py
+```
+
+By default, OTLP exporters send telemetry to a locally running
+[Splunk OpenTelemetry Collector](https://github.com/signalfx/splunk-otel-collector)
+at `http://localhost:4317`. To send telemetry directly to Splunk Observability
+Cloud instead, set `SPLUNK_REALM` and `SPLUNK_ACCESS_TOKEN` before starting your
+application. `SPLUNK_REALM` configures direct ingest endpoints for traces and
+metrics.
+
+### Optional: Cisco SecureApp
+
 To also install the [Cisco SecureApp](https://pypi.org/project/secureapp-python-agent/)
 OpenTelemetry extension, specify the `secureapp` extra:
 
