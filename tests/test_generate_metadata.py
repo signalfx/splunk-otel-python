@@ -93,6 +93,42 @@ flask = "opentelemetry.instrumentation.flask:FlaskInstrumentor"
     assert instrumentation["stability"] == "experimental"
 
 
+def test_build_instrumentation_includes_instruments_any() -> None:
+    pyproject = load_toml_bytes(
+        b"""
+[project]
+name = "opentelemetry-instrumentation-botocore"
+description = "Botocore instrumentation"
+
+[project.optional-dependencies]
+instruments = []
+instruments-any = ["botocore ~= 1.0", "aiobotocore ~= 2.0"]
+
+[project.entry-points.opentelemetry_instrumentor]
+botocore = "opentelemetry.instrumentation.botocore:BotocoreInstrumentor"
+aiobotocore = "opentelemetry.instrumentation.botocore:AiobotocoreInstrumentor"
+"""
+    )
+
+    instrumentation = build_instrumentation(
+        "instrumentation/opentelemetry-instrumentation-botocore/pyproject.toml",
+        pyproject,
+    )
+
+    assert instrumentation is not None
+    assert instrumentation["keys"] == ["aiobotocore", "botocore"]
+    assert instrumentation["instrumented_components"] == [
+        {
+            "name": "botocore",
+            "supported_versions": "botocore ~= 1.0",
+        },
+        {
+            "name": "aiobotocore",
+            "supported_versions": "aiobotocore ~= 2.0",
+        },
+    ]
+
+
 def test_generate_metadata_shape(tmp_path: Path) -> None:
     project_root = tmp_path / "project"
     contrib_root = tmp_path / "contrib"

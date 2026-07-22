@@ -559,16 +559,19 @@ def build_instrumentation(_path: str, pyproject: dict[str, Any]) -> dict[str, An
         return None
 
     optional_dependencies = project.get("optional-dependencies", {})
-    instruments = optional_dependencies.get("instruments", [])
+    instrument_requirements = [
+        *optional_dependencies.get("instruments", []),
+        *optional_dependencies.get("instruments-any", []),
+    ]
     package_name = project["name"]
 
-    if instruments:
+    if instrument_requirements:
         components = [
             {
                 "name": component_name(requirement),
                 "supported_versions": requirement,
             }
-            for requirement in instruments
+            for requirement in instrument_requirements
         ]
     else:
         components = [{"name": package_name}]
