@@ -32,6 +32,7 @@ dependencies = [
   "opentelemetry-instrumentation-logging==0.65b0",
   "opentelemetry-instrumentation-system-metrics==0.65b0",
   "opentelemetry-semantic-conventions==0.65b0",
+  "opentelemetry-opamp-client==0.3b0",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
   "wrapt>=2.2.2",
 ]
@@ -51,6 +52,9 @@ configurator = "splunk_otel.configurator:SplunkConfigurator"
 
 [project.entry-points.opentelemetry_distro]
 splunk_distro = "splunk_otel.distro:SplunkDistro"
+
+[project.entry-points._opentelemetry_opamp]
+post_sdk_init_function = "splunk_otel.opamp:start_opamp"
 
 [tool.hatch.version]
 path = "src/splunk_otel/__about__.py"
