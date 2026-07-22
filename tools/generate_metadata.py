@@ -43,7 +43,6 @@ SETTING_EXPORTER = "exporter"
 SETTING_GENERAL = "general"
 SETTING_INSTRUMENTATION = "instrumentation"
 SETTING_LIMITS = "limits"
-SETTING_OPAMP = "opamp"
 SETTING_PROFILING = "profiling"
 SETTING_RESOURCE = "resource"
 SETTING_SAMPLER = "sampler"
@@ -353,30 +352,6 @@ SETTINGS: list[dict[str, str]] = [
         "default": "0.01",
         "type": TYPE_DOUBLE,
         "category": SETTING_PROFILING,
-    },
-    {
-        "property": "splunk.opamp.enabled",
-        "env": "SPLUNK_OPAMP_ENABLED",
-        "description": "Activates the OpAMP client.",
-        "default": "false",
-        "type": TYPE_BOOLEAN,
-        "category": SETTING_OPAMP,
-    },
-    {
-        "property": "splunk.opamp.endpoint",
-        "env": "SPLUNK_OPAMP_ENDPOINT",
-        "description": "OpAMP server endpoint.",
-        "default": "http://localhost:4320/v1/opamp",
-        "type": TYPE_STRING,
-        "category": SETTING_OPAMP,
-    },
-    {
-        "property": "splunk.opamp.polling.interval",
-        "env": "SPLUNK_OPAMP_POLLING_INTERVAL",
-        "description": "OpAMP polling interval in milliseconds.",
-        "default": "30000",
-        "type": TYPE_INT,
-        "category": SETTING_OPAMP,
     },
 ]
 

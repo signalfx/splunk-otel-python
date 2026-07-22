@@ -115,6 +115,7 @@ def test_generate_metadata_shape(tmp_path: Path) -> None:
     assert dependencies_by_name["opentelemetry-instrumentation-system-metrics"]["stability"] == "experimental"
     assert dependencies_by_name["wrapt"]["stability"] == "stable"
     assert "property" in metadata["settings"][0]
+    assert not any(setting["env"].startswith("SPLUNK_OPAMP_") for setting in metadata["settings"])
     assert "metrics" in metadata
     assert metadata["resource_detectors"]
     assert "dependencies" not in metadata["resource_detectors"][0]
