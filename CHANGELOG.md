@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Do not trust inbound snapshot profiling baggage by default. Set `SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE=true` to honor upstream snapshot profiling decisions.
 
 ## 2.12.0 - 2026-07-13
 - Upgrade Otel dependencies to [1.44.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.44.0) / [0.65b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.65b0)
