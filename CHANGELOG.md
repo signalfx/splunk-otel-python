@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.12.0 - 2026-07-13
+- Upgrade Otel dependencies to [1.44.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.44.0) / [0.65b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.65b0)
+
+## 2.11.0 - 2026-06-09
+- Upgrade Otel dependencies to [1.42.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.42.1) / [0.63b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.63b1)
+- Drop Python 3.9 support to match upstream OpenTelemetry Python requirements
+- Remove the temporary `wrapt<2.0.0` restriction now that the upstream DBAPI regression is fixed
+- Add a SecureApp variant of the Python auto-instrumentation Docker image
+- Add a `secureapp` extra for installing the Cisco SecureApp Python agent and document collector routing for SecureApp dependency logs
+- Respect `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=logging` when configuring logging instrumentation from the distro
+
 ## 2.10.1 - 2026-04-23
 - Restrict `wrapt` to `<2.0.0` to fix `TypeError: 'TracedCursorProxy' object is not iterable` when using DB instrumentation on fresh installs ([upstream issue](https://github.com/open-telemetry/opentelemetry-python-contrib/issues/4462))
 

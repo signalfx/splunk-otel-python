@@ -2,6 +2,41 @@
 
 How to release a new version of the `splunk-opentelemetry` project:
 
+## Version and tag formats
+
+Stable releases use the same version number everywhere except that Git tags and
+Docker image tags include a leading `v`:
+
+- Git tag / Docker tag: `vX.Y.Z` (for example, `v3.4.5`)
+- PyPI package version: `X.Y.Z` (for example, `3.4.5`)
+
+Prereleases use SemVer-style Git and Docker tags, but PyPI package versions must
+use the PEP 440 form:
+
+| Release phase | Git tag / Docker tag | PyPI package version |
+| --- | --- | --- |
+| Alpha | `vX.Y.Z-alpha.N` | `X.Y.ZaN` |
+| Beta | `vX.Y.Z-beta.N` | `X.Y.ZbN` |
+| Release candidate | `vX.Y.Z-rc.N` | `X.Y.ZrcN` |
+
+For example, `v3.4.5-rc.1` maps to the PyPI package version `3.4.5rc1`.
+Prerelease number `N` may be `0` or a positive integer, but must not include
+leading zeroes.
+
+Before publishing Docker images, the release script verifies that these package
+version sources all match the derived PyPI version:
+
+- `src/splunk_otel/__about__.py`
+- `docker/requirements.txt`
+- the published `splunk-opentelemetry` package on PyPI
+
+Prerelease Docker images are published only under their exact prerelease tags.
+They do not update `latest`, `vX`, `latest-secureapp`, or `vX-secureapp`.
+
+## Stable release process
+
+Use this process for stable releases such as `v3.4.5`:
+
 1) Create a new branch from `main`
 2) Bump dependency versions in pyproject.toml
     - update otel dependencies to the latest versions, e.g.:
@@ -27,14 +62,17 @@ How to release a new version of the `splunk-opentelemetry` project:
 9) Open a PR and merge after approval
 10) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
     version number in the `__about__.py` file
-11) When ready to release, create a new tag like `v3.4.5` on main in GitLab
-    - a tag of the format `vX.Y.Z` will trigger the CI pipeline to build and publish the package to PyPI and the Docker
-      image to Quay
-12) Monitor the release pipeline in GitLab to ensure it completes successfully
-13) Smoke test the published PyPI package and Docker image:
+11) When ready to release, create a new `vX.Y.Z` tag like `v3.4.5` on main in GitLab
+    - this starts the release pipeline; build and checksum signing run automatically, and PyPI publish is manual
+12) Monitor the release pipeline in GitLab
+    - wait for the build and checksum signing jobs to complete successfully
+    - run the manual deploy job to publish the package to PyPI
+    - confirm the Docker image publish job completes successfully
+13) Smoke test the published PyPI package and Docker images:
     ```
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
     ```
 14) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
     and select the 'checksum-signing-job' artifact
@@ -50,3 +88,22 @@ How to release a new version of the `splunk-opentelemetry` project:
     - unpack the tarball from step 14 and drag its contents and `metadata.yaml` onto the attachments section of the
       New Release page
     - Leave the defaults selected and click Publish
+
+## Prerelease Docker image process
+
+Use this process when publishing prerelease Docker images such as
+`v3.4.5-rc.1`:
+
+1) Create a branch from `main`
+2) Set `src/splunk_otel/__about__.py` to the PEP 440 package version
+    - for example, use `3.4.5rc1` for Git tag `v3.4.5-rc.1`
+3) Update `docker/requirements.txt` to pin the same package version
+    - for example, `splunk-opentelemetry==3.4.5rc1`
+4) Update other release references if needed, such as `CHANGELOG.md`,
+   `tests/integration/lib.py`, or `docker/example-instrumentation.yaml`
+5) Publish the prerelease package to PyPI
+6) Create a protected GitLab tag using the matching prerelease tag format
+    - allowed formats are `vX.Y.Z-alpha.N`, `vX.Y.Z-beta.N`, and `vX.Y.Z-rc.N`
+7) Confirm the Docker image publish job completes successfully
+8) Smoke test the published Docker images by overriding the image tag as needed
+   for the prerelease image under test

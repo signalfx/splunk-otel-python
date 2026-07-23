@@ -1,5 +1,4 @@
 from collections.abc import Mapping, Sequence
-from typing import Optional
 
 from oteltest.telemetry import count_spans
 from lib import project_path, trace_loop
@@ -23,7 +22,7 @@ class ConfigureOtelTest:
     def wrapper_command(self) -> str:
         return ""
 
-    def on_start(self) -> Optional[float]:
+    def on_start(self) -> float | None:
         pass
 
     def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:

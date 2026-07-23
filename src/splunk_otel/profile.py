@@ -6,7 +6,8 @@ import time
 import traceback
 from collections import OrderedDict
 from traceback import StackSummary
-from typing import Callable, Optional, Literal
+from typing import Literal
+from collections.abc import Callable
 
 import opentelemetry.context
 import wrapt
@@ -48,8 +49,8 @@ class ProfilingContext:
         self,
         service_name: str,
         interval_millis: int,
-        stacktrace_filter: Optional[Callable[[list[dict], dict], list[dict]]] = None,
-        instrumentation_source: Optional[Literal["continuous", "snapshot"]] = "continuous",
+        stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
+        instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
     ):
         start_thread_context_tracking()
         resource = _mk_resource(service_name)
@@ -177,8 +178,8 @@ class _ProfileScraper:
         logger: Logger,
         collect_stacktraces_func=_collect_stacktraces,
         time_func=time.time,
-        stacktrace_filter: Optional[Callable[[list[dict], dict], list[dict]]] = None,
-        instrumentation_source: Optional[Literal["continuous", "snapshot"]] = "continuous",
+        stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
+        instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
     ):
         self.resource = resource
         self.thread_states = thread_states

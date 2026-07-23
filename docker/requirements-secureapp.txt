@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Pin SecureApp for reproducible release images; update intentionally after review.
+secureapp-python-agent==26.7.1

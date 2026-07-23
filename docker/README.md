@@ -4,6 +4,18 @@ This directory contains a Dockerfile and an `example-instrumentation.yaml` file 
 Docker init container that can be used to auto-instrumetation your Python app via the kubernetes
 [OTel Operator](https://github.com/open-telemetry/opentelemetry-operator).
 
+Release publishing creates two Python auto-instrumentation images:
+
+- `quay.io/signalfx/splunk-otel-instrumentation-python:<tag>`
+- `quay.io/signalfx/splunk-otel-instrumentation-python:<tag>-secureapp`
+
+Use the `<tag>-secureapp` image when the init container should also include the
+Cisco SecureApp Python agent. The SecureApp image is intended for Python
+application containers running Python 3.10 or later. SecureApp dependency logs
+require collector routing to the SecureApp event endpoint; see
+[`docs/secureapp.md`](../docs/secureapp.md) and
+[`docs/examples/secureapp-collector-config.yaml`](../docs/examples/secureapp-collector-config.yaml).
+
 # Installation
 
 Install [cert manager](https://cert-manager.io/docs/installation/) into your k8s cluster unless already installed.
@@ -63,6 +75,25 @@ spec:
         value: http/protobuf
     image: "splunk-otel-python-init:v2.0.0"
 
+```
+
+For SecureApp, use the SecureApp image variant:
+
+```yaml
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: splunk-otel-python-secureapp
+spec:
+  exporter:
+    endpoint: http://localhost:4318
+  sampler:
+    type: always_on
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+    image: "quay.io/signalfx/splunk-otel-instrumentation-python:vX.Y.Z-secureapp"
 ```
 
 Create an application image and run it via something like this Deployment. Note the annotations, indicating that

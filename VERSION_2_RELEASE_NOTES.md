@@ -40,7 +40,8 @@ available for your convenience to send telemetry to Splunk Observability Cloud.
 | OTEL_LOGS_EXPORTER                               | otlp      | Sets the logs exporter                                                                               |
 | OTEL_EXPERIMENTAL_RESOURCE_DETECTORS             | host      | Configures a host resource detector to set telemetry attributes                                      |
 | OTEL_TRACES_SAMPLER                              | always_on | Configures the sampler to export all traces                                                          |
-| OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED | true      | Exports all logs                                                                                     |
+| OTEL_PYTHON_LOG_AUTO_INSTRUMENTATION             | true      | Configures stdlib logging auto-instrumentation when logging instrumentation is enabled                |
+| OTEL_PYTHON_DISABLED_INSTRUMENTATIONS            |           | Disables named instrumentations; set to `logging` to disable stdlib logging instrumentation           |
 | OTEL_SPAN_LINK_COUNT_LIMIT                       | 1000      | Sets the maximum allowed span link count                                                             |
 | OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT                | 12000     | Sets the maximum allowed attribute value size                                                        |
 | OTEL_ATTRIBUTE_COUNT_LIMIT                       | _empty_   |                                                                                                      |
