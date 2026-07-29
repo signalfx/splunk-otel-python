@@ -14,8 +14,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 from opentelemetry._opamp.agent import OpAMPAgent
@@ -49,10 +50,7 @@ from splunk_otel.env import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from opentelemetry.sdk.resources import Resource
-    from opentelemetry.util.types import AnyValue
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +65,14 @@ _DEFAULT_HTTP_ENDPOINT = "http://localhost:4318/"
 _OTLP_PROTOCOL_HTTP_PROTOBUF = "http/protobuf"
 _OTLP_EXPORTER = "otlp"
 _OTLP_PROTO_HTTP_EXPORTER = "otlp_proto_http"
+_IDENTIFYING_RESOURCE_ATTRIBUTES = frozenset(("service.name", "service.namespace", "service.instance.id"))
 
 _SPLUNK_PROFILER_MEMORY_ENABLED = "SPLUNK_PROFILER_MEMORY_ENABLED"
-_SPLUNK_SNAPSHOT_PROFILER_SAMPLING_INTERVAL = (
-    "SPLUNK_SNAPSHOT_PROFILER_SAMPLING_INTERVAL"
-)
+_SPLUNK_SNAPSHOT_PROFILER_SAMPLING_INTERVAL = "SPLUNK_SNAPSHOT_PROFILER_SAMPLING_INTERVAL"
 _OTEL_CONFIG_FILE = "OTEL_CONFIG_FILE"
 _OTEL_EXPERIMENTAL_CONFIG_FILE = "OTEL_EXPERIMENTAL_CONFIG_FILE"
 
-_SIGNAL_CONFIG = {
+_SIGNAL_ENV_VARS = {
     "traces": {
         "endpoint": OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
         "protocol": OTEL_EXPORTER_OTLP_TRACES_PROTOCOL,
@@ -92,26 +89,6 @@ _SIGNAL_CONFIG = {
         "exporter": OTEL_LOGS_EXPORTER,
     },
 }
-
-
-@dataclass(frozen=True)
-class OpAMPConfig:
-    endpoint: str
-    polling_interval_ms: int
-
-    @classmethod
-    def from_env(cls, env: Env) -> OpAMPConfig | None:
-        if not env.is_true(SPLUNK_OPAMP_ENABLED):
-            logger.debug("OpAMP disabled (%s is not true)", SPLUNK_OPAMP_ENABLED)
-            return None
-
-        return cls(
-            endpoint=env.getval(SPLUNK_OPAMP_ENDPOINT, _DEFAULT_OPAMP_ENDPOINT),
-            polling_interval_ms=env.getint(
-                SPLUNK_OPAMP_POLLING_INTERVAL,
-                _DEFAULT_OPAMP_POLLING_INTERVAL_MS,
-            ),
-        )
 
 
 class _SplunkCallbacks(OpAMPCallbacks):
@@ -146,13 +123,23 @@ class _SplunkCallbacks(OpAMPCallbacks):
 def start_opamp(resource: Resource) -> None:
     """Start the Splunk OpAMP agent after the OpenTelemetry SDK starts."""
     env = Env()
-    config = OpAMPConfig.from_env(env)
-    if config is None:
+    if not env.is_true(SPLUNK_OPAMP_ENABLED):
+        logger.debug("OpAMP disabled (%s is not true)", SPLUNK_OPAMP_ENABLED)
         return
 
+    endpoint = env.getval(SPLUNK_OPAMP_ENDPOINT, _DEFAULT_OPAMP_ENDPOINT)
+    polling_interval_ms = env.getint(
+        SPLUNK_OPAMP_POLLING_INTERVAL,
+        _DEFAULT_OPAMP_POLLING_INTERVAL_MS,
+    )
     try:
-        client = _build_client(config, resource.attributes)
-        _start_agent(config, build_effective_config_report(env), client)
+        client = _build_client(endpoint, resource.attributes)
+        _start_agent(
+            polling_interval_ms,
+            build_effective_config_report(env),
+            client,
+        )
+        logger.info("OpAMP client started: %s", endpoint)
     except Exception:
         logger.exception("Failed to start OpAMP client")
 
@@ -196,23 +183,52 @@ def build_effective_config_report(env: Env) -> str:
 
 
 def _build_client(
-    config: OpAMPConfig,
-    resource_attributes: Mapping[str, AnyValue],
+    endpoint: str,
+    resource_attributes: Mapping[str, object],
     client_factory=OpAMPClient,
 ):
-    identifying_attributes = {
-        str(key): str(value) for key, value in resource_attributes.items()
-    }
+    identifying_attributes = {}
+    non_identifying_attributes = {}
+    for key, value in resource_attributes.items():
+        encoded_value = _encode_resource_attribute(key, value)
+        if encoded_value is None:
+            continue
+        if key in _IDENTIFYING_RESOURCE_ATTRIBUTES:
+            identifying_attributes[key] = encoded_value
+        else:
+            non_identifying_attributes[key] = encoded_value
+
     return client_factory(
-        endpoint=config.endpoint,
+        endpoint=endpoint,
         headers={},
         agent_identifying_attributes=identifying_attributes,
-        agent_non_identifying_attributes={},
+        agent_non_identifying_attributes=non_identifying_attributes,
     )
 
 
+def _encode_resource_attribute(
+    key: str,
+    value: object,
+) -> str | bool | int | float | bytes | None:
+    if isinstance(value, (str, bool, int, float, bytes)):
+        return value
+    if isinstance(value, Sequence):
+        # opentelemetry-opamp-client 0.3b0 cannot encode sequence values.
+        try:
+            return json.dumps(value, separators=(",", ":"))
+        except (TypeError, ValueError):
+            pass
+
+    logger.warning(
+        "Skipping OpAMP resource attribute %s with unsupported type %s",
+        key,
+        type(value).__name__,
+    )
+    return None
+
+
 def _start_agent(
-    config: OpAMPConfig,
+    polling_interval_ms: int,
     effective_config_report: str,
     client,
     agent_factory=OpAMPAgent,
@@ -222,18 +238,17 @@ def _start_agent(
         content_type=_CONFIG_CONTENT_TYPE,
     )
     agent = agent_factory(
-        interval=config.polling_interval_ms / 1000,
+        interval=polling_interval_ms / 1000,
         callbacks=_SplunkCallbacks(),
         client=client,
     )
     agent.start()
-    logger.info("OpAMP client started: %s", config.endpoint)
     return agent
 
 
 def _get_signal_endpoint(env: Env, signal: str) -> str:
-    signal_config = _SIGNAL_CONFIG[signal]
-    endpoint = env.getval(signal_config["endpoint"])
+    signal_env_vars = _SIGNAL_ENV_VARS[signal]
+    endpoint = env.getval(signal_env_vars["endpoint"])
     if endpoint:
         return endpoint
 
@@ -245,14 +260,12 @@ def _get_signal_endpoint(env: Env, signal: str) -> str:
 
 
 def _uses_http_protobuf(env: Env, signal: str) -> bool:
-    signal_config = _SIGNAL_CONFIG[signal]
-    protocol = env.getval(signal_config["protocol"]) or env.getval(
-        OTEL_EXPORTER_OTLP_PROTOCOL
-    )
+    signal_env_vars = _SIGNAL_ENV_VARS[signal]
+    protocol = env.getval(signal_env_vars["protocol"]) or env.getval(OTEL_EXPORTER_OTLP_PROTOCOL)
     if protocol:
         return protocol.strip() == _OTLP_PROTOCOL_HTTP_PROTOBUF
 
-    exporter = env.getval(signal_config["exporter"], _OTLP_EXPORTER).strip()
+    exporter = env.getval(signal_env_vars["exporter"], _OTLP_EXPORTER).strip()
     return exporter == _OTLP_PROTO_HTTP_EXPORTER
 
 

@@ -15,6 +15,7 @@
 import logging
 
 from opentelemetry._opamp.client import OpAMPClient
+from opentelemetry._opamp.proto import opamp_pb2
 from opentelemetry.environment_variables import OTEL_LOGS_EXPORTER
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -38,7 +39,6 @@ from splunk_otel.env import (
     SPLUNK_SNAPSHOT_SAMPLING_INTERVAL,
 )
 from splunk_otel.opamp import (
-    OpAMPConfig,
     _build_client,
     _start_agent,
     build_effective_config_report,
@@ -69,24 +69,39 @@ def parse_properties(content):
 
 
 def test_opamp_post_sdk_entry_point_is_registered():
-    [entry_point] = entry_points(
-        group="_opentelemetry_opamp", name="post_sdk_init_function"
-    )
+    [entry_point] = entry_points(group="_opentelemetry_opamp", name="post_sdk_init_function")
 
     assert entry_point.value == "splunk_otel.opamp:start_opamp"
 
 
-def test_opamp_config_returns_none_when_disabled():
-    assert OpAMPConfig.from_env(Env({})) is None
-
-
-def test_opamp_config_uses_defaults_when_enabled():
-    config = OpAMPConfig.from_env(Env({SPLUNK_OPAMP_ENABLED: "true"}))
-
-    assert config == OpAMPConfig(
-        endpoint="http://localhost:4320/v1/opamp",
-        polling_interval_ms=30000,
+def test_start_opamp_returns_when_disabled(monkeypatch):
+    monkeypatch.setattr(
+        "splunk_otel.opamp._build_client",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("unexpected call")),
     )
+
+    start_opamp(Resource.create({}))
+
+
+def test_start_opamp_uses_defaults_when_enabled(monkeypatch):
+    captured = {}
+
+    monkeypatch.setenv(SPLUNK_OPAMP_ENABLED, "true")
+    monkeypatch.setattr(
+        "splunk_otel.opamp._build_client",
+        lambda endpoint, _attributes: (captured.update(endpoint=endpoint) or FakeClient()),
+    )
+    monkeypatch.setattr(
+        "splunk_otel.opamp._start_agent",
+        lambda polling_interval_ms, _report, _client: captured.update(polling_interval_ms=polling_interval_ms),
+    )
+
+    start_opamp(Resource.create({}))
+
+    assert captured == {
+        "endpoint": "http://localhost:4320/v1/opamp",
+        "polling_interval_ms": 30000,
+    }
 
 
 def test_start_opamp_uses_resource_from_sdk_hook(monkeypatch):
@@ -95,20 +110,24 @@ def test_start_opamp_uses_resource_from_sdk_hook(monkeypatch):
 
     monkeypatch.setenv(SPLUNK_OPAMP_ENABLED, "true")
     monkeypatch.setenv(SPLUNK_OPAMP_ENDPOINT, "http://host/opamp")
+    monkeypatch.setenv(SPLUNK_OPAMP_POLLING_INTERVAL, "2500")
     monkeypatch.setattr(
         "splunk_otel.opamp._build_client",
-        lambda config, attributes: (
-            captured.update(config=config, attributes=attributes) or FakeClient()
-        ),
+        lambda endpoint, attributes: (captured.update(endpoint=endpoint, attributes=attributes) or FakeClient()),
     )
     monkeypatch.setattr(
         "splunk_otel.opamp._start_agent",
-        lambda _config, report, client: captured.update(report=report, client=client),
+        lambda polling_interval_ms, report, client: captured.update(
+            polling_interval_ms=polling_interval_ms,
+            report=report,
+            client=client,
+        ),
     )
 
     start_opamp(resource)
 
-    assert captured["config"].endpoint == "http://host/opamp"
+    assert captured["endpoint"] == "http://host/opamp"
+    assert captured["polling_interval_ms"] == 2500
     assert captured["attributes"]["service.name"] == "checkout"
     assert captured["client"].effective_config_calls == []
 
@@ -130,7 +149,7 @@ def test_start_agent_reports_effective_config_and_starts_agent():
     client = FakeClient()
 
     agent = _start_agent(
-        OpAMPConfig(endpoint="http://host/opamp", polling_interval_ms=5000),
+        5000,
         f"{SPLUNK_PROFILER_ENABLED}=false",
         client,
         agent_factory=FakeAgent,
@@ -151,9 +170,7 @@ def test_start_agent_builds_upstream_effective_config_message():
         effective_config = None
 
         def update_effective_config(self, config, content_type):
-            self.effective_config = super().update_effective_config(
-                config, content_type
-            )
+            self.effective_config = super().update_effective_config(config, content_type)
             return self.effective_config
 
     client = CapturingOpAMPClient(
@@ -164,32 +181,80 @@ def test_start_agent_builds_upstream_effective_config_message():
     )
 
     _start_agent(
-        OpAMPConfig(endpoint="http://host/opamp", polling_interval_ms=30000),
+        30000,
         f"{SPLUNK_PROFILER_ENABLED}=false",
         client,
         agent_factory=FakeAgent,
     )
 
     config_file = client.effective_config.config_map.config_map["environment"]
-    assert (
-        config_file.content_type
-        == "text/plain; format=properties; vendor=splunk; v=1.0.0"
-    )
+    assert config_file.content_type == "text/plain; format=properties; vendor=splunk; v=1.0.0"
     assert config_file.body == b"SPLUNK_PROFILER_ENABLED=false"
 
 
-def test_client_stringifies_resource_attributes():
+def test_client_partitions_resource_attributes_and_preserves_types():
     client = _build_client(
-        OpAMPConfig(endpoint="http://host/opamp", polling_interval_ms=30000),
-        {"service.name": "checkout", "process.pid": 999},
+        "http://host/opamp",
+        {
+            "service.name": "checkout",
+            "service.namespace": "store",
+            "service.instance.id": "checkout-1",
+            "process.pid": 999,
+            "host.name": "host-1",
+        },
         client_factory=FakeClient,
     )
 
     assert client.init_kwargs["agent_identifying_attributes"] == {
         "service.name": "checkout",
-        "process.pid": "999",
+        "service.namespace": "store",
+        "service.instance.id": "checkout-1",
     }
+    assert client.init_kwargs["agent_non_identifying_attributes"] == {
+        "process.pid": 999,
+        "host.name": "host-1",
+    }
+
+
+def test_client_serializes_resource_attribute_arrays():
+    resource = Resource(
+        {
+            "service.name": "checkout",
+            "host.ip": ["10.0.0.12", "127.0.0.1"],
+            "custom.flags": [True, False],
+            "custom.ports": [4317, 4318],
+            "custom.ratios": [0.5, 1.5],
+        }
+    )
+
+    client = _build_client(
+        "http://host/opamp",
+        resource.attributes,
+    )
+    message = opamp_pb2.AgentToServer()
+    message.ParseFromString(client.build_full_state_message())
+    attributes = {attribute.key: attribute.value for attribute in message.agent_description.non_identifying_attributes}
+
+    assert attributes["host.ip"].string_value == '["10.0.0.12","127.0.0.1"]'
+    assert attributes["custom.flags"].string_value == "[true,false]"
+    assert attributes["custom.ports"].string_value == "[4317,4318]"
+    assert attributes["custom.ratios"].string_value == "[0.5,1.5]"
+
+
+def test_client_skips_unsupported_resource_attribute(caplog):
+    with caplog.at_level(logging.WARNING):
+        client = _build_client(
+            "http://host/opamp",
+            {
+                "service.name": "checkout",
+                "custom.mapping": {"nested": True},
+            },
+            client_factory=FakeClient,
+        )
+
+    assert client.init_kwargs["agent_identifying_attributes"] == {"service.name": "checkout"}
     assert client.init_kwargs["agent_non_identifying_attributes"] == {}
+    assert "Skipping OpAMP resource attribute custom.mapping with unsupported type dict" in caplog.text
 
 
 def test_effective_config_report_uses_defaults():
@@ -257,13 +322,8 @@ def test_effective_config_report_appends_http_signal_paths():
         )
     )
 
-    assert (
-        report[OTEL_EXPORTER_OTLP_TRACES_ENDPOINT] == "https://collector:4318/v1/traces"
-    )
-    assert (
-        report[OTEL_EXPORTER_OTLP_METRICS_ENDPOINT]
-        == "https://collector:4318/v1/metrics"
-    )
+    assert report[OTEL_EXPORTER_OTLP_TRACES_ENDPOINT] == "https://collector:4318/v1/traces"
+    assert report[OTEL_EXPORTER_OTLP_METRICS_ENDPOINT] == "https://collector:4318/v1/metrics"
     assert report[OTEL_EXPORTER_OTLP_LOGS_ENDPOINT] == "https://collector:4318/v1/logs"
 
 
@@ -280,21 +340,5 @@ def test_effective_config_report_honors_signal_protocol_and_exporter():
     )
 
     assert report[OTEL_EXPORTER_OTLP_TRACES_ENDPOINT] == "http://localhost:4317"
-    assert (
-        report[OTEL_EXPORTER_OTLP_METRICS_ENDPOINT]
-        == "http://localhost:4318/v1/metrics"
-    )
+    assert report[OTEL_EXPORTER_OTLP_METRICS_ENDPOINT] == "http://localhost:4318/v1/metrics"
     assert report[OTEL_EXPORTER_OTLP_LOGS_ENDPOINT] == "http://localhost:4318/v1/logs"
-
-
-def test_opamp_config_reads_polling_interval():
-    config = OpAMPConfig.from_env(
-        Env(
-            {
-                SPLUNK_OPAMP_ENABLED: "true",
-                SPLUNK_OPAMP_POLLING_INTERVAL: "2500",
-            }
-        )
-    )
-
-    assert config.polling_interval_ms == 2500

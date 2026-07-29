@@ -70,7 +70,6 @@ class OpAMPEffectiveConfigOtelTest:
         assert remote_config_status is None
         assert remote_config_error is None
         self._completion_path.touch()
-        return None
 
     def on_stop(self, _telemetry, stdout: str, stderr: str, returncode: int):
         try:
