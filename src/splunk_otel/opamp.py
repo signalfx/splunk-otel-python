@@ -132,6 +132,13 @@ def start_opamp(resource: Resource) -> None:
         SPLUNK_OPAMP_POLLING_INTERVAL,
         _DEFAULT_OPAMP_POLLING_INTERVAL_MS,
     )
+    if polling_interval_ms <= 0:
+        logger.warning(
+            "Invalid non-positive value for %s; using default %d ms",
+            SPLUNK_OPAMP_POLLING_INTERVAL,
+            _DEFAULT_OPAMP_POLLING_INTERVAL_MS,
+        )
+        polling_interval_ms = _DEFAULT_OPAMP_POLLING_INTERVAL_MS
     try:
         client = _build_client(endpoint, resource.attributes)
         _start_agent(

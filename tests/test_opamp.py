@@ -105,6 +105,30 @@ def test_start_opamp_uses_defaults_when_enabled(monkeypatch):
     }
 
 
+def test_start_opamp_uses_default_for_non_positive_polling_interval(monkeypatch, caplog):
+    captured = []
+
+    monkeypatch.setenv(SPLUNK_OPAMP_ENABLED, "true")
+    monkeypatch.setattr(
+        "splunk_otel.opamp._build_client",
+        lambda *_args: FakeClient(),
+    )
+    monkeypatch.setattr(
+        "splunk_otel.opamp._start_agent",
+        lambda polling_interval_ms, *_args: captured.append(polling_interval_ms),
+    )
+
+    for interval in ("0", "-1"):
+        monkeypatch.setenv(SPLUNK_OPAMP_POLLING_INTERVAL, interval)
+        start_opamp(Resource.create({}))
+
+    assert captured == [30000, 30000]
+    assert caplog.messages == [
+        "Invalid non-positive value for SPLUNK_OPAMP_POLLING_INTERVAL; using default 30000 ms",
+        "Invalid non-positive value for SPLUNK_OPAMP_POLLING_INTERVAL; using default 30000 ms",
+    ]
+
+
 def test_start_opamp_uses_resource_from_sdk_hook(monkeypatch):
     resource = Resource.create({"service.name": "checkout"})
     captured = {}
