@@ -146,9 +146,18 @@ def start_opamp(resource: Resource) -> None:
 
 def build_effective_config_report(env: Env) -> str:
     values = (
-        (OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, _get_signal_endpoint(env, "traces")),
-        (OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, _get_signal_endpoint(env, "metrics")),
-        (OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, _get_signal_endpoint(env, "logs")),
+        (
+            OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+            _sanitize_endpoint_for_reporting(_get_signal_endpoint(env, "traces")),
+        ),
+        (
+            OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+            _sanitize_endpoint_for_reporting(_get_signal_endpoint(env, "metrics")),
+        ),
+        (
+            OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
+            _sanitize_endpoint_for_reporting(_get_signal_endpoint(env, "logs")),
+        ),
         (
             SPLUNK_PROFILER_ENABLED,
             _bool_to_str(value=env.is_true(SPLUNK_PROFILER_ENABLED)),
@@ -257,6 +266,23 @@ def _get_signal_endpoint(env: Env, signal: str) -> str:
         return _append_signal_path(base_endpoint or _DEFAULT_HTTP_ENDPOINT, signal)
 
     return base_endpoint or _DEFAULT_GRPC_ENDPOINT
+
+
+def _sanitize_endpoint_for_reporting(endpoint: str) -> str:
+    sanitized_endpoint = endpoint.split("#", 1)[0].split("?", 1)[0]
+    if sanitized_endpoint.startswith("//"):
+        prefix = "//"
+        authority_and_path = sanitized_endpoint[2:]
+    else:
+        scheme, separator, authority_and_path = sanitized_endpoint.partition("://")
+        if not separator:
+            return sanitized_endpoint
+        prefix = f"{scheme}{separator}"
+
+    authority, separator, path = authority_and_path.partition("/")
+    if "@" not in authority:
+        return sanitized_endpoint
+    return f"{prefix}{authority.rsplit('@', 1)[-1]}{separator}{path}"
 
 
 def _uses_http_protobuf(env: Env, signal: str) -> bool:

@@ -40,6 +40,7 @@ from splunk_otel.env import (
 )
 from splunk_otel.opamp import (
     _build_client,
+    _sanitize_endpoint_for_reporting,
     _start_agent,
     build_effective_config_report,
     start_opamp,
@@ -257,6 +258,30 @@ def test_client_skips_unsupported_resource_attribute(caplog):
     assert "Skipping OpAMP resource attribute custom.mapping with unsupported type dict" in caplog.text
 
 
+def test_sanitize_endpoint_for_reporting():
+    assert (
+        _sanitize_endpoint_for_reporting("https://collector.example.com:4318/v1/traces")
+        == "https://collector.example.com:4318/v1/traces"
+    )
+    assert _sanitize_endpoint_for_reporting("localhost:4317") == "localhost:4317"
+    assert (
+        _sanitize_endpoint_for_reporting("https://alice:secret@collector.example.com:4318/v1/traces")
+        == "https://collector.example.com:4318/v1/traces"
+    )
+    assert (
+        _sanitize_endpoint_for_reporting("https://collector.example.com:4318/v1/traces?token=abc#fragment")
+        == "https://collector.example.com:4318/v1/traces"
+    )
+    assert (
+        _sanitize_endpoint_for_reporting("//alice:secret@collector.example.com/v1/traces")
+        == "//collector.example.com/v1/traces"
+    )
+    assert (
+        _sanitize_endpoint_for_reporting("https://alice:secret@[invalid")
+        == "https://[invalid"
+    )
+
+
 def test_effective_config_report_uses_defaults():
     assert parse_properties(build_effective_config_report(Env({}))) == {
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://localhost:4317",
@@ -308,6 +333,24 @@ def test_effective_config_report_uses_signal_specific_endpoints():
     assert report[OTEL_EXPORTER_OTLP_TRACES_ENDPOINT] == "https://traces.example.com"
     assert report[OTEL_EXPORTER_OTLP_METRICS_ENDPOINT] == "https://metrics.example.com"
     assert report[OTEL_EXPORTER_OTLP_LOGS_ENDPOINT] == "https://logs.example.com"
+
+
+def test_effective_config_report_sanitizes_endpoint_credentials_and_parameters():
+    report = parse_properties(
+        build_effective_config_report(
+            Env(
+                {
+                    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://alice:secret@traces.example.com/v1/traces?token=abc#fragment",
+                    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "https://bob:password@metrics.example.com/v1/metrics?token=def",
+                    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "https://carol:pass@logs.example.com/v1/logs#fragment",
+                }
+            )
+        )
+    )
+
+    assert report[OTEL_EXPORTER_OTLP_TRACES_ENDPOINT] == "https://traces.example.com/v1/traces"
+    assert report[OTEL_EXPORTER_OTLP_METRICS_ENDPOINT] == "https://metrics.example.com/v1/metrics"
+    assert report[OTEL_EXPORTER_OTLP_LOGS_ENDPOINT] == "https://logs.example.com/v1/logs"
 
 
 def test_effective_config_report_appends_http_signal_paths():
