@@ -81,6 +81,16 @@ exporter. See [docs/secureapp.md](docs/secureapp.md) for setup details and
 [docs/examples/secureapp-collector-config.yaml](docs/examples/secureapp-collector-config.yaml)
 for a collector example.
 
+## Fleet Management with OpAMP
+
+Splunk OTel Python provides OpAMP support. When enabled, the OpAMP client
+connects to the configured endpoint and reports the Python agent's status and
+settings. Agents connected to Splunk Observability Cloud appear on the Fleet
+Management page.
+
+The default OpAMP endpoint is a local Splunk OpenTelemetry Collector. Set
+`SPLUNK_OPAMP_ENDPOINT` to use another OpAMP endpoint. See
+[OpAMP](docs/opamp.md) for setup and limits.
 
 # License
 
