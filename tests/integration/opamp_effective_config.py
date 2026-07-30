@@ -1,7 +1,4 @@
-import os
-import tempfile
 import time
-from pathlib import Path
 
 from lib import project_path
 
@@ -9,17 +6,11 @@ _SERVICE_NAME = "opamp-effective-config-test"
 
 
 if __name__ == "__main__":
-    completion_path = Path(os.environ["OPAMP_TEST_COMPLETION_FILE"])
-    deadline = time.monotonic() + 10
-    while not completion_path.exists():
-        assert time.monotonic() < deadline, "No OpAMP callback received"
-        time.sleep(0.05)
+    time.sleep(4)
 
 
 class OpAMPEffectiveConfigOtelTest:
     def __init__(self):
-        self._temp_dir = tempfile.TemporaryDirectory()
-        self._completion_path = Path(self._temp_dir.name) / "complete"
         self.effective_config_seen = False
 
     def requirements(self):
@@ -32,7 +23,6 @@ class OpAMPEffectiveConfigOtelTest:
             "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
             "OTEL_SERVICE_NAME": _SERVICE_NAME,
-            "OPAMP_TEST_COMPLETION_FILE": str(self._completion_path),
             "SPLUNK_OPAMP_ENABLED": "true",
             "SPLUNK_OPAMP_ENDPOINT": "http://127.0.0.1:4320/v1/opamp",
             "SPLUNK_OPAMP_POLLING_INTERVAL": "60000",
@@ -69,14 +59,10 @@ class OpAMPEffectiveConfigOtelTest:
         }
         assert remote_config_status is None
         assert remote_config_error is None
-        self._completion_path.touch()
 
     def on_stop(self, _telemetry, stdout: str, stderr: str, returncode: int):
-        try:
-            assert returncode == 0, f"{stdout}\n{stderr}"
-            assert self.effective_config_seen
-        finally:
-            self._temp_dir.cleanup()
+        assert returncode == 0, f"{stdout}\n{stderr}"
+        assert self.effective_config_seen
 
     def is_http(self):
         return True
