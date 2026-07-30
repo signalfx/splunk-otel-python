@@ -300,10 +300,7 @@ def test_sanitize_endpoint_for_reporting():
         _sanitize_endpoint_for_reporting("//alice:secret@collector.example.com/v1/traces")
         == "//collector.example.com/v1/traces"
     )
-    assert (
-        _sanitize_endpoint_for_reporting("https://alice:secret@[invalid")
-        == "https://[invalid"
-    )
+    assert _sanitize_endpoint_for_reporting("https://alice:secret@[invalid") == "https://[invalid"
 
 
 def test_effective_config_report_uses_defaults():
