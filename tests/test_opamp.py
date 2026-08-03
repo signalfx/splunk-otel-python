@@ -105,6 +105,27 @@ def test_start_opamp_uses_defaults_when_enabled(monkeypatch):
     }
 
 
+def test_start_opamp_logs_sanitized_endpoint(monkeypatch, caplog):
+    monkeypatch.setenv(SPLUNK_OPAMP_ENABLED, "true")
+    monkeypatch.setenv(
+        SPLUNK_OPAMP_ENDPOINT,
+        "https://alice:secret@opamp.example.com/v1/opamp?token=abc#fragment",
+    )
+    monkeypatch.setattr(
+        "splunk_otel.opamp._build_client",
+        lambda *_args: FakeClient(),
+    )
+    monkeypatch.setattr(
+        "splunk_otel.opamp._start_agent",
+        lambda *_args: None,
+    )
+
+    with caplog.at_level(logging.INFO):
+        start_opamp(Resource.create({}))
+
+    assert caplog.messages == ["OpAMP client started: https://opamp.example.com/v1/opamp"]
+
+
 def test_start_opamp_uses_default_for_non_positive_polling_interval(monkeypatch, caplog):
     captured = []
 

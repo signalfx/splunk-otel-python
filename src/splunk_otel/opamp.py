@@ -146,7 +146,7 @@ def start_opamp(resource: Resource) -> None:
             build_effective_config_report(env),
             client,
         )
-        logger.info("OpAMP client started: %s", endpoint)
+        logger.info("OpAMP client started: %s", _sanitize_endpoint_for_reporting(endpoint))
     except Exception:
         logger.exception("Failed to start OpAMP client")
 
