@@ -38,54 +38,63 @@ They do not update `latest`, `vX`, `latest-secureapp`, or `vX-secureapp`.
 Use this process for stable releases such as `v3.4.5`:
 
 1) Create a new branch from `main`
-2) Bump dependency versions in pyproject.toml
+2) Bump upstream dependency versions in `pyproject.toml` and `docker/requirements.txt`
     - update otel dependencies to the latest versions, e.g.:
         - `"opentelemetry-exporter-otlp-proto-http==1.36.0"`
         - `"opentelemetry-instrumentation==0.57b0"`
-3) Bump our version in __about__.py
-4) Update additional version string locations
+    - leave the `splunk-opentelemetry` pin in `docker/requirements.txt` at the currently published version until the
+      Docker image preflight in the next step passes
+    - remove instrumentations that upstream no longer publishes
+3) Build both operator Docker images without cached dependency layers to verify that every pinned package exists and
+   resolves together:
+    ```
+    docker build --pull --no-cache --build-arg REQUIREMENTS_FILE=requirements.txt -t splunk-otel-instrumentation-python:pre-release ./docker
+    docker build --pull --no-cache --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true -t splunk-otel-instrumentation-python:pre-release-secureapp ./docker
+    ```
+4) Bump our version in __about__.py
+5) Update additional version string locations
     - `tests/integration/lib.py` # this file is used as a library for integration tests
     - `docker/requirements.txt` # this file is used to build the docker init image for the operator
     - `docker/example-instrumentation.yaml`  # this file is just an example but would be nice to show the latest version
-5) Add a new entry in CHANGELOG.md
-6) Commit the changes with a message like "Bump version to 3.4.5"
+6) Add a new entry in CHANGELOG.md
+7) Commit the changes with a message like "Bump version to 3.4.5"
     - you may want to use multiple commits for clarity, e.g.:
         - bump dependency versions
         - bump our version in `__about__.py`
         - update additional version string locations
         - update CHANGELOG.md
-7) Smoke test the local changes before releasing:
+8) Smoke test the local changes before releasing:
     ```
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh
     ```
-8) Push the changes to the Github Splunk OTel Python repo
-9) Open a PR and merge after approval
-10) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
+9) Push the changes to the Github Splunk OTel Python repo
+10) Open a PR and merge after approval
+11) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
     version number in the `__about__.py` file
-11) When ready to release, create a new `vX.Y.Z` tag like `v3.4.5` on main in GitLab
+12) When ready to release, create a new `vX.Y.Z` tag like `v3.4.5` on main in GitLab
     - this starts the release pipeline; build and checksum signing run automatically, and PyPI publish is manual
-12) Monitor the release pipeline in GitLab
+13) Monitor the release pipeline in GitLab
     - wait for the build and checksum signing jobs to complete successfully
     - run the manual deploy job to publish the package to PyPI
     - confirm the Docker image publish job completes successfully
-13) Smoke test the published PyPI package and Docker images:
+14) Smoke test the published PyPI package and Docker images:
     ```
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
     ```
-14) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
+15) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
     and select the 'checksum-signing-job' artifact
     - this will download a tarball containing the package files, `checksums.txt`, and `checksums.txt.asc`
-15) Generate the release metadata file from the repository root with the release commit checked out
+16) Generate the release metadata file from the repository root with the release commit checked out
     - with your local virtualenv active and the local package installed, run
       `python tools/generate_metadata.py`
     - alternatively, run `hatch run python tools/generate_metadata.py`
     - either command creates `metadata.yaml` for upload as a GitHub Release asset
-16) Navigate to the Splunk OTel Python repo and create a New Release
-    - create a new tag on publish with the tag name you created in step 11
+17) Navigate to the Splunk OTel Python repo and create a New Release
+    - create a new tag on publish with the tag name you created in step 12
     - set the title to that tag name (e.g. `v2.7.0`)
-    - unpack the tarball from step 14 and drag its contents and `metadata.yaml` onto the attachments section of the
+    - unpack the tarball from step 15 and drag its contents and `metadata.yaml` onto the attachments section of the
       New Release page
     - Leave the defaults selected and click Publish
 

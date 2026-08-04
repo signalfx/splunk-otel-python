@@ -1,4 +1,4 @@
-splunk-opentelemetry==2.12.0
+splunk-opentelemetry==2.12.1
 opentelemetry-instrumentation-aio-pika==0.65b0
 opentelemetry-instrumentation-aiohttp-client==0.65b0
 opentelemetry-instrumentation-aiohttp-server==0.65b0
@@ -16,7 +16,6 @@ opentelemetry-instrumentation-click==0.65b0
 opentelemetry-instrumentation-confluent-kafka==0.65b0
 opentelemetry-instrumentation-dbapi==0.65b0
 opentelemetry-instrumentation-django==0.65b0
-opentelemetry-instrumentation-elasticsearch==0.65b0
 opentelemetry-instrumentation-falcon==0.65b0
 opentelemetry-instrumentation-fastapi==0.65b0
 opentelemetry-instrumentation-flask==0.65b0
