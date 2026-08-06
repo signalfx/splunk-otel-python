@@ -60,15 +60,20 @@ opentelemetry-instrument python app.py
 | `SPLUNK_SNAPSHOT_PROFILER_ENABLED`      | `false`                                     | Set to `true` to enable call graph profiling.                                                 |
 | `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY` | `0.01`                                      | Fraction of traces to profile, as a float between `0.0` and `1.0`. `0.01` means 1% of traces. |
 | `SPLUNK_SNAPSHOT_SAMPLING_INTERVAL`     | `10`                                        | How often (in milliseconds) to collect a stack sample during an active profiled trace.        |
+| `SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE` | `false`                                     | Set to `true` to honor upstream snapshot profiling decisions from inbound baggage.            |
 | `SPLUNK_PROFILER_LOGS_ENDPOINT`         | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes.          |
 
 ### How it works
 
-A trace is selected for profiling in one of two ways: the distro randomly selects it
-based on `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY`, or an upstream service has already
-selected it and propagated that decision via baggage. In the latter case this service
-profiles the request regardless of the local probability setting. Either way, the
-decision propagates to downstream services so the entire trace is profiled consistently.
+A trace is selected for profiling based on `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY`.
+By default, inbound snapshot profiling baggage from upstream services is ignored,
+and this service applies its local selection policy instead. If
+`SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE` is set to `true`, an upstream service can
+propagate its decision via baggage and this service profiles or skips the request
+according to that upstream decision instead of applying the local probability
+setting. Only enable this when inbound baggage is set by trusted upstream services.
+Either way, the resulting decision propagates to downstream services so the entire
+trace is profiled consistently.
 For each selected trace, the profiler collects stack traces from the active thread at the
 interval set by `SPLUNK_SNAPSHOT_SAMPLING_INTERVAL`, filtering out threads not executing spans
 from that trace. The profiler continues running for up to 60 seconds after the last selected

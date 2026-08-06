@@ -71,9 +71,11 @@ def _with_volume_baggage(is_selected: bool, context: typing.Optional[Context]) -
 
 class CallgraphsPropagator(textmap.TextMapPropagator):
     selection_probability: float
+    trust_inbound_baggage: bool
 
-    def __init__(self, selection_probability: float = 0.01):
+    def __init__(self, selection_probability: float = 0.01, *, trust_inbound_baggage: bool = False):
         self.selection_probability = selection_probability
+        self.trust_inbound_baggage = trust_inbound_baggage
         self.sampler = TraceIdRatioBased(selection_probability)
 
     def extract(self, carrier, context, getter):
@@ -82,7 +84,7 @@ class CallgraphsPropagator(textmap.TextMapPropagator):
         if volume_baggage is None:
             return self._attach_volume_baggage(context)
 
-        if volume_baggage in {"highest", "off"}:
+        if self.trust_inbound_baggage and volume_baggage in {"highest", "off"}:
             return context
 
         return self._attach_volume_baggage(context)

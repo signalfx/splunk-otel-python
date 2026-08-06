@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Do not trust inbound snapshot profiling baggage by default. Set `SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE=true` to honor upstream snapshot profiling decisions.
 
 ## 2.12.1 - 2026-08-04
 - Stop bundling the retired `opentelemetry-instrumentation-elasticsearch` package in the operator Docker images

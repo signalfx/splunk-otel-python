@@ -40,6 +40,7 @@ from splunk_otel.env import (
     SPLUNK_REALM,
     SPLUNK_SNAPSHOT_PROFILER_ENABLED,
     SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
+    SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE,
     SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     Env,
 )
@@ -139,7 +140,12 @@ class SplunkDistro(BaseDistro):
             propagators = [current]
 
         if self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"):
-            propagators.append(CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)))
+            propagators.append(
+                CallgraphsPropagator(
+                    self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01),
+                    trust_inbound_baggage=self.env.is_true(SPLUNK_SNAPSHOT_TRUST_INBOUND_BAGGAGE, "false"),
+                )
+            )
 
         set_global_textmap(CompositePropagator(propagators))
 
