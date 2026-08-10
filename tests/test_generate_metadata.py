@@ -152,6 +152,7 @@ def test_generate_metadata_shape(tmp_path: Path) -> None:
     assert dependencies_by_name["wrapt"]["stability"] == "stable"
     assert "property" in metadata["settings"][0]
     assert not any(setting["env"].startswith("SPLUNK_OPAMP_") for setting in metadata["settings"])
+    assert not any(setting["env"] == "SPLUNK_OTEL_SYSTEM_METRICS_ENABLED" for setting in metadata["settings"])
     assert "metrics" in metadata
     assert metadata["resource_detectors"]
     assert "dependencies" not in metadata["resource_detectors"][0]
