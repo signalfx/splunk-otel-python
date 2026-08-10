@@ -290,14 +290,6 @@ SETTINGS: list[dict[str, str]] = [
         "category": SETTING_TRACE_PROPAGATION,
     },
     {
-        "property": "splunk.otel.system.metrics.enabled",
-        "env": "SPLUNK_OTEL_SYSTEM_METRICS_ENABLED",
-        "description": "Activates system metrics instrumentation when set to true.",
-        "default": "false",
-        "type": TYPE_BOOLEAN,
-        "category": SETTING_INSTRUMENTATION,
-    },
-    {
         "property": "otel.python.disabled.instrumentations",
         "env": "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS",
         "description": "Comma-separated list of Python auto-instrumentations to disable.",
