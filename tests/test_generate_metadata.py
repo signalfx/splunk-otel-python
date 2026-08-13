@@ -6,6 +6,7 @@ from tools.generate_metadata import (
     dump_yaml,
     generate_metadata,
     load_toml_bytes,
+    parse_args,
     parse_requirement,
 )
 
@@ -51,6 +52,10 @@ example = "opentelemetry.instrumentation.example:ExampleInstrumentor"
 def test_parse_requirement_normalizes_exact_pins() -> None:
     assert parse_requirement("opentelemetry-api==1.2.3") == ("opentelemetry-api", "1.2.3")
     assert parse_requirement("wrapt>=1.0.0,<2.0.0") == ("wrapt", ">=1.0.0,<2.0.0")
+
+
+def test_default_output_uses_release_asset_name() -> None:
+    assert parse_args([]).output == "splunk-otel-python-metadata.yaml"
 
 
 def test_dependency_stability_uses_prerelease_versions() -> None:
