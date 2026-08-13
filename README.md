@@ -1,31 +1,28 @@
-# splunk-opentelemetry
+# Splunk Distribution of OpenTelemetry Python
 
 [![PyPI - Version](https://img.shields.io/pypi/v/splunk-opentelemetry.svg)](https://pypi.org/project/splunk-opentelemetry)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/splunk-opentelemetry.svg)](https://pypi.org/project/splunk-opentelemetry)
 
------
-
-# Splunk Distribution of OpenTelemetry Python
-
-The Splunk distribution of [OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python) provides
-multiple installable packages that automatically instrument your Python application to capture and report distributed
-traces to Splunk APM. Instrumentation works by patching supported libraries at runtime with an OpenTelemetry-compatible
-tracer to capture and export trace spans.
+The Splunk Distribution of OpenTelemetry Python extends
+[OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python) to automatically instrument Python
+applications and export traces, metrics, and logs to Splunk Observability Cloud. It patches supported libraries at
+runtime with OpenTelemetry-compatible instrumentation and provides Splunk-specific configuration defaults.
 
 This distribution comes with the following defaults:
 
-- [OTLP gRPC exporter](https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html)
-  configured to send spans to a locally running
+- [OTLP gRPC exporters](https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html)
+  configured to send traces, metrics, and logs to a locally running
   [Splunk OpenTelemetry Collector](https://github.com/signalfx/splunk-otel-collector)
   (`http://localhost:4317`).
-- Unlimited default limits for 
+- Unlimited default limits for
   [configuration options](https://docs.splunk.com/Observability/gdi/get-data-in/application/python/configuration/advanced-python-otel-configuration.html)
   to support full-fidelity traces.
-- Inclusion of [system metrics](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-system-metrics)
+- [System metrics instrumentation](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation/opentelemetry-instrumentation-system-metrics).
+- Python logging instrumentation.
 
 ## Requirements
 
-This Splunk Distribution of OpenTelemetry requires Python 3.10 or later. Supported
+The Splunk Distribution of OpenTelemetry Python requires Python 3.10 or later. Supported
 libraries are listed
 [here](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation).
 
@@ -34,10 +31,9 @@ libraries are listed
 For complete instructions on how to get started with the Splunk Distribution of OpenTelemetry Python, see
 [Instrument a Python application for Splunk Observability Cloud](https://quickdraw.splunk.com/redirect/?product=Observability&version=current&location=python.application) in the official documentation.
 
-For the standard OpenTelemetry setup, install the Splunk distribution in your
-application environment. The distribution configures OTLP exporters for traces,
-metrics, and logs, includes system metrics instrumentation, and enables Python
-logging instrumentation.
+For the standard OpenTelemetry setup, install the Splunk Distribution of OpenTelemetry Python in your application
+environment. The distribution configures OTLP exporters for traces, metrics, and logs, includes system metrics
+instrumentation, and enables Python logging instrumentation.
 
 ```bash
 pip install splunk-opentelemetry
@@ -62,7 +58,14 @@ Cloud instead, set `SPLUNK_REALM` and `SPLUNK_ACCESS_TOKEN` before starting your
 application. `SPLUNK_REALM` configures direct ingest endpoints for traces and
 metrics.
 
-### Optional: Cisco SecureApp
+## Profiling
+
+The Splunk Distribution of OpenTelemetry Python supports continuous profiling and
+call graph profiling. Both modes export profiling data through OpenTelemetry logs
+for correlation with traces in Splunk APM. See [Profiling](docs/profiling.md) for
+configuration and limitations.
+
+## Optional: Cisco SecureApp
 
 To also install the [Cisco SecureApp](https://pypi.org/project/secureapp-python-agent/)
 OpenTelemetry extension, specify the `secureapp` extra:
@@ -81,25 +84,17 @@ exporter. See [docs/secureapp.md](docs/secureapp.md) for setup details and
 [docs/examples/secureapp-collector-config.yaml](docs/examples/secureapp-collector-config.yaml)
 for a collector example.
 
-## Fleet Management with OpAMP
+## Fleet management with OpAMP
 
-Splunk OTel Python provides OpAMP support. When enabled, the OpAMP client
-connects to the configured endpoint and reports the Python agent's status and
-settings. Agents connected to Splunk Observability Cloud appear on the Fleet
-Management page.
+The Splunk Distribution of OpenTelemetry Python provides OpAMP support. When enabled, the OpAMP client connects to the
+configured endpoint and reports the Python agent's status and settings. Agents connected to Splunk Observability Cloud
+appear on the Fleet Management page.
 
-The default OpAMP endpoint is a local Splunk OpenTelemetry Collector. Set
-`SPLUNK_OPAMP_ENDPOINT` to use another OpAMP endpoint. See
-[OpAMP](docs/opamp.md) for setup and limits.
+Set `SPLUNK_OPAMP_ENABLED=true` to enable OpAMP. The default OpAMP endpoint is a local Splunk OpenTelemetry Collector.
+See [OpAMP](docs/opamp.md) for setup, configuration, and limits.
 
-# License
+## License
 
-The Splunk distribution of OpenTelemetry Python Instrumentation is a
-distribution of [OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python).
-It is licensed under the terms of the Apache Software License version 2.0.
-See [the license file](./LICENSE.txt) for more details.
-
-# Deprecation
-ℹ️ The Splunk Distribution of OpenTelemetry Python version 1.X is deprecated as of February 28, 2025 and will reach end of
-support on February 28, 2026. Existing customers should consider migrating to Splunk OpenTelemetry Python 2.0 or higher.
-See [Migrate to the Splunk Python 2.0 instrumentation](https://docs.splunk.com/observability/en/gdi/get-data-in/application/python/migration-guide.html#python-migration-guide).
+The Splunk Distribution of OpenTelemetry Python is a distribution of
+[OpenTelemetry Python](https://github.com/open-telemetry/opentelemetry-python). It is licensed under the terms of the
+Apache Software License version 2.0. See [the license file](./LICENSE.txt) for more details.
