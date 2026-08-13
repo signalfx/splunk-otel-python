@@ -90,12 +90,12 @@ Use this process for stable releases such as `v3.4.5`:
     - with your local virtualenv active and the local package installed, run
       `python tools/generate_metadata.py`
     - alternatively, run `hatch run python tools/generate_metadata.py`
-    - either command creates `metadata.yaml` for upload as a GitHub Release asset
+    - either command creates `splunk-otel-python-metadata.yaml` for upload as a GitHub Release asset
 17) Navigate to the Splunk OTel Python repo and create a New Release
     - create a new tag on publish with the tag name you created in step 12
     - set the title to that tag name (e.g. `v2.7.0`)
-    - unpack the tarball from step 15 and drag its contents and `metadata.yaml` onto the attachments section of the
-      New Release page
+    - unpack the tarball from step 15 and drag its contents and `splunk-otel-python-metadata.yaml` onto the attachments
+      section of the New Release page
     - Leave the defaults selected and click Publish
 
 ## Prerelease Docker image process
