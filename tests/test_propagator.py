@@ -69,19 +69,37 @@ class TestCallgraphsPropagator:
         volume = baggage.get_baggage("splunk.trace.snapshot.volume", result_ctx)
         assert volume == "off"
 
-    def test_extract_preserves_existing_highest_baggage(self):
+    def test_extract_overwrites_existing_highest_baggage_by_default(self):
         ctx = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
 
         prop = CallgraphsPropagator(selection_probability=0.0)
         result_ctx = prop.extract({}, ctx, None)
 
         volume = baggage.get_baggage("splunk.trace.snapshot.volume", result_ctx)
-        assert volume == "highest"
+        assert volume == "off"
 
-    def test_extract_preserves_existing_off_baggage(self):
+    def test_extract_overwrites_existing_off_baggage_by_default(self):
         ctx = baggage.set_baggage("splunk.trace.snapshot.volume", "off", Context())
 
         prop = CallgraphsPropagator(selection_probability=1.0)
+        result_ctx = prop.extract({}, ctx, None)
+
+        volume = baggage.get_baggage("splunk.trace.snapshot.volume", result_ctx)
+        assert volume == "highest"
+
+    def test_extract_preserves_existing_highest_baggage_when_trusted(self):
+        ctx = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+
+        prop = CallgraphsPropagator(selection_probability=0.0, trust_inbound_baggage=True)
+        result_ctx = prop.extract({}, ctx, None)
+
+        volume = baggage.get_baggage("splunk.trace.snapshot.volume", result_ctx)
+        assert volume == "highest"
+
+    def test_extract_preserves_existing_off_baggage_when_trusted(self):
+        ctx = baggage.set_baggage("splunk.trace.snapshot.volume", "off", Context())
+
+        prop = CallgraphsPropagator(selection_probability=1.0, trust_inbound_baggage=True)
         result_ctx = prop.extract({}, ctx, None)
 
         volume = baggage.get_baggage("splunk.trace.snapshot.volume", result_ctx)
