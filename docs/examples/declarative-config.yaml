@@ -1,0 +1,32 @@
+file_format: "1.0"
+
+resource:
+  attributes:
+    - name: service.name
+      value: ${OTEL_SERVICE_NAME:-my-python-service}
+
+tracer_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_grpc:
+            endpoint: http://localhost:4317
+
+meter_provider:
+  readers:
+    - periodic:
+        exporter:
+          otlp_grpc:
+            endpoint: http://localhost:4317
+
+logger_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_grpc:
+            endpoint: http://localhost:4317
+
+propagator:
+  composite:
+    - tracecontext: {}
+    - baggage: {}

@@ -28,6 +28,7 @@ dependencies = [
   "opentelemetry-propagator-b3==1.44.0",
   "opentelemetry-exporter-otlp-proto-grpc==1.44.0",
   "opentelemetry-exporter-otlp-proto-http==1.44.0",
+  "opentelemetry-configuration==0.65b0",
   "opentelemetry-instrumentation==0.65b0",
   "opentelemetry-instrumentation-logging==0.65b0",
   "opentelemetry-instrumentation-system-metrics==0.65b0",
@@ -64,7 +65,7 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "ruff",
-  "oteltest",
+  "oteltest>=0.49.0",
 ]
 
 [tool.hatch.envs.default.scripts]

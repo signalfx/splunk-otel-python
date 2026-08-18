@@ -6,6 +6,9 @@ settings. Agents connected to Splunk Observability Cloud appear on the Fleet
 Management page.
 
 OpAMP support is provisional. Remote configuration is not supported yet.
+When `OTEL_CONFIG_FILE` is set, OpAMP does not report the declarative file as
+effective configuration. OpAMP continues to report settings derived from
+environment variables.
 
 ## Default connection
 
