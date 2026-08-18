@@ -27,7 +27,7 @@ if __name__ == "__main__":
     trace.get_tracer_provider().force_flush()
     metrics.get_meter_provider().force_flush()
     _logs.get_logger_provider().force_flush()
-    print(type(get_global_textmap()).__name__)
+    print(type(get_global_textmap()).__name__)  # noqa: T201
 
 
 class DeclarativeConfigOtelTest:
@@ -35,9 +35,7 @@ class DeclarativeConfigOtelTest:
         return (project_path(),)
 
     def declarative_configuration(self):
-        return Path(
-            project_path(), "docs", "examples", "declarative-config.yaml"
-        ).read_text()
+        return Path(project_path(), "docs", "examples", "declarative-config.yaml").read_text()
 
     def environment_variables(self):
         return {
@@ -63,9 +61,7 @@ class DeclarativeConfigOtelTest:
         assert returncode == 0, stderr
         assert SPAN_NAME in get_span_names(telemetry)
         assert METRIC_NAME in get_metric_names(telemetry)
-        assert any(
-            record.body.string_value == LOG_MESSAGE for record in get_logs(telemetry)
-        )
+        assert any(record.body.string_value == LOG_MESSAGE for record in get_logs(telemetry))
         assert "CompositePropagator" in stdout
 
         attributes = extract_leaves(
@@ -76,9 +72,7 @@ class DeclarativeConfigOtelTest:
             "resource",
             "attributes",
         )
-        assert (
-            get_attribute(attributes, "service.name").value.string_value == SERVICE_NAME
-        )
+        assert get_attribute(attributes, "service.name").value.string_value == SERVICE_NAME
 
     def is_http(self):
         return False
