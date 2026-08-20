@@ -58,6 +58,25 @@ Cloud instead, set `SPLUNK_REALM` and `SPLUNK_ACCESS_TOKEN` before starting your
 application. `SPLUNK_REALM` configures direct ingest endpoints for traces and
 metrics.
 
+## Declarative configuration
+
+The distribution includes experimental support for the OpenTelemetry declarative
+configuration file format. Set `OTEL_CONFIG_FILE` to the path of the YAML
+configuration file when you start the instrumented application:
+
+```bash
+OTEL_CONFIG_FILE=/path/to/config.yaml opentelemetry-instrument python app.py
+```
+
+See the [basic declarative configuration example](docs/examples/declarative-config.yaml),
+which exports traces, metrics, and logs to a local Collector at `http://localhost:4317`.
+
+This support configures upstream OpenTelemetry SDK components. The GDI
+`distribution.splunk` configuration block is not supported yet. Configure
+exporters, including their endpoints and authentication headers, in the YAML file.
+OpAMP does not report the declarative file as effective configuration and cannot
+manage it remotely yet.
+
 ## Profiling
 
 The Splunk Distribution of OpenTelemetry Python supports continuous profiling and

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add experimental declarative SDK configuration support through `OTEL_CONFIG_FILE`
 
 ## 2.12.1 - 2026-08-04
 - Stop bundling the retired `opentelemetry-instrumentation-elasticsearch` package in the operator Docker images
