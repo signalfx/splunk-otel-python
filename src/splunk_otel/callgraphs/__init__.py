@@ -7,11 +7,16 @@ from splunk_otel.env import (
     SPLUNK_SNAPSHOT_PROFILER_ENABLED,
     SPLUNK_SNAPSHOT_SAMPLING_INTERVAL,
 )
+from splunk_otel.profile import _get_profiling_logger, _mk_resource
 
 
 def _configure_callgraphs_if_enabled(env=None):
     env = env or Env()
     if env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED):
         trace.get_tracer_provider().add_span_processor(
-            CallgraphsSpanProcessor(env.getval(OTEL_SERVICE_NAME), env.getint(SPLUNK_SNAPSHOT_SAMPLING_INTERVAL, 10))
+            CallgraphsSpanProcessor(
+                _mk_resource(env.getval(OTEL_SERVICE_NAME)),
+                _get_profiling_logger(),
+                env.getint(SPLUNK_SNAPSHOT_SAMPLING_INTERVAL, 10),
+            )
         )

@@ -28,9 +28,11 @@ class TestStartCallgraphsIfEnabled:
 
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_not_called()
 
+    @patch("splunk_otel.callgraphs._get_profiling_logger")
+    @patch("splunk_otel.callgraphs._mk_resource")
     @patch("splunk_otel.callgraphs.trace")
     @patch("splunk_otel.callgraphs.CallgraphsSpanProcessor")
-    def test_adds_processor_when_enabled(self, mock_processor, mock_trace):
+    def test_adds_processor_when_enabled(self, mock_processor, mock_trace, mk_resource, get_profiling_logger):
         env_store = {
             "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
             "OTEL_SERVICE_NAME": "test-service",
@@ -39,12 +41,18 @@ class TestStartCallgraphsIfEnabled:
 
         _configure_callgraphs_if_enabled(env)
 
-        mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once()
-        mock_processor.assert_called_once_with("test-service", 10)
+        mk_resource.assert_called_once_with("test-service")
+        get_profiling_logger.assert_called_once_with()
+        mock_processor.assert_called_once_with(mk_resource.return_value, get_profiling_logger.return_value, 10)
+        mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once_with(
+            mock_processor.return_value
+        )
 
+    @patch("splunk_otel.callgraphs._get_profiling_logger")
+    @patch("splunk_otel.callgraphs._mk_resource")
     @patch("splunk_otel.callgraphs.trace")
     @patch("splunk_otel.callgraphs.CallgraphsSpanProcessor")
-    def test_uses_custom_sampling_interval(self, mock_processor, mock_trace):
+    def test_uses_custom_sampling_interval(self, mock_processor, mock_trace, mk_resource, get_profiling_logger):
         env_store = {
             "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
             "OTEL_SERVICE_NAME": "test-service",
@@ -54,4 +62,7 @@ class TestStartCallgraphsIfEnabled:
 
         _configure_callgraphs_if_enabled(env)
 
-        mock_processor.assert_called_once_with("test-service", 50)
+        mock_processor.assert_called_once_with(mk_resource.return_value, get_profiling_logger.return_value, 50)
+        mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once_with(
+            mock_processor.return_value
+        )
