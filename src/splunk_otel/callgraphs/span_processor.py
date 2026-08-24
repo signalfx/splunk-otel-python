@@ -11,16 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import threading
+from typing import TYPE_CHECKING, cast
 
 from opentelemetry import baggage, trace
+from opentelemetry._logs import Logger
 from opentelemetry.context import Context
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
 
 from splunk_otel.profile import ProfilingContext
 from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 
-import threading
+if TYPE_CHECKING:
+    from opentelemetry.trace import SpanContext
 
 
 def _should_process_context(context: Context | None) -> bool:
@@ -32,11 +36,20 @@ def _should_process_context(context: Context | None) -> bool:
 
 
 class CallgraphsSpanProcessor(SpanProcessor):
-    def __init__(self, service_name: str, sampling_interval: int | None = 10):
+    def __init__(
+        self,
+        resource: Resource,
+        logger: Logger,
+        sampling_interval: int = 10,
+    ):
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()
         self._profiler = ProfilingContext(
-            service_name, sampling_interval, self._filter_stacktraces, instrumentation_source="snapshot"
+            resource,
+            sampling_interval,
+            logger,
+            self._filter_stacktraces,
+            instrumentation_source="snapshot",
         )
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
@@ -61,7 +74,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
             self._profiler.start()
 
     def on_end(self, span: ReadableSpan) -> None:
-        span_id = span.get_span_context().span_id
+        span_id = cast("SpanContext", span.get_span_context()).span_id
         trace_id = self._span_id_to_trace_id.get(span_id)
 
         if trace_id is None:
