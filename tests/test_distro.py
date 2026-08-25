@@ -222,39 +222,6 @@ def test_callgraphs_propagator_removed_when_disabled():
     assert len(callgraphs_propagators) == 0
 
 
-@pytest.mark.parametrize(
-    "disabled_instrumentations",
-    [
-        "logging",
-        "requests,logging,flask",
-        "requests, logging , flask",
-        "*",
-    ],
-)
-def test_logging_instrumentation_respects_disabled_instrumentations(monkeypatch, disabled_instrumentations):
-    instrument_calls = []
-
-    class LoggingInstrumentorStub:
-        def instrument(self):
-            instrument_calls.append(True)
-
-    monkeypatch.setattr("splunk_otel.distro.LoggingInstrumentor", LoggingInstrumentorStub)
-    configure_distro({"OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": disabled_instrumentations})
-    assert instrument_calls == []
-
-
-def test_logging_instrumentation_enabled_when_not_disabled(monkeypatch):
-    instrument_calls = []
-
-    class LoggingInstrumentorStub:
-        def instrument(self):
-            instrument_calls.append(True)
-
-    monkeypatch.setattr("splunk_otel.distro.LoggingInstrumentor", LoggingInstrumentorStub)
-    configure_distro({"OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "requests,flask"})
-    assert instrument_calls == [True]
-
-
 def configure_distro(env_store):
     sd = SplunkDistro()
     sd.env = Env(env_store)

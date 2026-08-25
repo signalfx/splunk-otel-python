@@ -16,9 +16,6 @@ import logging
 import re
 
 from opentelemetry.instrumentation.distro import BaseDistro
-from opentelemetry.instrumentation.environment_variables import OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_OTLP_HEADERS,
@@ -40,10 +37,13 @@ from splunk_otel.env import (
     SPLUNK_REALM,
     SPLUNK_SNAPSHOT_PROFILER_ENABLED,
     SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     Env,
 )
-from splunk_otel.propagator import CallgraphsPropagator, ServerTimingResponsePropagator
+from splunk_otel.propagator import CallgraphsPropagator
+from splunk_otel.runtime import (
+    configure_logging_instrumentation,
+    configure_server_timing_response_propagation,
+)
 
 _DISTRO_NAME = "splunk-opentelemetry"
 
@@ -52,8 +52,6 @@ Set your service name using the OTEL_SERVICE_NAME environment variable.
 e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
 _DEFAULT_SERVICE_NAME = "unnamed-python-service"
 _X_SF_TOKEN = "x-sf-token"  # noqa S105
-_DISABLED_INSTRUMENTATIONS_WILDCARD = "*"
-_LOGGING_INSTRUMENTATION_NAME = "logging"
 _REALM_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
 
 _pylogger = logging.getLogger(__name__)
@@ -75,9 +73,9 @@ class SplunkDistro(BaseDistro):
         self.set_resource_attributes()
         self.handle_realm()
         self.configure_token_headers()
-        self.set_server_timing_propagator()
         self.set_callgraphs_propagator()
-        self.configure_logging()
+        configure_server_timing_response_propagation(self.env)
+        configure_logging_instrumentation(self.env)
 
     def set_env_defaults(self):
         for key, value in DEFAULTS.items():
@@ -125,10 +123,6 @@ class SplunkDistro(BaseDistro):
         if tok:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
 
-    def set_server_timing_propagator(self):
-        if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
-            set_global_response_propagator(ServerTimingResponsePropagator())
-
     def set_callgraphs_propagator(self):
         # Strip any existing CallgraphsPropagator before conditionally adding a fresh one,
         # so this method is idempotent and the result depends only on the current config.
@@ -142,25 +136,3 @@ class SplunkDistro(BaseDistro):
             propagators.append(CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)))
 
         set_global_textmap(CompositePropagator(propagators))
-
-    def configure_logging(self):
-        # Previously, the SDK's LoggingHandler was enabled by setting
-        # OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true (our default). That handler
-        # has been deprecated in the SDK and moved to opentelemetry-instrumentation-logging.
-        # We call instrument() explicitly here to ensure the handler is installed for users
-        # who don't run under `opentelemetry-instrument` (which would auto-discover it via
-        # entry points). This is safe when running under `opentelemetry-instrument` because
-        # LoggingInstrumentor is a singleton and its instrument() call is idempotent.
-        if self.is_instrumentation_disabled(_LOGGING_INSTRUMENTATION_NAME):
-            return
-
-        LoggingInstrumentor().instrument()
-
-    def is_instrumentation_disabled(self, instrumentation_name):
-        disabled_instrumentations_env = self.env.getval(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS)
-        disabled_instrumentations = [name.strip() for name in disabled_instrumentations_env.split(",")]
-
-        return (
-            _DISABLED_INSTRUMENTATIONS_WILDCARD in disabled_instrumentations
-            or instrumentation_name in disabled_instrumentations
-        )
