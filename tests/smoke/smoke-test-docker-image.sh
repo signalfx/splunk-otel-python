@@ -12,6 +12,7 @@ set -euo pipefail
 #   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
 #   SPLUNK_ACCESS_TOKEN=<token> SPLUNK_REALM=eu0 ./tests/smoke/smoke-test-docker-image.sh
 #   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --image <image:tag>
+#   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --platform linux/arm64
 #   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
 #
 # The --secureapp mode verifies the SecureApp image variant can populate
@@ -24,6 +25,7 @@ set -euo pipefail
 DEFAULT_IMAGE="quay.io/signalfx/splunk-otel-instrumentation-python:latest"
 SECUREAPP_IMAGE="quay.io/signalfx/splunk-otel-instrumentation-python:latest-secureapp"
 IMAGE="${DEFAULT_IMAGE}"
+PLATFORM="linux/amd64"
 VERIFY_SECUREAPP=false
 
 while [[ $# -gt 0 ]]; do
@@ -31,6 +33,8 @@ while [[ $# -gt 0 ]]; do
         --secureapp) VERIFY_SECUREAPP=true; IMAGE="${SECUREAPP_IMAGE}"; shift ;;
         --image=*) IMAGE="${1#--image=}"; shift ;;
         --image)   IMAGE="$2"; shift 2 ;;
+        --platform=*) PLATFORM="${1#--platform=}"; shift ;;
+        --platform)   PLATFORM="$2"; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -45,12 +49,13 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Image: ${IMAGE}"
+echo "==> Platform: ${PLATFORM}"
 echo "==> Pulling image..."
-docker pull --platform linux/amd64 "$IMAGE"
+docker pull --platform "$PLATFORM" "$IMAGE"
 
 echo ""
 echo "==> Running init container to populate /autoinstrumentation..."
-docker run --rm --platform linux/amd64 \
+docker run --rm --platform "$PLATFORM" \
     -v "${VOLUME}:/dest" \
     --entrypoint cp \
     "$IMAGE" \
@@ -62,7 +67,7 @@ if [ "${VERIFY_SECUREAPP}" = "true" ]; then
     echo "==> SecureApp mode verifies image contents/import and normal trace export only."
     echo "==> It does not validate SecureApp library ingestion; that requires collector routing to /v3/event."
 fi
-docker run --rm --platform linux/amd64 \
+docker run --rm --platform "$PLATFORM" \
     -v "${VOLUME}:/autoinstrumentation:ro" \
     -e PYTHONPATH=/autoinstrumentation \
     -e OTEL_SERVICE_NAME="${SERVICE_NAME}" \

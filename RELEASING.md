@@ -48,8 +48,8 @@ Use this process for stable releases such as `v3.4.5`:
 3) Build both operator Docker images without cached dependency layers to verify that every pinned package exists and
    resolves together:
     ```
-    docker build --pull --no-cache --build-arg REQUIREMENTS_FILE=requirements.txt -t splunk-otel-instrumentation-python:pre-release ./docker
-    docker build --pull --no-cache --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true -t splunk-otel-instrumentation-python:pre-release-secureapp ./docker
+    docker buildx build --pull --no-cache --platform linux/amd64,linux/arm64 --output type=cacheonly --build-arg REQUIREMENTS_FILE=requirements.txt ./docker
+    docker build --pull --no-cache --platform linux/amd64 --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true -t splunk-otel-instrumentation-python:pre-release-secureapp ./docker
     ```
 4) Bump our version in __about__.py
 5) Update additional version string locations
@@ -80,7 +80,8 @@ Use this process for stable releases such as `v3.4.5`:
 14) Smoke test the published PyPI package and Docker images:
     ```
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
-    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --platform linux/amd64
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --platform linux/arm64
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
     ```
 15) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,

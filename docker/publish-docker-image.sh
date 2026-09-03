@@ -45,8 +45,8 @@ fi
 
 major_version=$(echo $release_tag | cut -d '.' -f1) # e.g. "v1"
 repo="quay.io/signalfx/splunk-otel-instrumentation-python"
-image_name="splunk-otel-instrumentation-python"
 secureapp_image_name="splunk-otel-instrumentation-python-secureapp"
+standard_image_platforms="linux/amd64,linux/arm64"
 
 check_package_available() {
   package_name="splunk-opentelemetry"
@@ -94,17 +94,24 @@ check_requirements_pin() {
   fi
 }
 
-build_docker_image() {
-  echo ">>> Building the operator docker image ..."
-  docker build \
-    --build-arg REQUIREMENTS_FILE=requirements.txt \
-    -t "${image_name}" .
+build_and_publish_standard_docker_image() {
+  local tag_arguments=(--tag "${repo}:${release_tag}")
   if is_stable_release; then
-    docker tag "${image_name}" "${repo}:latest"
-    docker tag "${image_name}" "${repo}:${major_version}"
+    tag_arguments+=(--tag "${repo}:latest")
+    tag_arguments+=(--tag "${repo}:${major_version}")
   fi
-  docker tag "${image_name}" "${repo}:${release_tag}"
 
+  echo ">>> Building and publishing the standard operator Docker image for ${standard_image_platforms} ..."
+  docker buildx build \
+    --platform "${standard_image_platforms}" \
+    --build-arg REQUIREMENTS_FILE=requirements.txt \
+    "${tag_arguments[@]}" \
+    --provenance=false \
+    --push \
+    .
+}
+
+build_secureapp_docker_image() {
   echo ">>> Building the SecureApp operator docker image ..."
   docker build \
     --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt \
@@ -122,14 +129,7 @@ login_to_quay_io() {
   docker login -u "$QUAY_USERNAME" -p "$QUAY_PASSWORD" quay.io
 }
 
-publish_docker_image() {
-  echo ">>> Publishing the operator docker image ..."
-  if is_stable_release; then
-    docker push "${repo}:latest"
-    docker push "${repo}:${major_version}"
-  fi
-  docker push "${repo}:${release_tag}"
-
+publish_secureapp_docker_image() {
   echo ">>> Publishing the SecureApp operator docker image ..."
   if is_stable_release; then
     docker push "${repo}:latest-secureapp"
@@ -141,6 +141,7 @@ publish_docker_image() {
 check_about_version
 check_requirements_pin
 check_package_available
-build_docker_image
 login_to_quay_io
-publish_docker_image
+build_and_publish_standard_docker_image
+build_secureapp_docker_image
+publish_secureapp_docker_image
