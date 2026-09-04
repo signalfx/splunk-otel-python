@@ -33,6 +33,26 @@ version sources all match the derived PyPI version:
 Prerelease Docker images are published only under their exact prerelease tags.
 They do not update `latest`, `vX`, `latest-secureapp`, or `vX-secureapp`.
 
+### One-time local Docker setup
+
+The Docker image preflight requires a Buildx builder that supports
+`linux/amd64` and `linux/arm64`. Docker Desktop usually configures this support
+automatically. Check the selected builder with:
+
+```
+docker buildx inspect --bootstrap
+```
+
+If an AMD64 Linux host does not list ARM64 support, configure it once:
+
+```
+docker run --privileged --rm tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 --install arm64
+docker buildx create --driver docker-container --name splunk-python-multiarch --use
+docker buildx inspect --bootstrap
+```
+
+These setup commands are not part of each release.
+
 ## Stable release process
 
 Use this process for stable releases such as `v3.4.5`:
@@ -49,7 +69,7 @@ Use this process for stable releases such as `v3.4.5`:
    resolves together:
     ```
     docker buildx build --pull --no-cache --platform linux/amd64,linux/arm64 --output type=cacheonly --build-arg REQUIREMENTS_FILE=requirements.txt ./docker
-    docker build --pull --no-cache --platform linux/amd64 --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true -t splunk-otel-instrumentation-python:pre-release-secureapp ./docker
+    docker buildx build --pull --no-cache --platform linux/amd64,linux/arm64 --output type=cacheonly --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true ./docker
     ```
 4) Bump our version in __about__.py
 5) Update additional version string locations
@@ -82,7 +102,8 @@ Use this process for stable releases such as `v3.4.5`:
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-package.sh --pypi
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --platform linux/amd64
     SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --platform linux/arm64
-    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp --platform linux/amd64
+    SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp --platform linux/arm64
     ```
 15) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
     and select the 'checksum-signing-job' artifact
