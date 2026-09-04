@@ -9,6 +9,9 @@ Release publishing creates two Python auto-instrumentation images:
 - `quay.io/signalfx/splunk-otel-instrumentation-python:<tag>`
 - `quay.io/signalfx/splunk-otel-instrumentation-python:<tag>-secureapp`
 
+Both images are published for `linux/amd64` and `linux/arm64` under the same
+tags. Container runtimes select the image that matches the node platform.
+
 Use the `<tag>-secureapp` image when the init container should also include the
 Cisco SecureApp Python agent. The SecureApp image is intended for Python
 application containers running Python 3.10 or later. SecureApp dependency logs
