@@ -18,6 +18,7 @@ import re
 from opentelemetry.instrumentation.distro import BaseDistro
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.environment_variables import (
+    OTEL_CONFIG_FILE,
     OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
     OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
@@ -40,10 +41,6 @@ from splunk_otel.env import (
     Env,
 )
 from splunk_otel.propagator import CallgraphsPropagator
-from splunk_otel.runtime import (
-    configure_logging_instrumentation,
-    configure_server_timing_response_propagation,
-)
 
 _DISTRO_NAME = "splunk-opentelemetry"
 
@@ -138,6 +135,6 @@ class SplunkDistro(BaseDistro):
 
     def _configure(self, **kwargs):
         env = Env()
+        if env.getval(OTEL_CONFIG_FILE):
+            return
         EnvironmentConfiguration(env).configure()
-        configure_server_timing_response_propagation(env)
-        configure_logging_instrumentation(env)

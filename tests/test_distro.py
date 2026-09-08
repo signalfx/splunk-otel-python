@@ -14,10 +14,6 @@
 import logging
 
 import pytest
-from opentelemetry.instrumentation.propagators import (
-    get_global_response_propagator,
-    set_global_response_propagator,
-)
 from opentelemetry.propagate import get_global_textmap
 from opentelemetry.propagators.composite import CompositePropagator
 
@@ -25,7 +21,6 @@ from splunk_otel.__about__ import __version__ as version
 from splunk_otel.distro import EnvironmentConfiguration
 from splunk_otel.env import Env
 from splunk_otel.propagator import CallgraphsPropagator
-from splunk_otel.runtime import configure_server_timing_response_propagation
 
 
 def test_distro_env():
@@ -57,27 +52,6 @@ def test_access_token_whitespace():
     env_store = {"SPLUNK_ACCESS_TOKEN": " "}
     configure_environment(env_store)
     assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
-
-
-def test_server_timing_resp_prop_default():
-    set_global_response_propagator(None)
-    env_store = {}
-    configure_server_timing_response_propagation(Env(env_store))
-    assert get_global_response_propagator()
-
-
-def test_server_timing_resp_prop_true():
-    set_global_response_propagator(None)
-    env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "true"}
-    configure_server_timing_response_propagation(Env(env_store))
-    assert get_global_response_propagator()
-
-
-def test_server_timing_resp_prop_false():
-    set_global_response_propagator(None)
-    env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "false"}
-    configure_server_timing_response_propagation(Env(env_store))
-    assert get_global_response_propagator() is None
 
 
 def test_profiling_endpt():

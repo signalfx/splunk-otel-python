@@ -16,22 +16,16 @@ from typing import Protocol
 
 from opentelemetry.instrumentation.environment_variables import OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.propagators import set_global_response_propagator
 
-from splunk_otel.env import SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, Env
-from splunk_otel.propagator import ServerTimingResponsePropagator
+from splunk_otel.env import Env
 
 _DISABLED_INSTRUMENTATIONS_WILDCARD = "*"
 _LOGGING_INSTRUMENTATION_NAME = "logging"
+_SERVER_TIMING_DEFAULT_ENABLED = True
 
 
 class _LoggingInstrumentor(Protocol):
     def instrument(self) -> None: ...
-
-
-def configure_server_timing_response_propagation(env: Env) -> None:
-    if env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
-        set_global_response_propagator(ServerTimingResponsePropagator())
 
 
 def configure_logging_instrumentation(
