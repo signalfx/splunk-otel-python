@@ -14,6 +14,8 @@ SPAN_NAME = "declarative-test-span"
 
 
 if __name__ == "__main__":
+    from opentelemetry.instrumentation.propagators import get_global_response_propagator
+
     logging.basicConfig(level=logging.INFO)
 
     tracer = trace.get_tracer("declarative-test")
@@ -28,6 +30,7 @@ if __name__ == "__main__":
     metrics.get_meter_provider().force_flush()
     _logs.get_logger_provider().force_flush()
     print(type(get_global_textmap()).__name__)  # noqa: T201
+    print(f"response-propagator={type(get_global_response_propagator()).__name__}")  # noqa: T201
 
 
 class DeclarativeConfigOtelTest:
@@ -35,12 +38,23 @@ class DeclarativeConfigOtelTest:
         return (project_path(),)
 
     def declarative_configuration(self):
-        return Path(project_path(), "docs", "examples", "declarative-config.yaml").read_text()
+        config = Path(project_path(), "docs", "examples", "declarative-config.yaml").read_text()
+        return (
+            config
+            + """
+distribution:
+  splunk:
+    instrumentations:
+      http:
+        trace_response_header_enabled: false
+"""
+        )
 
     def environment_variables(self):
         return {
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
             "OTEL_SERVICE_NAME": SERVICE_NAME,
+            "SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "true",
         }
 
     def wrapper_command(self):
@@ -63,6 +77,7 @@ class DeclarativeConfigOtelTest:
         assert METRIC_NAME in get_metric_names(telemetry)
         assert any(record.body.string_value == LOG_MESSAGE for record in get_logs(telemetry))
         assert "CompositePropagator" in stdout
+        assert "response-propagator=NoneType" in stdout
 
         attributes = extract_leaves(
             telemetry,
@@ -73,6 +88,7 @@ class DeclarativeConfigOtelTest:
             "attributes",
         )
         assert get_attribute(attributes, "service.name").value.string_value == SERVICE_NAME
+        assert get_attribute(attributes, "telemetry.distro.name").value.string_value == "splunk-opentelemetry"
 
     def is_http(self):
         return False
