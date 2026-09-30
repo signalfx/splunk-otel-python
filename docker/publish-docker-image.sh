@@ -45,8 +45,7 @@ fi
 
 major_version=$(echo $release_tag | cut -d '.' -f1) # e.g. "v1"
 repo="quay.io/signalfx/splunk-otel-instrumentation-python"
-image_name="splunk-otel-instrumentation-python"
-secureapp_image_name="splunk-otel-instrumentation-python-secureapp"
+image_platforms="linux/amd64,linux/arm64"
 
 check_package_available() {
   package_name="splunk-opentelemetry"
@@ -95,26 +94,59 @@ check_requirements_pin() {
 }
 
 build_docker_image() {
-  echo ">>> Building the operator docker image ..."
-  docker build \
-    --build-arg REQUIREMENTS_FILE=requirements.txt \
-    -t "${image_name}" .
-  if is_stable_release; then
-    docker tag "${image_name}" "${repo}:latest"
-    docker tag "${image_name}" "${repo}:${major_version}"
-  fi
-  docker tag "${image_name}" "${repo}:${release_tag}"
+  local requirements_file="$1"
+  shift
 
-  echo ">>> Building the SecureApp operator docker image ..."
-  docker build \
+  docker buildx build \
+    --platform "${image_platforms}" \
+    --build-arg "REQUIREMENTS_FILE=${requirements_file}" \
+    "$@" \
+    --provenance=false \
+    --output type=cacheonly \
+    .
+}
+
+build_docker_images() {
+  echo ">>> Building the standard operator Docker image for ${image_platforms} ..."
+  build_docker_image requirements.txt
+
+  echo ">>> Building the SecureApp operator Docker image for ${image_platforms} ..."
+  build_docker_image requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true
+}
+
+build_and_publish_standard_docker_image() {
+  local tag_arguments=(--tag "${repo}:${release_tag}")
+  if is_stable_release; then
+    tag_arguments+=(--tag "${repo}:latest")
+    tag_arguments+=(--tag "${repo}:${major_version}")
+  fi
+
+  echo ">>> Publishing the standard operator Docker image for ${image_platforms} ..."
+  docker buildx build \
+    --platform "${image_platforms}" \
+    --build-arg REQUIREMENTS_FILE=requirements.txt \
+    "${tag_arguments[@]}" \
+    --provenance=false \
+    --push \
+    .
+}
+
+build_and_publish_secureapp_docker_image() {
+  local tag_arguments=(--tag "${repo}:${release_tag}-secureapp")
+  if is_stable_release; then
+    tag_arguments+=(--tag "${repo}:latest-secureapp")
+    tag_arguments+=(--tag "${repo}:${major_version}-secureapp")
+  fi
+
+  echo ">>> Publishing the SecureApp operator Docker image for ${image_platforms} ..."
+  docker buildx build \
+    --platform "${image_platforms}" \
     --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt \
     --build-arg VERIFY_SECUREAPP=true \
-    -t "${secureapp_image_name}" .
-  if is_stable_release; then
-    docker tag "${secureapp_image_name}" "${repo}:latest-secureapp"
-    docker tag "${secureapp_image_name}" "${repo}:${major_version}-secureapp"
-  fi
-  docker tag "${secureapp_image_name}" "${repo}:${release_tag}-secureapp"
+    "${tag_arguments[@]}" \
+    --provenance=false \
+    --push \
+    .
 }
 
 login_to_quay_io() {
@@ -122,25 +154,10 @@ login_to_quay_io() {
   docker login -u "$QUAY_USERNAME" -p "$QUAY_PASSWORD" quay.io
 }
 
-publish_docker_image() {
-  echo ">>> Publishing the operator docker image ..."
-  if is_stable_release; then
-    docker push "${repo}:latest"
-    docker push "${repo}:${major_version}"
-  fi
-  docker push "${repo}:${release_tag}"
-
-  echo ">>> Publishing the SecureApp operator docker image ..."
-  if is_stable_release; then
-    docker push "${repo}:latest-secureapp"
-    docker push "${repo}:${major_version}-secureapp"
-  fi
-  docker push "${repo}:${release_tag}-secureapp"
-}
-
 check_about_version
 check_requirements_pin
 check_package_available
-build_docker_image
+build_docker_images
 login_to_quay_io
-publish_docker_image
+build_and_publish_standard_docker_image
+build_and_publish_secureapp_docker_image

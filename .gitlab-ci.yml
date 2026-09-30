@@ -74,5 +74,12 @@ publish-docker-image:
   before_script:
     - ./docker/install-docker-deps.sh
     - ./docker/install-gh-deps.sh
+    # Let this AMD64 runner execute ARM64 programs during cross-platform builds.
+    # The helper registers QEMU as the ARM64 interpreter through Linux binfmt_misc.
+    - docker run --privileged --rm tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 --install arm64
+    - docker buildx create --driver docker-container --name "multiarch-${CI_JOB_ID}" --use
+    - docker buildx inspect --bootstrap
   script:
     - ./docker/publish-docker-image.sh "$CI_COMMIT_TAG"
+  after_script:
+    - docker buildx rm "multiarch-${CI_JOB_ID}" || true
