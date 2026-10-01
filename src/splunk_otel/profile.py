@@ -38,23 +38,20 @@ _SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
 
-_thread_states = {}
+_thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
 
 
 class ProfilingContext:
-    _timer = None
-
     def __init__(
         self,
-        service_name: str,
+        resource: Resource,
         interval_millis: int,
+        logger: Logger,
         stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
         instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
     ):
         start_thread_context_tracking()
-        resource = _mk_resource(service_name)
-        logger = get_logger(_SCOPE_NAME, _SCOPE_VERSION)
         scraper = _ProfileScraper(
             resource,
             _thread_states,
@@ -63,7 +60,7 @@ class ProfilingContext:
             stacktrace_filter=stacktrace_filter,
             instrumentation_source=instrumentation_source,
         )
-        self._timer = _IntervalTimer(interval_millis, scraper.tick)
+        self._timer: _IntervalTimer = _IntervalTimer(interval_millis, scraper.tick)
 
     def start(self):
         self._timer.start()
@@ -86,9 +83,17 @@ def start_profiling(env=None):
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     svcname = env.getval(OTEL_SERVICE_NAME)
 
-    ctx = ProfilingContext(svcname, interval_millis)
+    ctx = ProfilingContext(
+        _mk_resource(svcname),
+        interval_millis,
+        get_logger(_SCOPE_NAME, _SCOPE_VERSION),
+    )
     ctx.start()
     return ctx
+
+
+def _get_profiling_logger() -> Logger:
+    return get_logger(_SCOPE_NAME, _SCOPE_VERSION)
 
 
 def _mk_resource(service_name) -> Resource:

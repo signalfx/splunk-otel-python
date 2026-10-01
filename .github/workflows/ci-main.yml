@@ -45,7 +45,7 @@ jobs:
       run: hatch run cov
 
     - name: Install oteltest
-      run: pip install oteltest
+      run: pip install 'oteltest>=0.49.0'
 
     - name: Run oteltests
       run: oteltest tests/integration/*.py

@@ -16,10 +16,15 @@ from unittest.mock import MagicMock, patch
 
 from opentelemetry import baggage, trace
 from opentelemetry.context import Context
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import Span
 from opentelemetry.trace import SpanContext
 
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _should_process_context
+
+
+def _processor():
+    return CallgraphsSpanProcessor(Resource({}), MagicMock())
 
 
 class TestShouldProcessContext:
@@ -52,7 +57,7 @@ class TestShouldProcessContext:
 class TestCallgraphsSpanProcessor:
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_does_nothing_when_baggage_is_none(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         span = MagicMock(spec=Span)
 
         processor.on_start(span, Context())
@@ -62,7 +67,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_does_nothing_when_baggage_is_off(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         span = MagicMock(spec=Span)
         ctx = baggage.set_baggage("splunk.trace.snapshot.volume", "off", Context())
 
@@ -73,7 +78,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_does_nothing_when_parent_is_local(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         span = MagicMock(spec=Span)
 
         parent_span = trace.NonRecordingSpan(
@@ -89,7 +94,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_activates_profiling_when_baggage_is_highest(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
 
         span = MagicMock(spec=Span)
         span_ctx = SpanContext(trace_id=123, span_id=456, is_remote=False)
@@ -106,7 +111,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_removes_span_from_tracking(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         processor._span_id_to_trace_id[456] = 123  # noqa SLF001
 
         span = MagicMock(spec=Span)
@@ -119,7 +124,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_pauses_profiler_when_no_active_spans(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         processor._span_id_to_trace_id[456] = 123  # noqa SLF001
 
         span = MagicMock(spec=Span)
@@ -132,7 +137,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_does_not_pause_profiler_when_other_spans_active(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         processor._span_id_to_trace_id[456] = 123  # noqa SLF001
         processor._span_id_to_trace_id[789] = 123  # noqa SLF001
 
@@ -146,7 +151,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_ignores_untracked_spans(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
 
         span = MagicMock(spec=Span)
         span_ctx = SpanContext(trace_id=123, span_id=456, is_remote=False)
@@ -158,7 +163,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_filter_stacktraces_keeps_active_traces(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
         processor._span_id_to_trace_id[456] = 123  # noqa SLF001
 
         stacktraces = [
@@ -178,7 +183,7 @@ class TestCallgraphsSpanProcessor:
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_filter_stacktraces_returns_empty_when_no_active_traces(self, mock_profiling_context):
-        processor = CallgraphsSpanProcessor("test-service")
+        processor = _processor()
 
         stacktraces = [
             {"tid": 1, "frames": []},
