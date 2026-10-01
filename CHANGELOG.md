@@ -1,8 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Add experimental declarative SDK configuration support through `OTEL_CONFIG_FILE`
+- Publish the standard and SecureApp operator Docker images for AMD64 and ARM64
+
+## 2.12.1 - 2026-08-04
+- Stop bundling the retired `opentelemetry-instrumentation-elasticsearch` package in the operator Docker images
 
 ## 2.12.0 - 2026-07-13
+- Add provisional OpAMP support for reporting Python agent status and settings
 - Upgrade Otel dependencies to [1.44.0](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.44.0) / [0.65b0](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.65b0)
 
 ## 2.11.0 - 2026-06-09

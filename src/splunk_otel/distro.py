@@ -16,11 +16,9 @@ import logging
 import re
 
 from opentelemetry.instrumentation.distro import BaseDistro
-from opentelemetry.instrumentation.environment_variables import OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.environment_variables import (
+    OTEL_CONFIG_FILE,
     OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_EXPORTER_OTLP_LOGS_ENDPOINT,
     OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
@@ -40,10 +38,9 @@ from splunk_otel.env import (
     SPLUNK_REALM,
     SPLUNK_SNAPSHOT_PROFILER_ENABLED,
     SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
-    SPLUNK_TRACE_RESPONSE_HEADER_ENABLED,
     Env,
 )
-from splunk_otel.propagator import CallgraphsPropagator, ServerTimingResponsePropagator
+from splunk_otel.propagator import CallgraphsPropagator
 
 _DISTRO_NAME = "splunk-opentelemetry"
 
@@ -52,43 +49,34 @@ Set your service name using the OTEL_SERVICE_NAME environment variable.
 e.g. `OTEL_SERVICE_NAME="<YOUR_SERVICE_NAME_HERE>"`"""
 _DEFAULT_SERVICE_NAME = "unnamed-python-service"
 _X_SF_TOKEN = "x-sf-token"  # noqa S105
-_DISABLED_INSTRUMENTATIONS_WILDCARD = "*"
-_LOGGING_INSTRUMENTATION_NAME = "logging"
 _REALM_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
 
 _pylogger = logging.getLogger(__name__)
 
 
-class SplunkDistro(BaseDistro):
-    """
-    Loaded by the opentelemetry-instrumentation package via an entrypoint when running `opentelemetry-instrument`
-    """
+class EnvironmentConfiguration:
+    def __init__(self, env: Env):
+        self.env = env
 
-    def __init__(self):
-        # can't accept an arg here because of the parent class
-        self.env = Env()
+    def configure(self) -> None:
+        self._set_env_defaults()
+        self._check_service_name()
+        self._set_profiling_env()
+        self._set_resource_attributes()
+        self._handle_realm()
+        self._configure_token_headers()
+        self._set_callgraphs_propagator()
 
-    def _configure(self, **kwargs):
-        self.set_env_defaults()
-        self.check_service_name()
-        self.set_profiling_env()
-        self.set_resource_attributes()
-        self.handle_realm()
-        self.configure_token_headers()
-        self.set_server_timing_propagator()
-        self.set_callgraphs_propagator()
-        self.configure_logging()
-
-    def set_env_defaults(self):
+    def _set_env_defaults(self) -> None:
         for key, value in DEFAULTS.items():
             self.env.setdefault(key, value)
 
-    def check_service_name(self):
+    def _check_service_name(self) -> None:
         if not len(self.env.getval(OTEL_SERVICE_NAME)):
             _pylogger.warning(_NO_SERVICE_NAME_WARNING)
             self.env.setval(OTEL_SERVICE_NAME, _DEFAULT_SERVICE_NAME)
 
-    def set_profiling_env(self):
+    def _set_profiling_env(self) -> None:
         profiler_enabled = self.env.is_true(SPLUNK_PROFILER_ENABLED, "false")
         snapshot_profiler_enabled = self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false")
         if profiler_enabled or snapshot_profiler_enabled:
@@ -96,11 +84,11 @@ class SplunkDistro(BaseDistro):
             if logs_endpt:
                 self.env.setval(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logs_endpt)
 
-    def set_resource_attributes(self):
+    def _set_resource_attributes(self) -> None:
         self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.name={_DISTRO_NAME}")
         self.env.list_append(OTEL_RESOURCE_ATTRIBUTES, f"telemetry.distro.version={version}")
 
-    def handle_realm(self):
+    def _handle_realm(self) -> None:
         realm = self.env.getval(SPLUNK_REALM).strip()
         if len(realm):
             if not _REALM_RE.fullmatch(realm):
@@ -120,16 +108,12 @@ class SplunkDistro(BaseDistro):
             # if realm is set, we assume direct ingest and set the protocol to `http/protobuf`
             self.env.setdefault(OTEL_EXPORTER_OTLP_PROTOCOL, "http/protobuf")
 
-    def configure_token_headers(self):
+    def _configure_token_headers(self) -> None:
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
         if tok:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
 
-    def set_server_timing_propagator(self):
-        if self.env.is_true(SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, "true"):
-            set_global_response_propagator(ServerTimingResponsePropagator())
-
-    def set_callgraphs_propagator(self):
+    def _set_callgraphs_propagator(self) -> None:
         # Strip any existing CallgraphsPropagator before conditionally adding a fresh one,
         # so this method is idempotent and the result depends only on the current config.
         current = get_global_textmap()
@@ -143,24 +127,14 @@ class SplunkDistro(BaseDistro):
 
         set_global_textmap(CompositePropagator(propagators))
 
-    def configure_logging(self):
-        # Previously, the SDK's LoggingHandler was enabled by setting
-        # OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true (our default). That handler
-        # has been deprecated in the SDK and moved to opentelemetry-instrumentation-logging.
-        # We call instrument() explicitly here to ensure the handler is installed for users
-        # who don't run under `opentelemetry-instrument` (which would auto-discover it via
-        # entry points). This is safe when running under `opentelemetry-instrument` because
-        # LoggingInstrumentor is a singleton and its instrument() call is idempotent.
-        if self.is_instrumentation_disabled(_LOGGING_INSTRUMENTATION_NAME):
+
+class SplunkDistro(BaseDistro):
+    """
+    Loaded by the opentelemetry-instrumentation package via an entrypoint when running `opentelemetry-instrument`
+    """
+
+    def _configure(self, **kwargs):
+        env = Env()
+        if env.getval(OTEL_CONFIG_FILE):
             return
-
-        LoggingInstrumentor().instrument()
-
-    def is_instrumentation_disabled(self, instrumentation_name):
-        disabled_instrumentations_env = self.env.getval(OTEL_PYTHON_DISABLED_INSTRUMENTATIONS)
-        disabled_instrumentations = [name.strip() for name in disabled_instrumentations_env.split(",")]
-
-        return (
-            _DISABLED_INSTRUMENTATIONS_WILDCARD in disabled_instrumentations
-            or instrumentation_name in disabled_instrumentations
-        )
+        EnvironmentConfiguration(env).configure()

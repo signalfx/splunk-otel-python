@@ -14,69 +14,44 @@
 import logging
 
 import pytest
-from opentelemetry.instrumentation.propagators import (
-    get_global_response_propagator,
-    set_global_response_propagator,
-)
 from opentelemetry.propagate import get_global_textmap
 from opentelemetry.propagators.composite import CompositePropagator
 
 from splunk_otel.__about__ import __version__ as version
-from splunk_otel.distro import SplunkDistro
+from splunk_otel.distro import EnvironmentConfiguration
 from splunk_otel.env import Env
 from splunk_otel.propagator import CallgraphsPropagator
 
 
 def test_distro_env():
     env_store = {}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert env_store["OTEL_TRACES_EXPORTER"] == "otlp"
     assert len(env_store) > 10
 
 
 def test_access_token():
     env_store = {"SPLUNK_ACCESS_TOKEN": "abc123"}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert env_store["OTEL_EXPORTER_OTLP_HEADERS"] == "x-sf-token=abc123"
 
 
 def test_access_token_none():
     env_store = {}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
 
 
 def test_access_token_empty():
     env_store = {"SPLUNK_ACCESS_TOKEN": ""}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
 
 
 def test_access_token_whitespace():
     env_store = {"SPLUNK_ACCESS_TOKEN": " "}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert "OTEL_EXPORTER_OTLP_HEADERS" not in env_store
-
-
-def test_server_timing_resp_prop_default():
-    set_global_response_propagator(None)
-    env_store = {}
-    configure_distro(env_store)
-    assert get_global_response_propagator()
-
-
-def test_server_timing_resp_prop_true():
-    set_global_response_propagator(None)
-    env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "true"}
-    configure_distro(env_store)
-    assert get_global_response_propagator()
-
-
-def test_server_timing_resp_prop_false():
-    set_global_response_propagator(None)
-    env_store = {"SPLUNK_TRACE_RESPONSE_HEADER_ENABLED": "false"}
-    configure_distro(env_store)
-    assert get_global_response_propagator() is None
 
 
 def test_profiling_endpt():
@@ -84,7 +59,7 @@ def test_profiling_endpt():
         "SPLUNK_PROFILER_ENABLED": "true",
         "SPLUNK_PROFILER_LOGS_ENDPOINT": "my-logs-endpoint",
     }
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" in env_store
 
 
@@ -95,13 +70,13 @@ def test_snapshot_profiling_endpt():
         "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
         "SPLUNK_PROFILER_LOGS_ENDPOINT": "my-logs-endpoint",
     }
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert env_store.get("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT") == "my-logs-endpoint"
 
 
 def test_resource_attributes():
     env_store = {"OTEL_RESOURCE_ATTRIBUTES": "foo=bar"}
-    configure_distro(env_store)
+    configure_environment(env_store)
     attrs = env_store["OTEL_RESOURCE_ATTRIBUTES"]
     assert "telemetry.distro.name=splunk-opentelemetry" in attrs
     assert f"telemetry.distro.version={version}" in attrs
@@ -111,14 +86,14 @@ def test_resource_attributes():
 def test_service_name(caplog):
     with caplog.at_level(logging.WARNING):
         env_store = {}
-        configure_distro(env_store)
+        configure_environment(env_store)
         assert "OTEL_SERVICE_NAME" in env_store
     assert "service.name attribute is not set" in caplog.text
 
 
 def test_realm():
     env_store = {"SPLUNK_REALM": "us2"}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert (
         env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"]
         == "https://ingest.us2.observability.splunkcloud.com/v2/trace/otlp"
@@ -132,7 +107,7 @@ def test_realm():
 
 def test_realm_strips_whitespace():
     env_store = {"SPLUNK_REALM": " us2 "}
-    configure_distro(env_store)
+    configure_environment(env_store)
     assert (
         env_store["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"]
         == "https://ingest.us2.observability.splunkcloud.com/v2/trace/otlp"
@@ -154,7 +129,7 @@ def test_realm_strips_whitespace():
 def test_invalid_realm_is_ignored(caplog, realm):
     env_store = {"SPLUNK_REALM": realm}
     with caplog.at_level(logging.WARNING):
-        configure_distro(env_store)
+        configure_environment(env_store)
     assert "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" not in env_store
     assert "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" not in env_store
     assert "OTEL_EXPORTER_OTLP_PROTOCOL" not in env_store
@@ -163,7 +138,7 @@ def test_invalid_realm_is_ignored(caplog, realm):
 
 def test_callgraphs_propagator_disabled_by_default():
     env_store = {}
-    configure_distro(env_store)
+    configure_environment(env_store)
 
     textmap = get_global_textmap()
     if isinstance(textmap, CompositePropagator):
@@ -176,7 +151,7 @@ def test_callgraphs_propagator_disabled_by_default():
 
 def test_callgraphs_propagator_enabled():
     env_store = {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}
-    configure_distro(env_store)
+    configure_environment(env_store)
 
     textmap = get_global_textmap()
     assert isinstance(textmap, CompositePropagator)
@@ -191,7 +166,7 @@ def test_callgraphs_propagator_selection_probability():
         "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
         "SPLUNK_SNAPSHOT_SELECTION_PROBABILITY": "0.5",
     }
-    configure_distro(env_store)
+    configure_environment(env_store)
 
     textmap = get_global_textmap()
     propagators = textmap._propagators  # noqa SLF001
@@ -202,8 +177,8 @@ def test_callgraphs_propagator_selection_probability():
 def test_callgraphs_propagator_idempotent():
     # Configuring twice with snapshot enabled should not accumulate propagators.
     env_store = {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}
-    configure_distro(env_store)
-    configure_distro(env_store)
+    configure_environment(env_store)
+    configure_environment(env_store)
 
     textmap = get_global_textmap()
     propagators = textmap._propagators  # noqa SLF001
@@ -213,8 +188,8 @@ def test_callgraphs_propagator_idempotent():
 
 def test_callgraphs_propagator_removed_when_disabled():
     # Enabling then disabling snapshot profiling should leave no CallgraphsPropagator.
-    configure_distro({"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"})
-    configure_distro({})
+    configure_environment({"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"})
+    configure_environment({})
 
     textmap = get_global_textmap()
     propagators = textmap._propagators  # noqa SLF001
@@ -222,40 +197,5 @@ def test_callgraphs_propagator_removed_when_disabled():
     assert len(callgraphs_propagators) == 0
 
 
-@pytest.mark.parametrize(
-    "disabled_instrumentations",
-    [
-        "logging",
-        "requests,logging,flask",
-        "requests, logging , flask",
-        "*",
-    ],
-)
-def test_logging_instrumentation_respects_disabled_instrumentations(monkeypatch, disabled_instrumentations):
-    instrument_calls = []
-
-    class LoggingInstrumentorStub:
-        def instrument(self):
-            instrument_calls.append(True)
-
-    monkeypatch.setattr("splunk_otel.distro.LoggingInstrumentor", LoggingInstrumentorStub)
-    configure_distro({"OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": disabled_instrumentations})
-    assert instrument_calls == []
-
-
-def test_logging_instrumentation_enabled_when_not_disabled(monkeypatch):
-    instrument_calls = []
-
-    class LoggingInstrumentorStub:
-        def instrument(self):
-            instrument_calls.append(True)
-
-    monkeypatch.setattr("splunk_otel.distro.LoggingInstrumentor", LoggingInstrumentorStub)
-    configure_distro({"OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "requests,flask"})
-    assert instrument_calls == [True]
-
-
-def configure_distro(env_store):
-    sd = SplunkDistro()
-    sd.env = Env(env_store)
-    sd.configure()
+def configure_environment(env_store):
+    EnvironmentConfiguration(Env(env_store)).configure()
