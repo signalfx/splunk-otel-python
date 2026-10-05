@@ -185,5 +185,9 @@ class _FakeLogger(Logger):
         super().__init__("fake-logger")
         self.log_records = []
 
+    # OpenTelemetry 1.45 requires Logger.enabled(); this fake accepts all records.
+    def enabled(self, *, context=None, severity_number=None, event_name=None) -> bool:
+        return True
+
     def emit(self, record) -> None:
         self.log_records.append(record)
