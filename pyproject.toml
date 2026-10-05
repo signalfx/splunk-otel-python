@@ -23,24 +23,27 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "opentelemetry-api==1.44.0",
-  "opentelemetry-sdk==1.44.0",
-  "opentelemetry-propagator-b3==1.44.0",
-  "opentelemetry-exporter-otlp-proto-grpc==1.44.0",
-  "opentelemetry-exporter-otlp-proto-http==1.44.0",
-  "opentelemetry-configuration==0.65b0",
-  "opentelemetry-instrumentation==0.65b0",
-  "opentelemetry-instrumentation-logging==0.65b0",
-  "opentelemetry-instrumentation-system-metrics==0.65b0",
-  "opentelemetry-semantic-conventions==0.65b0",
+  "opentelemetry-api==1.45.0",
+  "opentelemetry-sdk==1.45.0",
+  "opentelemetry-propagator-b3==1.45.0",
+  "opentelemetry-exporter-otlp-proto-grpc==1.45.0",
+  "opentelemetry-exporter-otlp-proto-http==1.45.0",
+  "opentelemetry-configuration==0.66b0",
+  "opentelemetry-instrumentation==0.66b0",
+  "opentelemetry-instrumentation-logging==0.66b0",
+  "opentelemetry-instrumentation-system-metrics==0.66b0",
+  "opentelemetry-semantic-conventions==0.66b0",
   "opentelemetry-opamp-client==0.3b0",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
+  # opentelemetry-opamp-client imports requests but does not declare it.
+  # Match the upstream HTTP exporter's requests version range.
+  "requests~=2.7",
   "wrapt>=2.5.0",
 ]
 
 [project.optional-dependencies]
 secureapp = [
-  "secureapp-python-agent>=26.7.1",
+  "secureapp-python-agent>=26.10.0",
 ]
 
 [project.urls]
