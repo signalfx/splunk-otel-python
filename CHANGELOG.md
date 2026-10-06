@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.13.1 - 2026-10-06
+- Upgrade OpenTelemetry dependencies to [1.45.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.45.1) / [0.66b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.66b1)
+
 ## 2.13.0 - 2026-10-05
 - Add experimental declarative SDK configuration support through `OTEL_CONFIG_FILE`
 - Publish the standard and SecureApp operator Docker images for AMD64 and ARM64
