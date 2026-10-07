@@ -37,7 +37,7 @@ dependencies = [
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
   # opentelemetry-opamp-client imports requests but does not declare it.
   # Match the upstream HTTP exporter's requests version range.
-  "requests~=2.7",
+  "requests~=2.34",
   "wrapt>=2.5.0",
 ]
 
