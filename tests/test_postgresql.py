@@ -1,0 +1,604 @@
+# Copyright Splunk Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import asyncio
+import threading
+from types import SimpleNamespace
+
+import pytest
+
+from opentelemetry import trace
+from opentelemetry.instrumentation.utils import suppress_instrumentation
+from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
+
+from splunk_otel.postgresql import (
+    _execute_with_postgresql_trace_context,
+    _execute_with_postgresql_trace_context_async,
+)
+from splunk_otel import postgresql
+
+
+PARENT_CONTEXT = SpanContext(
+    trace_id=0x11111111111111111111111111111111,
+    span_id=0x1111111111111111,
+    is_remote=False,
+    trace_flags=TraceFlags(TraceFlags.SAMPLED),
+)
+DATABASE_CONTEXT = SpanContext(
+    trace_id=PARENT_CONTEXT.trace_id,
+    span_id=0x2222222222222222,
+    is_remote=False,
+    trace_flags=TraceFlags(TraceFlags.SAMPLED),
+)
+SECOND_DATABASE_CONTEXT = SpanContext(
+    trace_id=PARENT_CONTEXT.trace_id,
+    span_id=0x3333333333333333,
+    is_remote=False,
+    trace_flags=TraceFlags(TraceFlags.SAMPLED),
+)
+TRACEPARENT = "00-11111111111111111111111111111111-2222222222222222-01"
+SECOND_TRACEPARENT = "00-11111111111111111111111111111111-3333333333333333-01"
+
+
+class FakeConnection:
+    def __init__(self):
+        self.default_application_name = "startup-app"
+        self.application_name = "customer-app"
+        self.calls = []
+        self.cursors = []
+        self.before_execute = lambda _query: None
+
+    def cursor(self):
+        cursor = FakePsycopgCursor(self)
+        self.cursors.append(cursor)
+        return cursor
+
+
+class FakeAsyncConnection(FakeConnection):
+    def cursor(self):
+        cursor = FakeAsyncPsycopgCursor(self)
+        self.cursors.append(cursor)
+        return cursor
+
+
+class FakePsycopgCursor:
+    __module__ = "psycopg"
+
+    def __init__(self, connection):
+        self.connection = connection
+        self.calls = []
+        self.closed = False
+
+    def execute(self, query):
+        self.calls.append(query)
+        self.connection.calls.append(query)
+        self.connection.before_execute(query)
+        if query == "SET application_name = DEFAULT":
+            self.connection.application_name = self.connection.default_application_name
+        elif query.startswith("SET application_name = '"):
+            self.connection.application_name = query.removeprefix("SET application_name = '").removesuffix("'")
+        return self.connection.application_name
+
+    def close(self):
+        self.closed = True
+
+
+class FakeAsyncPsycopgCursor:
+    __module__ = "psycopg.fake"
+
+    def __init__(self, connection):
+        self.connection = connection
+        self.calls = []
+        self.closed = False
+
+    async def execute(self, query):
+        self.calls.append(query)
+        self.connection.calls.append(query)
+        if query == "SET application_name = DEFAULT":
+            self.connection.application_name = self.connection.default_application_name
+        elif query.startswith("SET application_name = '"):
+            self.connection.application_name = query.removeprefix("SET application_name = '").removesuffix("'")
+        return self.connection.application_name
+
+    async def close(self):
+        self.closed = True
+
+
+def _fake_traced_execution(_cursor, query_method, *args, **kwargs):
+    with trace.use_span(NonRecordingSpan(DATABASE_CONTEXT)):
+        return query_method(*args, **kwargs)
+
+
+async def _fake_traced_execution_async(_cursor, query_method, *args, **kwargs):
+    with trace.use_span(NonRecordingSpan(DATABASE_CONTEXT)):
+        return await query_method(*args, **kwargs)
+
+
+def _fake_untraced_execution(_cursor, query_method, *args, **kwargs):
+    return query_method(*args, **kwargs)
+
+
+def test_query_sets_database_span_traceparent():
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    with trace.use_span(NonRecordingSpan(PARENT_CONTEXT)):
+        result = _execute_with_postgresql_trace_context(
+            _fake_traced_execution,
+            None,
+            (cursor, cursor.execute, "SELECT application_name"),
+            {},
+        )
+
+    assert result == TRACEPARENT
+    assert cursor.calls == ["SELECT application_name"]
+    assert connection.cursors[0].calls == [f"SET application_name = '{TRACEPARENT}'"]
+    assert connection.cursors[0].closed
+    assert connection.calls == [
+        f"SET application_name = '{TRACEPARENT}'",
+        "SELECT application_name",
+    ]
+
+
+def test_query_without_database_span_clears_stale_traceparent():
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    _execute_with_postgresql_trace_context(
+        _fake_traced_execution,
+        None,
+        (cursor, cursor.execute, "SELECT 1"),
+        {},
+    )
+    result = _execute_with_postgresql_trace_context(
+        _fake_untraced_execution,
+        None,
+        (cursor, cursor.execute, "SELECT 2"),
+        {},
+    )
+
+    assert result == "startup-app"
+    assert connection.calls == [
+        f"SET application_name = '{TRACEPARENT}'",
+        "SELECT 1",
+        "SET application_name = DEFAULT",
+        "SELECT 2",
+    ]
+
+
+def test_non_postgresql_cursor_is_unchanged():
+    class OtherCursor:
+        pass
+
+    cursor = OtherCursor()
+    calls = []
+
+    def wrapped(*args, **kwargs):
+        calls.append((args, kwargs))
+        return "result"
+
+    assert _execute_with_postgresql_trace_context(wrapped, None, (cursor, "query", "SELECT 1"), {}) == "result"
+    assert calls == [((cursor, "query", "SELECT 1"), {})]
+
+
+def test_suppressed_instrumentation_is_unchanged():
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    with suppress_instrumentation():
+        result = _execute_with_postgresql_trace_context(
+            _fake_traced_execution,
+            None,
+            (cursor, cursor.execute, "SELECT 1"),
+            {},
+        )
+
+    assert result == "customer-app"
+    assert cursor.calls == ["SELECT 1"]
+    assert connection.cursors == []
+
+
+def test_psycopg2_asynchronous_connection_sends_only_customer_query():
+    class FakePsycopg2Cursor(FakePsycopgCursor):
+        __module__ = "psycopg2.extensions"
+
+    connection = FakeConnection()
+    connection.async_ = 1
+    cursor = FakePsycopg2Cursor(connection)
+
+    _execute_with_postgresql_trace_context(
+        _fake_traced_execution,
+        None,
+        (cursor, cursor.execute, "SELECT 1"),
+        {},
+    )
+
+    assert connection.calls == ["SELECT 1"]
+    assert connection.cursors == []
+
+
+def test_psycopg2_named_cursor_is_not_used_for_application_name():
+    class FakePsycopg2NamedCursor(FakePsycopgCursor):
+        __module__ = "psycopg2.extensions"
+
+        def execute(self, query):
+            if self.calls:
+                raise RuntimeError
+            return super().execute(query)
+
+    connection = FakeConnection()
+    cursor = FakePsycopg2NamedCursor(connection)
+
+    with trace.use_span(NonRecordingSpan(PARENT_CONTEXT)):
+        result = _execute_with_postgresql_trace_context(
+            _fake_traced_execution,
+            None,
+            (cursor, cursor.execute, "SELECT 1"),
+            {},
+        )
+
+    assert result == TRACEPARENT
+    assert cursor.calls == ["SELECT 1"]
+    assert connection.cursors[0].calls == [f"SET application_name = '{TRACEPARENT}'"]
+    assert connection.cursors[0].closed
+
+
+def test_async_query_sets_database_span_traceparent():
+    async def run():
+        connection = FakeAsyncConnection()
+        cursor = FakeAsyncPsycopgCursor(connection)
+
+        with trace.use_span(NonRecordingSpan(PARENT_CONTEXT)):
+            result = await _execute_with_postgresql_trace_context_async(
+                _fake_traced_execution_async,
+                None,
+                (cursor, cursor.execute, "SELECT application_name"),
+                {},
+            )
+
+        return result, connection, cursor
+
+    result, connection, cursor = asyncio.run(run())
+
+    assert result == TRACEPARENT
+    assert cursor.calls == ["SELECT application_name"]
+    assert connection.cursors[0].calls == [f"SET application_name = '{TRACEPARENT}'"]
+    assert connection.cursors[0].closed
+    assert connection.calls == [
+        f"SET application_name = '{TRACEPARENT}'",
+        "SELECT application_name",
+    ]
+
+
+def test_shared_connection_keeps_set_and_query_together(monkeypatch):
+    connection = FakeConnection()
+    first_cursor = FakePsycopgCursor(connection)
+    second_cursor = FakePsycopgCursor(connection)
+    first_query_started = threading.Event()
+    release_first_query = threading.Event()
+    second_query_waiting = threading.Event()
+
+    class FakeConnectionLock:
+        def __init__(self):
+            self.lock = threading.Lock()
+
+        def __enter__(self):
+            if self.lock.locked():
+                second_query_waiting.set()
+            self.lock.acquire()
+
+        def __exit__(self, *_args):
+            self.lock.release()
+
+    connection_lock = FakeConnectionLock()
+    monkeypatch.setattr(postgresql, "_get_sync_connection_lock", lambda _connection: connection_lock)
+
+    def before_execute(query):
+        if query == "SELECT first":
+            first_query_started.set()
+            release_first_query.wait(timeout=1)
+
+    connection.before_execute = before_execute
+
+    def run(cursor, query, span_context):
+        def wrapped(_cursor, query_method, *args, **kwargs):
+            with trace.use_span(NonRecordingSpan(span_context)):
+                return query_method(*args, **kwargs)
+
+        _execute_with_postgresql_trace_context(wrapped, None, (cursor, cursor.execute, query), {})
+
+    first_thread = threading.Thread(target=run, args=(first_cursor, "SELECT first", DATABASE_CONTEXT))
+    second_thread = threading.Thread(target=run, args=(second_cursor, "SELECT second", SECOND_DATABASE_CONTEXT))
+
+    try:
+        first_thread.start()
+        assert first_query_started.wait(timeout=1)
+        second_thread.start()
+        assert second_query_waiting.wait(timeout=1)
+        assert connection.calls == [
+            f"SET application_name = '{TRACEPARENT}'",
+            "SELECT first",
+        ]
+    finally:
+        release_first_query.set()
+        first_thread.join(timeout=1)
+        second_thread.join(timeout=1)
+
+    assert not first_thread.is_alive()
+    assert not second_thread.is_alive()
+    assert connection.calls == [
+        f"SET application_name = '{TRACEPARENT}'",
+        "SELECT first",
+        f"SET application_name = '{SECOND_TRACEPARENT}'",
+        "SELECT second",
+    ]
+
+
+class FakeCursorTracer:
+    def traced_execution(self, cursor, query_method, *args, **kwargs):
+        return _fake_traced_execution(cursor, query_method, *args, **kwargs)
+
+    async def traced_execution_async(self, cursor, query_method, *args, **kwargs):
+        return await _fake_traced_execution_async(cursor, query_method, *args, **kwargs)
+
+
+def test_public_enable_is_idempotent(monkeypatch):
+    class CursorTracer(FakeCursorTracer):
+        pass
+
+    monkeypatch.setattr(postgresql, "_enabled", False)
+    monkeypatch.setattr(postgresql, "import_module", lambda _name: SimpleNamespace(CursorTracer=CursorTracer))
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    assert postgresql.enable_postgresql_trace_context_propagation()
+    assert postgresql.enable_postgresql_trace_context_propagation()
+    result = CursorTracer().traced_execution(cursor, cursor.execute, "SELECT 1")
+
+    assert result == TRACEPARENT
+    assert connection.calls == [f"SET application_name = '{TRACEPARENT}'", "SELECT 1"]
+
+
+def test_public_enable_without_dbapi_reports_missing_dependency(monkeypatch, caplog):
+    def _fake_dbapi_import(_name):
+        raise ImportError
+
+    monkeypatch.setattr(postgresql, "_enabled", False)
+    monkeypatch.setattr(postgresql, "import_module", _fake_dbapi_import)
+
+    assert not postgresql.enable_postgresql_trace_context_propagation()
+    assert "requires DBAPI instrumentation" in caplog.text
+
+
+def test_public_enable_rejects_incompatible_dbapi_before_wrapping(monkeypatch, caplog):
+    class CursorTracer:
+        def traced_execution(self, cursor, query_method, *args, **kwargs):
+            return query_method(*args, **kwargs)
+
+    monkeypatch.setattr(postgresql, "_enabled", False)
+    monkeypatch.setattr(postgresql, "import_module", lambda _name: SimpleNamespace(CursorTracer=CursorTracer))
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    assert not postgresql.enable_postgresql_trace_context_propagation()
+    CursorTracer().traced_execution(cursor, cursor.execute, "SELECT 1")
+
+    assert connection.calls == ["SELECT 1"]
+    assert "compatible DBAPI execution methods" in caplog.text
+
+
+def test_public_enable_rejects_keyword_only_execution_methods(monkeypatch):
+    class CursorTracer:
+        def traced_execution(self, *, cursor, query_method):
+            return query_method(cursor)
+
+        async def traced_execution_async(self, *, cursor, query_method):
+            return await query_method(cursor)
+
+    monkeypatch.setattr(postgresql, "_enabled", False)
+    monkeypatch.setattr(postgresql, "import_module", lambda _name: SimpleNamespace(CursorTracer=CursorTracer))
+
+    assert not postgresql.enable_postgresql_trace_context_propagation()
+
+
+@pytest.mark.parametrize("flags", [0, 1, 2, 3])
+def test_query_propagates_valid_context_flags(flags):
+    context = SpanContext(
+        trace_id=DATABASE_CONTEXT.trace_id,
+        span_id=DATABASE_CONTEXT.span_id,
+        is_remote=False,
+        trace_flags=TraceFlags(flags),
+    )
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    def _fake_traced_execution_with_flags(_cursor, query_method, *args, **kwargs):
+        with trace.use_span(NonRecordingSpan(context)):
+            return query_method(*args, **kwargs)
+
+    result = _execute_with_postgresql_trace_context(
+        _fake_traced_execution_with_flags,
+        None,
+        (cursor, cursor.execute, "SELECT 1"),
+        {},
+    )
+
+    assert result == f"00-{context.trace_id:032x}-{context.span_id:016x}-{flags:02x}"
+
+
+def test_failed_internal_command_attempts_customer_query_and_closes_cursor(caplog):
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+
+    def _fake_internal_command_failure(query):
+        if query.startswith("SET "):
+            message = "SET rejected"
+            raise RuntimeError(message)
+
+    connection.before_execute = _fake_internal_command_failure
+
+    result = _execute_with_postgresql_trace_context(
+        _fake_traced_execution,
+        None,
+        (cursor, cursor.execute, "SELECT 1"),
+        {},
+    )
+
+    assert result == "customer-app"
+    assert connection.calls == [f"SET application_name = '{TRACEPARENT}'", "SELECT 1"]
+    assert connection.cursors[0].closed
+    assert "Failed to set PostgreSQL application_name" in caplog.text
+
+
+def test_customer_query_exception_is_returned_to_caller():
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+    error = RuntimeError("customer query failed")
+
+    def _fake_customer_query_failure(query):
+        if query == "SELECT 1":
+            raise error
+
+    connection.before_execute = _fake_customer_query_failure
+
+    with pytest.raises(RuntimeError) as raised:
+        _execute_with_postgresql_trace_context(
+            _fake_traced_execution,
+            None,
+            (cursor, cursor.execute, "SELECT 1"),
+            {},
+        )
+
+    assert raised.value is error
+    assert connection.cursors[0].closed
+
+
+def test_async_shared_connection_keeps_set_and_query_together():
+    async def run():
+        connection = FakeAsyncConnection()
+        first_query_started = asyncio.Event()
+        second_query_started = asyncio.Event()
+        release_first_query = asyncio.Event()
+
+        class BlockingQueryCursor(FakeAsyncPsycopgCursor):
+            async def execute(self, query):
+                result = await super().execute(query)
+                first_query_started.set()
+                await release_first_query.wait()
+                return result
+
+        async def _fake_second_traced_execution(_cursor, query_method, *args, **kwargs):
+            with trace.use_span(NonRecordingSpan(SECOND_DATABASE_CONTEXT)):
+                second_query_started.set()
+                return await query_method(*args, **kwargs)
+
+        first_cursor = BlockingQueryCursor(connection)
+        second_cursor = FakeAsyncPsycopgCursor(connection)
+        first = asyncio.create_task(
+            _execute_with_postgresql_trace_context_async(
+                _fake_traced_execution_async,
+                None,
+                (first_cursor, first_cursor.execute, "SELECT first"),
+                {},
+            )
+        )
+        second = None
+        try:
+            await asyncio.wait_for(first_query_started.wait(), timeout=1)
+            second = asyncio.create_task(
+                _execute_with_postgresql_trace_context_async(
+                    _fake_second_traced_execution,
+                    None,
+                    (second_cursor, second_cursor.execute, "SELECT second"),
+                    {},
+                )
+            )
+            await asyncio.wait_for(second_query_started.wait(), timeout=1)
+            assert connection.calls == [f"SET application_name = '{TRACEPARENT}'", "SELECT first"]
+        finally:
+            release_first_query.set()
+            await asyncio.wait_for(asyncio.gather(*([first, second] if second is not None else [first])), timeout=1)
+        assert connection.calls == [
+            f"SET application_name = '{TRACEPARENT}'",
+            "SELECT first",
+            f"SET application_name = '{SECOND_TRACEPARENT}'",
+            "SELECT second",
+        ]
+
+    asyncio.run(run())
+
+
+def test_async_suppression_sends_only_customer_query():
+    async def run():
+        connection = FakeAsyncConnection()
+        cursor = FakeAsyncPsycopgCursor(connection)
+        with suppress_instrumentation():
+            await _execute_with_postgresql_trace_context_async(
+                _fake_traced_execution_async,
+                None,
+                (cursor, cursor.execute, "SELECT 1"),
+                {},
+            )
+        assert connection.calls == ["SELECT 1"]
+        assert connection.cursors == []
+
+    asyncio.run(run())
+
+
+def test_async_cancellation_closes_internal_cursor_and_releases_connection():
+    async def run():
+        internal_command_started = asyncio.Event()
+
+        class BlockingInternalCursor(FakeAsyncPsycopgCursor):
+            async def execute(self, _query):
+                internal_command_started.set()
+                await asyncio.Event().wait()
+
+        class Connection(FakeAsyncConnection):
+            def cursor(self):
+                if not self.cursors:
+                    cursor = BlockingInternalCursor(self)
+                    self.cursors.append(cursor)
+                    return cursor
+                return super().cursor()
+
+        connection = Connection()
+        customer_cursor = FakeAsyncPsycopgCursor(connection)
+        query = asyncio.create_task(
+            _execute_with_postgresql_trace_context_async(
+                _fake_traced_execution_async,
+                None,
+                (customer_cursor, customer_cursor.execute, "SELECT 1"),
+                {},
+            )
+        )
+        await asyncio.wait_for(internal_command_started.wait(), timeout=1)
+        query.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await query
+        assert connection.cursors[0].closed
+        assert customer_cursor.calls == []
+
+        result = await asyncio.wait_for(
+            _execute_with_postgresql_trace_context_async(
+                _fake_traced_execution_async,
+                None,
+                (customer_cursor, customer_cursor.execute, "SELECT 2"),
+                {},
+            ),
+            timeout=1,
+        )
+        assert result == TRACEPARENT
+
+    asyncio.run(run())

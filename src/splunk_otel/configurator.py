@@ -36,6 +36,7 @@ from splunk_otel.propagator import ServerTimingResponsePropagator
 from splunk_otel.runtime import (
     _SERVER_TIMING_DEFAULT_ENABLED,
     configure_logging_instrumentation,
+    configure_postgresql_trace_context_propagation,
 )
 
 _logger = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ class SplunkConfigurator(_OTelSDKConfigurator):
         # A later change will configure profiling and callgraphs from OTEL_CONFIG_FILE.
         # For now, start them from environment variables only when no config file is set.
         if not config_file:
+            configure_postgresql_trace_context_propagation(env)
             _start_profiling_if_enabled()
             _configure_callgraphs_if_enabled()
 
