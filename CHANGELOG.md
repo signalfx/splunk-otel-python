@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.13.2 - 2026-10-13
+- Upgrade the OpAMP client to 0.4b0 and remove the direct `requests` dependency workaround
+
 ## 2.13.1 - 2026-10-06
 - Upgrade OpenTelemetry dependencies to [1.45.1](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.45.1) / [0.66b1](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.66b1)
 

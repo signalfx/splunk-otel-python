@@ -62,6 +62,16 @@ Use this process for stable releases such as `v3.4.5`:
     - update otel dependencies to the latest versions, e.g.:
         - `"opentelemetry-exporter-otlp-proto-http==1.36.0"`
         - `"opentelemetry-instrumentation==0.57b0"`
+    - check the latest [`opentelemetry-opamp-client` version on PyPI](https://pypi.org/project/opentelemetry-opamp-client/)
+      separately for every release; the OpAMP client has its own release schedule and version number
+    - review the OpAMP client release notes in the
+      [upstream contrib releases](https://github.com/open-telemetry/opentelemetry-python-contrib/releases),
+      update its exact pin in `pyproject.toml` when a newer compatible version is available, and record any
+      decision to defer an update in the release PR
+    - after updating the OpAMP client, run its end-to-end test before merging the release PR:
+        ```
+        oteltest tests/integration/opamp_effective_config.py
+        ```
     - leave the `splunk-opentelemetry` pin in `docker/requirements.txt` at the currently published version until the
       Docker image preflight in the next step passes
     - remove instrumentations that upstream no longer publishes
