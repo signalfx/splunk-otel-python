@@ -524,10 +524,11 @@ def test_failed_cleanup_does_not_replace_customer_result_or_exception(query_fail
     connection = FakeConnection()
     cursor = FakePsycopgCursor(connection)
     error = RuntimeError("customer query failed")
+    cleanup_error = RuntimeError("cleanup failed")
 
     def _fake_query_or_cleanup_failure(query):
         if query == "SET application_name = DEFAULT":
-            raise RuntimeError("cleanup failed")
+            raise cleanup_error
         if query_fails and query == "SELECT 1":
             raise error
 
@@ -665,7 +666,14 @@ def test_async_customer_cancellation_clears_context_and_releases_connection():
         assert connection.calls[-1] == "SET application_name = DEFAULT"
         assert connection.application_name == "startup-app"
         assert all(internal_cursor.closed for internal_cursor in connection.cursors)
-        assert not postgresql._get_async_connection_lock(connection).locked()
+        next_cursor = FakeAsyncPsycopgCursor(connection)
+        result = await asyncio.wait_for(
+            _execute_with_postgresql_trace_context_async(
+                _fake_traced_execution_async, None, (next_cursor, next_cursor.execute, "SELECT 2"), {}
+            ),
+            timeout=1,
+        )
+        assert result == TRACEPARENT
 
     asyncio.run(run())
 
@@ -676,10 +684,11 @@ def test_async_failed_cleanup_does_not_replace_customer_result_or_exception(quer
         connection = FakeAsyncConnection()
         cursor = FakeAsyncPsycopgCursor(connection)
         error = RuntimeError("customer query failed")
+        cleanup_error = RuntimeError("cleanup failed")
 
         def _fake_query_or_cleanup_failure(query):
             if query == "SET application_name = DEFAULT":
-                raise RuntimeError("cleanup failed")
+                raise cleanup_error
             if query_fails and query == "SELECT 1":
                 raise error
 

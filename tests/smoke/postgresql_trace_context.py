@@ -1,6 +1,7 @@
 import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from importlib.metadata import version
 
 
@@ -357,14 +358,12 @@ async def _async_query_cancellation():
                                 if state == "active" and statement == "SELECT pg_sleep(10)":
                                     break
                                 await asyncio.sleep(0.05)
-                            else:
-                                raise AssertionError("Customer query did not start before cancellation")
+                            assert state == "active", "Customer query did not start before cancellation"
+                            assert statement == "SELECT pg_sleep(10)"
                 finally:
                     query.cancel()
-                    try:
+                    with suppress(asyncio.CancelledError):
                         await query
-                    except asyncio.CancelledError:
-                        pass
 
                 if not autocommit:
                     assert connection.info.transaction_status == psycopg.pq.TransactionStatus.INERROR
