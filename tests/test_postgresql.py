@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import inspect
 import threading
 from contextlib import nullcontext
 from types import SimpleNamespace
@@ -24,6 +25,10 @@ from opentelemetry.instrumentation.utils import suppress_instrumentation
 from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
 
 from splunk_otel.postgresql import (
+    _AsyncDriverCursor,
+    _CursorAdapter,
+    _SyncDriverCursor,
+    _cursor_factory_wrapper,
     _execute_with_postgresql_trace_context,
     _execute_with_postgresql_trace_context_async,
 )
@@ -48,8 +53,15 @@ SECOND_DATABASE_CONTEXT = SpanContext(
     is_remote=False,
     trace_flags=TraceFlags(TraceFlags.SAMPLED),
 )
+INNER_DATABASE_CONTEXT = SpanContext(
+    trace_id=PARENT_CONTEXT.trace_id,
+    span_id=0x4444444444444444,
+    is_remote=False,
+    trace_flags=TraceFlags(TraceFlags.SAMPLED),
+)
 TRACEPARENT = "00-11111111111111111111111111111111-2222222222222222-01"
 SECOND_TRACEPARENT = "00-11111111111111111111111111111111-3333333333333333-01"
+INNER_TRACEPARENT = "00-11111111111111111111111111111111-4444444444444444-01"
 
 
 class FakeConnection:
@@ -77,7 +89,7 @@ class FakeAsyncConnection(FakeConnection):
         return cursor
 
 
-class FakePsycopgCursor:
+class _FakeDriverCursor:
     __module__ = "psycopg"
 
     def __init__(self, connection):
@@ -98,8 +110,11 @@ class FakePsycopgCursor:
     def close(self):
         self.closed = True
 
+    def callproc(self, name):
+        return _FakeDriverCursor.execute(self, name)
 
-class FakeAsyncPsycopgCursor:
+
+class _FakeAsyncDriverCursor:
     __module__ = "psycopg.fake"
 
     def __init__(self, connection):
@@ -110,7 +125,9 @@ class FakeAsyncPsycopgCursor:
     async def execute(self, query):
         self.calls.append(query)
         self.connection.calls.append(query)
-        self.connection.before_execute(query)
+        result = self.connection.before_execute(query)
+        if inspect.isawaitable(result):
+            await result
         if query == "SET application_name = DEFAULT":
             self.connection.application_name = self.connection.default_application_name
         elif isinstance(query, str) and query.startswith("SET application_name = '"):
@@ -119,6 +136,34 @@ class FakeAsyncPsycopgCursor:
 
     async def close(self):
         self.closed = True
+
+
+def _fake_internal_cursor_factory(connection):
+    return connection.cursor()
+
+
+class FakePsycopgCursor(_SyncDriverCursor, _FakeDriverCursor):
+    _new_internal_cursor = staticmethod(_fake_internal_cursor_factory)
+
+
+class FakeAsyncPsycopgCursor(_AsyncDriverCursor, _FakeAsyncDriverCursor):
+    _new_internal_cursor = staticmethod(_fake_internal_cursor_factory)
+
+
+@pytest.fixture(autouse=True)
+def fake_cursor_adapters(monkeypatch):
+    def _fake_cursor_factory(db_api=None, base_factory=None):  # noqa: ARG001
+        return base_factory
+
+    module = SimpleNamespace(_new_cursor_factory=_fake_cursor_factory)
+    adapter = _CursorAdapter(
+        module=module,
+        factory_name="_new_cursor_factory",
+        base_cursor=_FakeDriverCursor,
+        new_internal_cursor=_fake_internal_cursor_factory,
+    )
+    monkeypatch.setattr(postgresql, "_load_cursor_adapters", lambda: [adapter])
+    return module
 
 
 def _fake_traced_execution(_cursor, query_method, *args, **kwargs):
@@ -141,12 +186,17 @@ async def _fake_nested_traced_execution_async(_cursor, query_method, *args, **kw
         return await query_method(*args, **kwargs)
 
 
+def _fake_inner_traced_execution(_cursor, query_method, *args, **kwargs):
+    with trace.use_span(NonRecordingSpan(INNER_DATABASE_CONTEXT)):
+        return query_method(*args, **kwargs)
+
+
 def _fake_untraced_execution(_cursor, query_method, *args, **kwargs):
     return query_method(*args, **kwargs)
 
 
 @pytest.mark.parametrize("nested_fails", [False, True])
-def test_nested_customer_query_restores_outer_context_without_deadlock(nested_fails):
+def test_custom_cursor_queries_run_before_outer_driver_execution(nested_fails):
     connection = FakeConnection()
     error = RuntimeError("nested query failed")
     results = []
@@ -167,7 +217,7 @@ def test_nested_customer_query_restores_outer_context_without_deadlock(nested_fa
                 assert result == SECOND_TRACEPARENT
             if nested_fails:
                 assert raised.value is error
-            assert connection.application_name == TRACEPARENT
+            assert connection.application_name == "startup-app"
             return super().execute(query)
 
     cursor = CustomerCursor(connection)
@@ -185,9 +235,9 @@ def test_nested_customer_query_restores_outer_context_without_deadlock(nested_fa
     assert not thread.is_alive(), "Nested customer query deadlocked"
     assert results == [TRACEPARENT]
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
         f"SET application_name = '{SECOND_TRACEPARENT}'",
         "SELECT nested",
+        "SET application_name = DEFAULT",
         f"SET application_name = '{TRACEPARENT}'",
         "SELECT outer",
         "SET application_name = DEFAULT",
@@ -195,7 +245,7 @@ def test_nested_customer_query_restores_outer_context_without_deadlock(nested_fa
 
 
 @pytest.mark.parametrize("nested_fails", [False, True])
-def test_async_nested_customer_query_restores_outer_context(nested_fails):
+def test_async_custom_cursor_queries_run_before_outer_driver_execution(nested_fails):
     async def run():
         connection = FakeAsyncConnection()
         error = RuntimeError("nested query failed")
@@ -216,7 +266,7 @@ def test_async_nested_customer_query_restores_outer_context(nested_fails):
                     assert result == SECOND_TRACEPARENT
                 if nested_fails:
                     assert raised.value is error
-                assert connection.application_name == TRACEPARENT
+                assert connection.application_name == "startup-app"
                 return await super().execute(query)
 
         cursor = CustomerCursor(connection)
@@ -228,9 +278,9 @@ def test_async_nested_customer_query_restores_outer_context(nested_fails):
         )
         assert result == TRACEPARENT
         assert connection.calls == [
-            f"SET application_name = '{TRACEPARENT}'",
             f"SET application_name = '{SECOND_TRACEPARENT}'",
             "SELECT nested",
+            "SET application_name = DEFAULT",
             f"SET application_name = '{TRACEPARENT}'",
             "SELECT outer",
             "SET application_name = DEFAULT",
@@ -239,7 +289,7 @@ def test_async_nested_customer_query_restores_outer_context(nested_fails):
     asyncio.run(run())
 
 
-def test_async_child_task_waits_for_outer_connection_lock():
+def test_async_custom_cursor_can_await_auxiliary_task_before_outer_query():
     async def run():
         connection = FakeAsyncConnection()
         nested_started = asyncio.Event()
@@ -256,8 +306,8 @@ def test_async_child_task_waits_for_outer_connection_lock():
             async def execute(self, query):
                 children.append(asyncio.create_task(_execute_nested_customer_query()))
                 await nested_started.wait()
-                assert not children[0].done()
-                assert connection.application_name == TRACEPARENT
+                assert await children[0] == SECOND_TRACEPARENT
+                assert connection.application_name == "startup-app"
                 return await super().execute(query)
 
         cursor = CustomerCursor(connection)
@@ -265,13 +315,12 @@ def test_async_child_task_waits_for_outer_connection_lock():
             _fake_traced_execution_async, None, (cursor, cursor.execute, "SELECT outer"), {}
         )
         assert result == TRACEPARENT
-        assert await children[0] == SECOND_TRACEPARENT
         assert connection.calls == [
-            f"SET application_name = '{TRACEPARENT}'",
-            "SELECT outer",
-            "SET application_name = DEFAULT",
             f"SET application_name = '{SECOND_TRACEPARENT}'",
             "SELECT child",
+            "SET application_name = DEFAULT",
+            f"SET application_name = '{TRACEPARENT}'",
+            "SELECT outer",
             "SET application_name = DEFAULT",
         ]
 
@@ -337,6 +386,104 @@ def test_data_statement_after_comments_propagates_context(statement):
         _execute_with_postgresql_trace_context(_fake_traced_execution, None, (cursor, cursor.execute, statement), {})
         == TRACEPARENT
     )
+
+
+@pytest.mark.parametrize("statement", ["(SELECT 1)", "((SELECT 1)) UNION (SELECT 2)", "/* comment */ (SELECT 1)"])
+def test_parenthesized_queries_propagate_context(statement):
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+    result = _execute_with_postgresql_trace_context(
+        _fake_traced_execution, None, (cursor, cursor.execute, statement), {}
+    )
+    assert result == TRACEPARENT
+    assert connection.application_name == "startup-app"
+
+
+def test_callproc_function_name_is_not_a_transaction_command():
+    connection = FakeConnection()
+    cursor = FakePsycopgCursor(connection)
+    result = _execute_with_postgresql_trace_context(
+        _fake_traced_execution, None, (cursor, cursor.callproc, "begin_job"), {}
+    )
+    assert result == TRACEPARENT
+    assert connection.calls == [
+        f"SET application_name = '{TRACEPARENT}'",
+        "begin_job",
+        "SET application_name = DEFAULT",
+    ]
+
+
+def test_delayed_callback_acquires_lock_and_does_not_restore_finished_context(monkeypatch):
+    async def run():
+        connection = FakeConnection()
+        acquisitions = []
+        results = []
+        loop = asyncio.get_running_loop()
+        completed = loop.create_future()
+
+        class ConnectionLock:
+            def __enter__(self):
+                acquisitions.append("acquired")
+
+            def __exit__(self, *_args):
+                pass
+
+        monkeypatch.setattr(postgresql, "_get_sync_connection_lock", lambda _connection: ConnectionLock())
+
+        def _execute_delayed_query():
+            cursor = FakePsycopgCursor(connection)
+            results.append(
+                _execute_with_postgresql_trace_context(
+                    _fake_nested_traced_execution, None, (cursor, cursor.execute, "SELECT delayed"), {}
+                )
+            )
+            completed.set_result(None)
+
+        def _fake_schedule_callback(query):
+            if query == "SELECT outer":
+                loop.call_soon(_execute_delayed_query)
+
+        connection.before_execute = _fake_schedule_callback
+        cursor = FakePsycopgCursor(connection)
+        assert (
+            _execute_with_postgresql_trace_context(
+                _fake_traced_execution, None, (cursor, cursor.execute, "SELECT outer"), {}
+            )
+            == TRACEPARENT
+        )
+        await asyncio.wait_for(completed, timeout=1)
+        assert results == [SECOND_TRACEPARENT]
+        assert acquisitions == ["acquired", "acquired"]
+        assert connection.application_name == "startup-app"
+        assert connection.calls[-1] == "SET application_name = DEFAULT"
+
+    asyncio.run(run())
+
+
+def test_skipped_driver_query_keeps_inherited_outer_setting():
+    connection = FakeConnection()
+
+    def _fake_nested_driver_calls(query):
+        if query == "SELECT outer":
+            middle = FakePsycopgCursor(connection)
+            result = _execute_with_postgresql_trace_context(
+                _fake_nested_traced_execution, None, (middle, middle.execute, "SELECT ';'"), {}
+            )
+            assert result == TRACEPARENT
+        elif query == "SELECT ';'":
+            inner = FakePsycopgCursor(connection)
+            result = _execute_with_postgresql_trace_context(
+                _fake_inner_traced_execution, None, (inner, inner.execute, "SELECT inner"), {}
+            )
+            assert result == INNER_TRACEPARENT
+
+    connection.before_execute = _fake_nested_driver_calls
+    cursor = FakePsycopgCursor(connection)
+    result = _execute_with_postgresql_trace_context(
+        _fake_traced_execution, None, (cursor, cursor.execute, "SELECT outer"), {}
+    )
+    assert result == TRACEPARENT
+    assert connection.application_name == "startup-app"
 
 
 def test_query_sets_database_span_traceparent():
@@ -650,6 +797,91 @@ def test_public_enable_rejects_keyword_only_execution_methods(monkeypatch):
     assert not postgresql.enable_postgresql_trace_context_propagation()
 
 
+@pytest.mark.parametrize("missing_factory", [False, True])
+def test_public_enable_checks_all_factories_before_wrapping(monkeypatch, fake_cursor_adapters, missing_factory):
+    class CursorTracer(FakeCursorTracer):
+        pass
+
+    original_execution = CursorTracer.traced_execution
+    factory_name = "_new_cursor_factory"
+    original_factory = getattr(fake_cursor_adapters, factory_name)
+    incompatible_module = SimpleNamespace()
+    if not missing_factory:
+        setattr(incompatible_module, factory_name, lambda wrong_parameter: wrong_parameter)
+    adapters = [
+        _CursorAdapter(fake_cursor_adapters, "_new_cursor_factory", _FakeDriverCursor, _fake_internal_cursor_factory),
+        _CursorAdapter(incompatible_module, "_new_cursor_factory", _FakeDriverCursor, _fake_internal_cursor_factory),
+    ]
+    monkeypatch.setattr(postgresql, "_enabled", False)
+    monkeypatch.setattr(postgresql, "import_module", lambda _name: SimpleNamespace(CursorTracer=CursorTracer))
+    monkeypatch.setattr(postgresql, "_load_cursor_adapters", lambda: adapters)
+
+    assert not postgresql.enable_postgresql_trace_context_propagation()
+    assert CursorTracer.traced_execution is original_execution
+    assert getattr(fake_cursor_adapters, factory_name) is original_factory
+
+
+@pytest.mark.parametrize("positional_factory", [False, True])
+def test_cursor_factory_places_driver_adapter_after_customer_hooks(positional_factory):
+    connection = FakeConnection()
+    calls = []
+
+    class CustomerCursor(_FakeDriverCursor):
+        def execute(self, query):
+            calls.append(self.connection.application_name)
+            return super().execute(query)
+
+    adapter = _CursorAdapter(None, "_new_cursor_factory", _FakeDriverCursor, _fake_internal_cursor_factory)
+
+    def _fake_instrumentation_cursor_factory(db_api, base_factory):  # noqa: ARG001
+        return base_factory
+
+    args = (None, CustomerCursor) if positional_factory else ()
+    kwargs = {} if positional_factory else {"db_api": None, "base_factory": CustomerCursor}
+    factory = _cursor_factory_wrapper(adapter)(_fake_instrumentation_cursor_factory, None, args, kwargs)
+    cursor = factory(connection)
+    result = _execute_with_postgresql_trace_context(
+        _fake_traced_execution, None, (cursor, cursor.execute, "SELECT 1"), {}
+    )
+
+    assert result == TRACEPARENT
+    assert calls == ["customer-app"]
+    assert isinstance(cursor, CustomerCursor)
+    assert connection.calls[-1] == "SET application_name = DEFAULT"
+
+
+def test_delayed_native_call_cannot_reuse_finished_span_lease():
+    async def run():
+        connection = FakeConnection()
+        cursor = FakePsycopgCursor(connection)
+        loop = asyncio.get_running_loop()
+        completed = loop.create_future()
+
+        def _execute_uninstrumented_callback():
+            completed.set_result(cursor.execute("SELECT delayed"))
+
+        def _fake_schedule_native_callback(query):
+            if query == "SELECT outer":
+                loop.call_soon(_execute_uninstrumented_callback)
+
+        connection.before_execute = _fake_schedule_native_callback
+        assert (
+            _execute_with_postgresql_trace_context(
+                _fake_traced_execution, None, (cursor, cursor.execute, "SELECT outer"), {}
+            )
+            == TRACEPARENT
+        )
+        assert await asyncio.wait_for(completed, timeout=1) == "startup-app"
+        assert connection.calls == [
+            f"SET application_name = '{TRACEPARENT}'",
+            "SELECT outer",
+            "SET application_name = DEFAULT",
+            "SELECT delayed",
+        ]
+
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize("flags", [0, 1, 2, 3])
 def test_query_propagates_valid_context_flags(flags):
     context = SpanContext(
@@ -769,19 +1001,19 @@ def test_async_shared_connection_keeps_set_and_query_together(second_query):
         second_query_started = asyncio.Event()
         release_first_query = asyncio.Event()
 
-        class BlockingQueryCursor(FakeAsyncPsycopgCursor):
-            async def execute(self, query):
-                result = await super().execute(query)
+        async def _fake_blocking_driver_execute(query):
+            if query == "SELECT first":
                 first_query_started.set()
                 await release_first_query.wait()
-                return result
+
+        connection.before_execute = _fake_blocking_driver_execute
 
         async def _fake_second_traced_execution(_cursor, query_method, *args, **kwargs):
             with trace.use_span(NonRecordingSpan(SECOND_DATABASE_CONTEXT)):
                 second_query_started.set()
                 return await query_method(*args, **kwargs)
 
-        first_cursor = BlockingQueryCursor(connection)
+        first_cursor = FakeAsyncPsycopgCursor(connection)
         second_cursor = FakeAsyncPsycopgCursor(connection)
         first = asyncio.create_task(
             _execute_with_postgresql_trace_context_async(

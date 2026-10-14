@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from importlib import import_module
 from importlib.metadata import version
+from unittest.mock import patch
 
 
 os.environ.setdefault("OTEL_LOGS_EXPORTER", "none")
@@ -164,15 +165,16 @@ async def _async_queries(exporter, tracer):
                 query = "SET nonexistent_correlation_parameter = 'failure'"
             return await super().execute(query, *args, **kwargs)
 
-    connection = await psycopg.AsyncConnection.connect(cursor_factory=RejectingSetCursor)
+    connection = await psycopg.AsyncConnection.connect()
     try:
-        async with connection.cursor() as cursor:
-            failed = False
-            try:
-                await cursor.execute("SELECT 1")
-            except psycopg.errors.InFailedSqlTransaction:
-                failed = True
-            assert failed
+        with patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingSetCursor)):
+            async with connection.cursor() as cursor:
+                failed = False
+                try:
+                    await cursor.execute("SELECT 1")
+                except psycopg.errors.InFailedSqlTransaction:
+                    failed = True
+                assert failed
         assert connection.info.transaction_status == psycopg.pq.TransactionStatus.INERROR
     finally:
         await connection.close()
@@ -227,9 +229,12 @@ def _failed_internal_command(driver):
                 query = "SET nonexistent_correlation_parameter = 'failure'"
             return super().execute(query, *args, **kwargs)
 
-    connection = driver.connect(cursor_factory=RejectingSetCursor)
+    connection = driver.connect()
     try:
-        with connection.cursor() as cursor:
+        with (
+            patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingSetCursor)),
+            connection.cursor() as cursor,
+        ):
             try:
                 cursor.execute("SELECT 1")
             except transaction_error:
@@ -244,10 +249,13 @@ def _failed_internal_command(driver):
     finally:
         connection.close()
 
-    connection = driver.connect(cursor_factory=RejectingSetCursor)
+    connection = driver.connect()
     try:
         connection.autocommit = True
-        with connection.cursor() as cursor:
+        with (
+            patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingSetCursor)),
+            connection.cursor() as cursor,
+        ):
             cursor.execute("SELECT 1")
             assert cursor.fetchone()[0] == 1
     finally:
@@ -426,12 +434,15 @@ def _failed_cleanup_command(driver):
                 query = "SET nonexistent_correlation_parameter = 'failure'"
             return super().execute(query, *args, **kwargs)
 
-    connection = driver.connect(cursor_factory=RejectingCleanupCursor)
+    connection = driver.connect()
     try:
         with suppress_instrumentation(), connection.cursor() as cursor:
             cursor.execute("CREATE TEMP TABLE cleanup_failure (value int)")
         connection.commit()
-        with connection.cursor() as cursor:
+        with (
+            patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingCleanupCursor)),
+            connection.cursor() as cursor,
+        ):
             cursor.execute("INSERT INTO cleanup_failure VALUES (1) RETURNING value")
             assert cursor.fetchone()[0] == 1
         status = (
@@ -444,6 +455,221 @@ def _failed_cleanup_command(driver):
             assert cursor.fetchone()[0] == 0
     finally:
         connection.close()
+
+
+def _parenthesized_queries(driver, exporter):
+    with driver.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection, connection.cursor() as cursor:
+        for query in (
+            "(SELECT current_setting('application_name'))",
+            "((SELECT current_setting('application_name'))) UNION (SELECT current_setting('application_name'))",
+        ):
+            exporter.clear()
+            cursor.execute(query)
+            _assert_database_span(exporter, cursor.fetchone()[0])
+        if driver.__name__ == "psycopg2":
+            with suppress_instrumentation():
+                cursor.execute(
+                    "CREATE FUNCTION begin_job() RETURNS text LANGUAGE sql "
+                    "AS $$ SELECT current_setting('application_name') $$"
+                )
+            exporter.clear()
+            cursor.callproc("begin_job")
+            _assert_database_span(exporter, cursor.fetchone()[0])
+            with suppress_instrumentation():
+                cursor.execute("DROP FUNCTION begin_job()")
+
+
+def _skipped_middle_query(driver, exporter):
+    cursor_class = driver.Cursor if driver.__name__ == "psycopg" else driver.extensions.cursor
+    inner_values = []
+
+    class CustomerCursor(cursor_class):
+        def execute(self, query, *args, **kwargs):
+            if query == _QUERY:
+                with self.connection.cursor() as middle:
+                    middle.execute("SELECT ';'")
+                    assert middle.fetchone()[0] == ";"
+            elif query == "SELECT ';'":
+                with self.connection.cursor() as inner:
+                    inner.execute("SELECT current_setting('application_name')")
+                    inner_values.append(inner.fetchone()[0])
+            return super().execute(query, *args, **kwargs)
+
+    with (
+        driver.connect(cursor_factory=CustomerCursor, application_name=_DEFAULT_APPLICATION_NAME) as connection,
+        connection.cursor() as cursor,
+    ):
+        exporter.clear()
+        cursor.execute(_QUERY)
+        outer = _assert_database_span(exporter, cursor.fetchone()[0])
+        inner = _assert_database_span(exporter, inner_values[0])
+        assert inner.context.span_id != outer.context.span_id
+
+
+def _custom_commit_before_query(driver, exporter):
+    cursor_class = driver.Cursor if driver.__name__ == "psycopg" else driver.extensions.cursor
+
+    class CustomerCursor(cursor_class):
+        def execute(self, query, *args, **kwargs):
+            if query == _QUERY:
+                with self.connection.cursor() as auxiliary:
+                    auxiliary.execute("COMMIT")
+                status = (
+                    self.connection.info.transaction_status
+                    if driver.__name__ == "psycopg"
+                    else self.connection.get_transaction_status()
+                )
+                assert status == 0
+            return super().execute(query, *args, **kwargs)
+
+    for autocommit in (False, True):
+        with driver.connect(cursor_factory=CustomerCursor, application_name=_DEFAULT_APPLICATION_NAME) as connection:
+            connection.autocommit = autocommit
+            exporter.clear()
+            with connection.cursor() as cursor:
+                cursor.execute(_QUERY)
+                _assert_database_span(exporter, cursor.fetchone()[0])
+                connection.rollback()
+                with suppress_instrumentation():
+                    cursor.execute("SELECT current_setting('application_name')")
+                    assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
+
+
+async def _delayed_sync_callback(driver, exporter):
+    cursor_class = driver.Cursor if driver.__name__ == "psycopg" else driver.extensions.cursor
+    loop = asyncio.get_running_loop()
+    completed = loop.create_future()
+
+    def _execute_delayed_query(connection):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT current_setting('application_name')")
+                completed.set_result(cursor.fetchone()[0])
+        except (AssertionError, driver.Error) as error:
+            completed.set_exception(error)
+
+    class CustomerCursor(cursor_class):
+        def execute(self, query, *args, **kwargs):
+            if query == _QUERY:
+                loop.call_soon(_execute_delayed_query, self.connection)
+            return super().execute(query, *args, **kwargs)
+
+    with driver.connect(cursor_factory=CustomerCursor, application_name=_DEFAULT_APPLICATION_NAME) as connection:
+        exporter.clear()
+        with connection.cursor() as cursor:
+            cursor.execute(_QUERY)
+            outer = _assert_database_span(exporter, cursor.fetchone()[0])
+        delayed = _assert_database_span(exporter, await asyncio.wait_for(completed, timeout=5))
+        assert delayed.context.span_id != outer.context.span_id
+        with suppress_instrumentation(), connection.cursor() as cursor:
+            cursor.execute("SELECT current_setting('application_name')")
+            assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
+
+
+async def _async_driver_regressions(exporter):
+    import psycopg
+
+    inner_values = []
+
+    class CustomerCursor(psycopg.AsyncCursor):
+        async def execute(self, query, *args, **kwargs):
+            if query == _QUERY:
+                async with self.connection.cursor() as middle:
+                    await middle.execute("SELECT ';'")
+                    assert (await middle.fetchone())[0] == ";"
+            elif query == "SELECT ';'":
+                async with self.connection.cursor() as inner:
+                    await inner.execute("SELECT current_setting('application_name')")
+                    inner_values.append((await inner.fetchone())[0])
+            elif query == "SELECT current_setting('application_name') AS after_commit":
+                async with self.connection.cursor() as auxiliary:
+                    await auxiliary.execute("COMMIT")
+                assert self.connection.info.transaction_status == psycopg.pq.TransactionStatus.IDLE
+            return await super().execute(query, *args, **kwargs)
+
+    for autocommit in (False, True):
+        async with (
+            await psycopg.AsyncConnection.connect(
+                autocommit=autocommit, cursor_factory=CustomerCursor, application_name=_DEFAULT_APPLICATION_NAME
+            ) as connection,
+            connection.cursor() as cursor,
+        ):
+            for query in (
+                "(SELECT current_setting('application_name'))",
+                "((SELECT current_setting('application_name'))) UNION (SELECT current_setting('application_name'))",
+                _QUERY,
+                "SELECT current_setting('application_name') AS after_commit",
+            ):
+                exporter.clear()
+                inner_values.clear()
+                await cursor.execute(query)
+                outer = _assert_database_span(exporter, (await cursor.fetchone())[0])
+                if inner_values:
+                    inner = _assert_database_span(exporter, inner_values[0])
+                    assert inner.context.span_id != outer.context.span_id
+                await connection.rollback()
+                with suppress_instrumentation():
+                    await cursor.execute("SELECT current_setting('application_name')")
+                    assert (await cursor.fetchone())[0] == _DEFAULT_APPLICATION_NAME
+                await connection.rollback()
+
+
+def _manual_custom_cursor(exporter):
+    import psycopg
+    from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
+
+    hook_queries = []
+
+    class CustomerCursor(psycopg.Cursor):
+        def execute(self, query, *args, **kwargs):
+            hook_queries.append(query)
+            return super().execute(query, *args, **kwargs)
+
+    with psycopg.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection:
+        connection.cursor_factory = CustomerCursor
+        PsycopgInstrumentor().instrument_connection(connection)
+        instrumented_factory = connection.cursor_factory
+        PsycopgInstrumentor().instrument_connection(connection)
+        assert connection.cursor_factory is instrumented_factory
+        exporter.clear()
+        with connection.cursor() as cursor:
+            cursor.execute(_QUERY)
+            _assert_database_span(exporter, cursor.fetchone()[0])
+        assert hook_queries == [_QUERY]
+        PsycopgInstrumentor().uninstrument_connection(connection)
+        assert connection.cursor_factory is CustomerCursor
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT current_setting('application_name')")
+            assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
+
+
+async def _async_manual_custom_cursor(exporter):
+    import psycopg
+    from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
+
+    hook_queries = []
+
+    class CustomerCursor(psycopg.AsyncCursor):
+        async def execute(self, query, *args, **kwargs):
+            hook_queries.append(query)
+            return await super().execute(query, *args, **kwargs)
+
+    async with await psycopg.AsyncConnection.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection:
+        connection.cursor_factory = CustomerCursor
+        PsycopgInstrumentor().instrument_connection(connection)
+        instrumented_factory = connection.cursor_factory
+        PsycopgInstrumentor().instrument_connection(connection)
+        assert connection.cursor_factory is instrumented_factory
+        exporter.clear()
+        async with connection.cursor() as cursor:
+            await cursor.execute(_QUERY)
+            _assert_database_span(exporter, (await cursor.fetchone())[0])
+        assert hook_queries == [_QUERY]
+        PsycopgInstrumentor().uninstrument_connection(connection)
+        assert connection.cursor_factory is CustomerCursor
+        async with connection.cursor() as cursor:
+            await cursor.execute("SELECT current_setting('application_name')")
+            assert (await cursor.fetchone())[0] == _DEFAULT_APPLICATION_NAME
 
 
 def _psycopg_server_cursor_boundary(exporter):
@@ -567,10 +793,17 @@ def main():
             _failed_cleanup_command(driver)
             _nested_cursor_queries(driver, exporter)
             _transaction_sql(driver, exporter)
+            _parenthesized_queries(driver, exporter)
+            _skipped_middle_query(driver, exporter)
+            _custom_commit_before_query(driver, exporter)
+            asyncio.run(_delayed_sync_callback(driver, exporter))
         asyncio.run(_async_queries(exporter, tracer))
         asyncio.run(_async_nested_cursor_queries(exporter))
         asyncio.run(_async_transaction_sql(exporter))
+        asyncio.run(_async_driver_regressions(exporter))
         _custom_cursor(exporter)
+        _manual_custom_cursor(exporter)
+        asyncio.run(_async_manual_custom_cursor(exporter))
         _psycopg_server_cursor_boundary(exporter)
         _psycopg2_commit_boundary(exporter)
         asyncio.run(_async_query_cancellation())

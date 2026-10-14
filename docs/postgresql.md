@@ -52,13 +52,18 @@ for the process lifetime. To turn it off, unset the switch and restart.
 Manual instrumentation must initialize the Splunk distro first with
 `init_splunk_otel()`, or call
 `splunk_otel.postgresql.enable_postgresql_trace_context_propagation()` before using
-`PsycopgInstrumentor` or `Psycopg2Instrumentor`.
+`PsycopgInstrumentor` or `Psycopg2Instrumentor`. Enable the feature before creating
+instrumented connections and cursors.
 
 ## Driver coverage
 
 The feature targets Psycopg 3 synchronous and asynchronous connections and
 Psycopg2 synchronous connections. Psycopg2 asynchronous connections pass through
 without trace propagation.
+
+Custom cursor methods must delegate through `super()` to the driver method.
+The feature sets context after those custom hooks, immediately before the driver
+executes the query. Direct calls to native driver methods can bypass this adapter.
 
 Named/server cursors, cursor fetch operations, and COPY operations are outside
 this feature's automatic coverage. Named cursors can execute SQL later during
@@ -75,12 +80,17 @@ connection lock.
 
 ## Connection behavior
 
-The feature uses a separate cursor on the same connection for internal commands
-and suppresses instrumentation for those commands. A per-connection lock covers
-SET, the customer query, and cleanup. Nested queries from a custom cursor can
-reuse the lock in the same thread or async task. After a nested query, cleanup
-restores the outer query's context. Other threads and tasks must acquire the
-lock. Each correlated query sends two additional commands: SET before execution
+The feature uses a native driver cursor on the same connection for internal
+commands. It suppresses instrumentation and bypasses customer cursor hooks for
+those commands. A per-connection lock covers SET, driver execution, and cleanup.
+Customer hooks run outside this lock. Auxiliary queries from those hooks finish
+their own propagation before the outer query starts driver execution.
+
+Nested driver executions in the same thread or async task can reuse the lock.
+Cleanup restores the active outer driver's setting, including through skipped
+intermediate statements. Other threads and tasks must acquire the lock. Context
+copied into a delayed callback cannot grant ownership after its query has finished.
+Each correlated query sends two additional commands: SET before driver execution
 and context restoration afterward.
 
 This opt-in owns the connection's `application_name` during execution. Cleanup
@@ -105,3 +115,17 @@ does not roll back application transactions.
 
 The extra commands add latency. Database span duration and database operation
 duration metrics include lock waiting and the additional commands.
+
+## Instrumentation compatibility
+
+The Splunk adapter uses the installed OpenTelemetry driver instrumentors to
+create spans. It wraps shared DBAPI execution callbacks to capture the database
+span context, then adapts the Psycopg cursor factories to apply that context at
+driver execution. It also adapts Psycopg 3 manual connection instrumentation to
+include the application's custom cursor factory.
+
+These hooks use private instrumentation APIs. Activation checks their signatures
+and declines incompatible versions before installing wrappers. Regression tests
+must also check behavior when instrumentation dependencies change. The current
+validation covers instrumentation 0.66b1, Psycopg 3.3.6, Psycopg2 2.9.13, and
+PostgreSQL 16; it does not establish a broader supported version range.
