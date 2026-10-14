@@ -35,6 +35,7 @@ dependencies = [
   "opentelemetry-semantic-conventions==0.66b1",
   "opentelemetry-opamp-client==0.4b0",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
+  "requests>=2.33.0", # Upstream dependencies allow vulnerable Requests versions.
   "wrapt>=2.5.0",
 ]
 

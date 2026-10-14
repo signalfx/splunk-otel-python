@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Require Requests 2.33.0 or later to prevent installing vulnerable versions
 
 ## 2.13.2 - 2026-10-13
 - Upgrade the OpAMP client to 0.4b0 and remove the direct `requests` dependency workaround
