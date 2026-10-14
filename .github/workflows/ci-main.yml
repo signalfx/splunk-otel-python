@@ -91,4 +91,5 @@ jobs:
         opentelemetry-instrumentation-psycopg2
 
     - name: Run PostgreSQL smoke test
+      timeout-minutes: 5
       run: python tests/smoke/postgresql_trace_context.py

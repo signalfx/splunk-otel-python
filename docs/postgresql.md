@@ -65,19 +65,30 @@ this feature's automatic coverage. Named cursors can execute SQL later during
 fetch, after the execute span has ended, so this feature skips propagation for
 them in both drivers.
 
+SQL transaction-control statements (including BEGIN, COMMIT, ROLLBACK, and
+savepoint commands), SQL CALL, and DO run without propagation commands. Those
+statements can change transaction boundaries, making SET and cleanup unsafe.
+SQL batches also run without propagation. The adapter conservatively skips any
+statement with a semicolon other than a single trailing semicolon, including
+semicolons inside strings or comments. These calls still participate in the
+connection lock.
+
 ## Connection behavior
 
 The feature uses a separate cursor on the same connection for internal commands
 and suppresses instrumentation for those commands. A per-connection lock covers
-SET, the customer query, and cleanup. Each traced query sends two additional
-commands: SET before execution and SET DEFAULT afterward.
+SET, the customer query, and cleanup. Nested queries from a custom cursor can
+reuse the lock in the same thread or async task. After a nested query, cleanup
+restores the outer query's context. Other threads and tasks must acquire the
+lock. Each correlated query sends two additional commands: SET before execution
+and context restoration afterward.
 
 This opt-in owns the connection's `application_name` during execution. Cleanup
-resets the setting to the connection's configured default before releasing the
-instrumentation lock, including when the query raises an exception. If
-instrumentation creates no valid new database span, the feature sends SET DEFAULT
-before execution. It does not restore a value that the application previously
-set through SQL.
+of the outermost query resets the setting to the connection's configured default
+before releasing the instrumentation lock, including when the query raises an
+exception. If instrumentation creates no valid new database span for an eligible
+statement, the feature sends SET DEFAULT before execution. It does not restore
+a value that the application previously set through SQL.
 
 The lock only coordinates wrapped queries. Raw cursors and suppressed queries
 can bypass it and observe another query's context during execution. Failed

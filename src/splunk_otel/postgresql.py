@@ -17,8 +17,12 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import re
 import threading
 import weakref
+from contextlib import nullcontext
+from contextvars import ContextVar
+from dataclasses import dataclass
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
@@ -36,6 +40,19 @@ logger = logging.getLogger(__name__)
 _SET_APPLICATION_NAME_DEFAULT = "SET application_name = DEFAULT"
 _DRIVER_MODULE_NAMES = ("psycopg", "psycopg2")
 _CURSOR_AND_QUERY_METHOD_ARGUMENTS = 2
+_TRANSACTION_OPERATIONS = frozenset(
+    {"BEGIN", "START", "COMMIT", "END", "ROLLBACK", "ABORT", "SAVEPOINT", "RELEASE", "PREPARE", "CALL", "DO"}
+)
+
+
+@dataclass(frozen=True)
+class _QueryContext:
+    connection: Any
+    owner: object
+    traceparent: str | None
+
+
+_active_queries: ContextVar[tuple[_QueryContext, ...]] = ContextVar("postgresql_active_queries", default=())
 
 _enabled = False
 _enable_lock = threading.Lock()
@@ -97,6 +114,7 @@ def _execute_with_postgresql_trace_context(traced_execution, _cursor_tracer, arg
     if not _is_postgresql_client_cursor(cursor) or getattr(cursor.connection, "async_", False):
         return traced_execution(*args, **kwargs)
 
+    propagate = _can_propagate_statement(cursor, query_args, kwargs)
     span_context_before = trace.get_current_span().get_span_context()
 
     def correlated_query_method(*method_args, **method_kwargs):
@@ -106,6 +124,7 @@ def _execute_with_postgresql_trace_context(traced_execution, _cursor_tracer, arg
             span_context_before,
             method_args,
             method_kwargs,
+            propagate=propagate,
         )
 
     return traced_execution(cursor, correlated_query_method, *query_args, **kwargs)
@@ -119,6 +138,7 @@ async def _execute_with_postgresql_trace_context_async(traced_execution_async, _
     if not _is_postgresql_client_cursor(cursor) or getattr(cursor.connection, "async_", False):
         return await traced_execution_async(*args, **kwargs)
 
+    propagate = _can_propagate_statement(cursor, query_args, kwargs)
     span_context_before = trace.get_current_span().get_span_context()
 
     async def correlated_query_method(*method_args, **method_kwargs):
@@ -128,6 +148,7 @@ async def _execute_with_postgresql_trace_context_async(traced_execution_async, _
             span_context_before,
             method_args,
             method_kwargs,
+            propagate=propagate,
         )
 
     return await traced_execution_async(cursor, correlated_query_method, *query_args, **kwargs)
@@ -139,16 +160,25 @@ def _execute_correlated(
     span_context_before: SpanContext,
     args,
     kwargs,
+    *,
+    propagate: bool,
 ):
-    lock = _get_sync_connection_lock(cursor.connection)
+    owner = threading.current_thread()
+    parent = _parent_query(cursor.connection, owner)
+    lock = nullcontext() if parent is not None else _get_sync_connection_lock(cursor.connection)
     with lock:
-        traceparent = _current_database_traceparent(span_context_before)
+        traceparent = _current_database_traceparent(span_context_before) if propagate else None
+        token = _active_queries.set((*_active_queries.get(), _QueryContext(cursor.connection, owner, traceparent)))
         try:
-            _update_application_name(cursor.connection, traceparent)
+            if propagate:
+                _update_application_name(cursor.connection, traceparent)
             return query_method(*args, **kwargs)
         finally:
-            if traceparent is not None:
-                _update_application_name(cursor.connection, None)
+            try:
+                if propagate and (traceparent is not None or parent is not None):
+                    _update_application_name(cursor.connection, parent.traceparent if parent is not None else None)
+            finally:
+                _active_queries.reset(token)
 
 
 async def _execute_correlated_async(
@@ -157,16 +187,72 @@ async def _execute_correlated_async(
     span_context_before: SpanContext,
     args,
     kwargs,
+    *,
+    propagate: bool,
 ):
-    lock = _get_async_connection_lock(cursor.connection)
+    owner = asyncio.current_task()
+    parent = _parent_query(cursor.connection, owner)
+    lock = nullcontext() if parent is not None else _get_async_connection_lock(cursor.connection)
     async with lock:
-        traceparent = _current_database_traceparent(span_context_before)
+        traceparent = _current_database_traceparent(span_context_before) if propagate else None
+        token = _active_queries.set((*_active_queries.get(), _QueryContext(cursor.connection, owner, traceparent)))
         try:
-            await _update_application_name_async(cursor.connection, traceparent)
+            if propagate:
+                await _update_application_name_async(cursor.connection, traceparent)
             return await query_method(*args, **kwargs)
         finally:
-            if traceparent is not None:
-                await _update_application_name_async(cursor.connection, None)
+            try:
+                if propagate and (traceparent is not None or parent is not None):
+                    await _update_application_name_async(
+                        cursor.connection, parent.traceparent if parent is not None else None
+                    )
+            finally:
+                _active_queries.reset(token)
+
+
+def _parent_query(connection, owner: object) -> _QueryContext | None:
+    # Context can be copied into another thread/task; that caller must acquire the lock.
+    return next(
+        (query for query in reversed(_active_queries.get()) if query.connection is connection and query.owner is owner),
+        None,
+    )
+
+
+def _can_propagate_statement(cursor, args, kwargs) -> bool:
+    statement = args[0] if args else kwargs.get("query")
+    if isinstance(statement, bytes):
+        statement = statement.decode("ascii", errors="replace")
+    elif any(base.__module__ in ("psycopg.sql", "psycopg2.sql") for base in type(statement).__mro__):
+        statement = statement.as_string(cursor.connection)
+    if not isinstance(statement, str):
+        return False
+
+    # SET and reset cannot safely straddle SQL transaction boundaries. Avoid
+    # batches too: even a SELECT-first batch can commit or begin a transaction.
+    statement = statement.strip().removesuffix(";")
+    if ";" in statement:
+        return False
+    statement = _strip_leading_comments(statement)
+    operation = re.match(r"[a-z]+", statement, re.IGNORECASE)
+    return operation is not None and operation[0].upper() not in _TRANSACTION_OPERATIONS
+
+
+def _strip_leading_comments(statement: str) -> str:
+    statement = statement.lstrip()
+    while statement.startswith(("--", "/*")):
+        if statement.startswith("--"):
+            _, _, statement = statement.partition("\n")
+        else:
+            depth = 0
+            for delimiter in re.finditer(r"/\*|\*/", statement):
+                depth += 1 if delimiter[0] == "/*" else -1
+                if depth == 0:
+                    statement = statement[delimiter.end() :]
+                    break
+            else:
+                return ""
+        statement = statement.lstrip()
+    return statement
 
 
 def _get_sync_connection_lock(connection) -> threading.Lock:
