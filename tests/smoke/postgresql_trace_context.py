@@ -72,7 +72,7 @@ def _sync_queries(driver, exporter, tracer):
             with connection.cursor(name="correlation_cursor") as cursor:
                 cursor.execute(_QUERY)
                 application_name = cursor.fetchone()[0]
-            _assert_database_span(exporter, application_name)
+            assert application_name == _DEFAULT_APPLICATION_NAME
             with suppress_instrumentation(), connection.cursor() as cursor:
                 cursor.execute(
                     "CREATE FUNCTION pg_temp.correlation_name() RETURNS text LANGUAGE sql "
@@ -87,7 +87,7 @@ def _sync_queries(driver, exporter, tracer):
         before = len(exporter.get_finished_spans())
         with suppress_instrumentation(), connection.cursor() as cursor:
             cursor.execute(_QUERY)
-            assert cursor.fetchone()[0] == application_name
+            assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
         assert len(exporter.get_finished_spans()) == before
 
 
@@ -111,7 +111,7 @@ def _sync_concurrency(driver, exporter, tracer):
 async def _async_queries(exporter, tracer):
     import psycopg
 
-    async with await psycopg.AsyncConnection.connect() as connection:
+    async with await psycopg.AsyncConnection.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection:
         exporter.clear()
         async with connection.cursor() as cursor:
             await cursor.execute(_QUERY, prepare=True)
@@ -134,7 +134,9 @@ async def _async_queries(exporter, tracer):
         _assert_database_span(exporter, values[0])
         assert len(exporter.get_finished_spans()) == 1
 
-    async with await psycopg.AsyncConnection.connect(autocommit=True) as connection:
+    async with await psycopg.AsyncConnection.connect(
+        autocommit=True, application_name=_DEFAULT_APPLICATION_NAME
+    ) as connection:
         exporter.clear()
 
         async def query():
@@ -151,7 +153,7 @@ async def _async_queries(exporter, tracer):
         with suppress_instrumentation():
             async with connection.cursor() as cursor:
                 await cursor.execute(_QUERY)
-                assert (await cursor.fetchone())[0] == results[-1][0]
+                assert (await cursor.fetchone())[0] == _DEFAULT_APPLICATION_NAME
         assert len([span for span in exporter.get_finished_spans() if span.kind == SpanKind.CLIENT]) == 12
 
     class RejectingSetCursor(psycopg.AsyncCursor):
@@ -265,18 +267,112 @@ def _custom_cursor(exporter):
             _assert_database_span(exporter, application_name)
 
 
+def _failed_cleanup_command(driver):
+    cursor_class = driver.Cursor if driver.__name__ == "psycopg" else driver.extensions.cursor
+
+    class RejectingCleanupCursor(cursor_class):
+        def execute(self, query, *args, **kwargs):
+            if query == "SET application_name = DEFAULT":
+                query = "SET nonexistent_correlation_parameter = 'failure'"
+            return super().execute(query, *args, **kwargs)
+
+    connection = driver.connect(cursor_factory=RejectingCleanupCursor)
+    try:
+        with suppress_instrumentation(), connection.cursor() as cursor:
+            cursor.execute("CREATE TEMP TABLE cleanup_failure (value int)")
+        connection.commit()
+        with connection.cursor() as cursor:
+            cursor.execute("INSERT INTO cleanup_failure VALUES (1) RETURNING value")
+            assert cursor.fetchone()[0] == 1
+        status = (
+            connection.info.transaction_status if driver.__name__ == "psycopg" else connection.get_transaction_status()
+        )
+        assert status == 3
+        connection.rollback()
+        with suppress_instrumentation(), connection.cursor() as cursor:
+            cursor.execute("SELECT count(*) FROM cleanup_failure")
+            assert cursor.fetchone()[0] == 0
+    finally:
+        connection.close()
+
+
 def _psycopg_server_cursor_boundary(exporter):
     import psycopg
 
-    with psycopg.connect() as connection:
+    with psycopg.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection:
         with connection.cursor() as cursor:
             cursor.execute(_QUERY)
             earlier_context = cursor.fetchone()[0]
         exporter.clear()
         with connection.cursor(name="raw_server_cursor") as cursor:
             cursor.execute(_QUERY)
-            assert cursor.fetchone()[0] == earlier_context
+            assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
+            assert earlier_context != _DEFAULT_APPLICATION_NAME
         assert not exporter.get_finished_spans()
+
+
+def _psycopg2_commit_boundary(exporter):
+    import psycopg2
+
+    connection = psycopg2.connect(application_name=_DEFAULT_APPLICATION_NAME)
+    try:
+        exporter.clear()
+        with connection, connection.cursor() as cursor:
+            cursor.execute(_QUERY)
+            _assert_database_span(exporter, cursor.fetchone()[0])
+            assert connection.get_parameter_status("application_name") == _DEFAULT_APPLICATION_NAME
+
+        assert not connection.closed
+        assert connection.get_parameter_status("application_name") == _DEFAULT_APPLICATION_NAME
+        with suppress_instrumentation(), connection.cursor() as cursor:
+            cursor.execute("SELECT current_setting('application_name')")
+            assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
+        connection.rollback()
+        assert connection.get_parameter_status("application_name") == _DEFAULT_APPLICATION_NAME
+    finally:
+        connection.close()
+
+
+async def _async_query_cancellation():
+    import psycopg
+
+    async with await psycopg.AsyncConnection.connect(autocommit=True) as observer:
+        for autocommit in (False, True):
+            async with (
+                await psycopg.AsyncConnection.connect(
+                    autocommit=autocommit, application_name=_DEFAULT_APPLICATION_NAME
+                ) as connection,
+                connection.cursor() as cursor,
+            ):
+                query = asyncio.create_task(cursor.execute("SELECT pg_sleep(10)"))
+                try:
+                    with suppress_instrumentation():
+                        async with observer.cursor() as observer_cursor:
+                            for _ in range(20):
+                                await observer_cursor.execute(
+                                    "SELECT state, query FROM pg_stat_activity WHERE pid = %s",
+                                    (connection.info.backend_pid,),
+                                )
+                                state, statement = await observer_cursor.fetchone()
+                                if state == "active" and statement == "SELECT pg_sleep(10)":
+                                    break
+                                await asyncio.sleep(0.05)
+                            else:
+                                raise AssertionError("Customer query did not start before cancellation")
+                finally:
+                    query.cancel()
+                    try:
+                        await query
+                    except asyncio.CancelledError:
+                        pass
+
+                if not autocommit:
+                    assert connection.info.transaction_status == psycopg.pq.TransactionStatus.INERROR
+                    await connection.rollback()
+                assert connection.info.parameter_status("application_name") == _DEFAULT_APPLICATION_NAME
+                with suppress_instrumentation():
+                    await cursor.execute("SELECT 1")
+                    assert (await cursor.fetchone())[0] == 1
 
 
 def main():
@@ -320,9 +416,12 @@ def main():
             _unsampled_queries(driver, exporter)
             _reset_to_default(driver)
             _failed_internal_command(driver)
+            _failed_cleanup_command(driver)
         asyncio.run(_async_queries(exporter, tracer))
         _custom_cursor(exporter)
         _psycopg_server_cursor_boundary(exporter)
+        _psycopg2_commit_boundary(exporter)
+        asyncio.run(_async_query_cancellation())
 
     print(  # noqa: T201
         f"POSTGRESQL_CORRELATION_OK mode={mode} psycopg={version('psycopg')} "

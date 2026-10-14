@@ -51,47 +51,19 @@ Then run your application with `opentelemetry-instrument`:
 OTEL_SERVICE_NAME=my-python-service opentelemetry-instrument python app.py
 ```
 
-### Experimental PostgreSQL trace correlation
-
-Set `SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED=true` to place each
-instrumented psycopg or psycopg2 database span's W3C `traceparent` in
-PostgreSQL's `application_name` immediately before the query. This sends one
-additional `SET application_name` command per traced query.
-The feature targets Psycopg 3 synchronous and asynchronous connections and
-Psycopg2 synchronous connections. Psycopg2 asynchronous connections pass through
-without trace propagation.
-
-This opt-in replaces the connection's `application_name` and leaves the value
-set after the query. If instrumentation creates no valid new database span, the
-feature resets the setting to the connection's configured default. It does not
-restore a value that the application previously set through SQL. Queries that
-bypass instrumentation, including suppressed queries and cursors created before
-instrumentation, can inherit an earlier query's trace context.
-Psycopg 3 named cursors use a separate server-cursor factory that the current
-upstream instrumentor does not wrap. Those queries, cursor fetch operations,
-and COPY operations are outside this feature's automatic coverage.
-
-The feature logs internal command failures and attempts the customer query. A
-failed command can leave a transaction aborted, so the customer query can also
-fail. The feature does not roll back application transactions. Database span
-duration and database operation duration metrics include lock waiting and the
-additional command.
-
-Manual instrumentation must initialize the Splunk distro first with
-`init_splunk_otel()`, or call `enable_postgresql_trace_context_propagation()`
-before using `PsycopgInstrumentor` or `Psycopg2Instrumentor`.
-
-Install the corresponding OpenTelemetry driver instrumentation package. The
-environment switch applies when `OTEL_CONFIG_FILE` is unset. Activation lasts
-for the process lifetime. To turn it off, unset the switch and restart. Only
-queries using the instrumented driver participate in its connection lock.
-
 By default, OTLP exporters send telemetry to a locally running
 [Splunk OpenTelemetry Collector](https://github.com/signalfx/splunk-otel-collector)
 at `http://localhost:4317`. To send telemetry directly to Splunk Observability
 Cloud instead, set `SPLUNK_REALM` and `SPLUNK_ACCESS_TOKEN` before starting your
 application. `SPLUNK_REALM` configures direct ingest endpoints for traces and
 metrics.
+
+### Experimental PostgreSQL trace correlation
+
+Set `SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED=true` to link PostgreSQL
+query samples to APM traces and database client spans. This feature is disabled
+by default. See [PostgreSQL trace correlation](docs/postgresql.md) for setup,
+supported drivers, and limitations.
 
 ## Declarative configuration
 

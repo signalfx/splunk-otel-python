@@ -94,7 +94,7 @@ def _execute_with_postgresql_trace_context(traced_execution, _cursor_tracer, arg
         return traced_execution(*args, **kwargs)
 
     cursor, query_method, *query_args = args
-    if not _is_postgresql_cursor(cursor) or getattr(cursor.connection, "async_", False):
+    if not _is_postgresql_client_cursor(cursor) or getattr(cursor.connection, "async_", False):
         return traced_execution(*args, **kwargs)
 
     span_context_before = trace.get_current_span().get_span_context()
@@ -116,7 +116,7 @@ async def _execute_with_postgresql_trace_context_async(traced_execution_async, _
         return await traced_execution_async(*args, **kwargs)
 
     cursor, query_method, *query_args = args
-    if not _is_postgresql_cursor(cursor) or getattr(cursor.connection, "async_", False):
+    if not _is_postgresql_client_cursor(cursor) or getattr(cursor.connection, "async_", False):
         return await traced_execution_async(*args, **kwargs)
 
     span_context_before = trace.get_current_span().get_span_context()
@@ -143,8 +143,12 @@ def _execute_correlated(
     lock = _get_sync_connection_lock(cursor.connection)
     with lock:
         traceparent = _current_database_traceparent(span_context_before)
-        _update_application_name(cursor.connection, traceparent)
-        return query_method(*args, **kwargs)
+        try:
+            _update_application_name(cursor.connection, traceparent)
+            return query_method(*args, **kwargs)
+        finally:
+            if traceparent is not None:
+                _update_application_name(cursor.connection, None)
 
 
 async def _execute_correlated_async(
@@ -157,8 +161,12 @@ async def _execute_correlated_async(
     lock = _get_async_connection_lock(cursor.connection)
     async with lock:
         traceparent = _current_database_traceparent(span_context_before)
-        await _update_application_name_async(cursor.connection, traceparent)
-        return await query_method(*args, **kwargs)
+        try:
+            await _update_application_name_async(cursor.connection, traceparent)
+            return await query_method(*args, **kwargs)
+        finally:
+            if traceparent is not None:
+                await _update_application_name_async(cursor.connection, None)
 
 
 def _get_sync_connection_lock(connection) -> threading.Lock:
@@ -226,7 +234,10 @@ def _application_name_statement(traceparent: str | None) -> str:
     return f"SET application_name = '{traceparent}'"
 
 
-def _is_postgresql_cursor(cursor) -> bool:
+def _is_postgresql_client_cursor(cursor) -> bool:
+    # Named cursors execute SQL during later fetches, outside this query's span.
+    if getattr(cursor, "name", None):
+        return False
     return any(_is_postgresql_module(cursor_class.__module__) for cursor_class in type(cursor).__mro__)
 
 
