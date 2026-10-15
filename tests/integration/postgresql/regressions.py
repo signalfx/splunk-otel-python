@@ -1,25 +1,9 @@
 import asyncio
-import os
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from importlib import import_module
-from importlib.metadata import version
 from unittest.mock import patch
 
-
-os.environ.setdefault("OTEL_LOGS_EXPORTER", "none")
-os.environ.setdefault("OTEL_METRICS_EXPORTER", "none")
-os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "system_metrics")
-os.environ.setdefault("OTEL_SERVICE_NAME", "postgresql-trace-context-smoke-test")
-os.environ.setdefault("OTEL_TRACES_EXPORTER", "none")
-os.environ.setdefault("OTEL_TRACES_SAMPLER", "parentbased_always_on")
-os.environ.setdefault("SPLUNK_OPAMP_ENABLED", "false")
-os.environ.setdefault("SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED", "true")
-os.environ.setdefault("PGHOST", "127.0.0.1")
-os.environ.setdefault("PGPORT", "5432")
-os.environ.setdefault("PGDATABASE", "otel")
-os.environ.setdefault("PGUSER", "otel")
-os.environ.setdefault("PGPASSWORD", "otel")
 
 from opentelemetry import trace
 from opentelemetry.instrumentation.utils import suppress_instrumentation
@@ -749,70 +733,33 @@ async def _async_query_cancellation():
                     assert (await cursor.fetchone())[0] == 1
 
 
-def main():
-    from opentelemetry.instrumentation.auto_instrumentation import initialize
-    from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
-    from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-    from splunk_otel import init_splunk_otel
-    from splunk_otel.postgresql import enable_postgresql_trace_context_propagation
-
-    mode = os.environ.get("POSTGRESQL_SMOKE_INSTRUMENTATION", "auto")
-    if mode == "manual":
-        init_splunk_otel()
-        PsycopgInstrumentor().instrument()
-        Psycopg2Instrumentor().instrument()
-    else:
-        initialize(swallow_exceptions=False)
-
-    exporter = InMemorySpanExporter()
-    trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
-    tracer = trace.get_tracer(__name__)
-
+def run_regressions(exporter, tracer):
     import psycopg
     import psycopg2
+    from splunk_otel.postgresql import enable_postgresql_trace_context_propagation
 
-    if mode == "disabled":
-        for driver in (psycopg, psycopg2):
-            with (
-                driver.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection,
-                connection.cursor() as cursor,
-            ):
-                cursor.execute(_QUERY)
-                assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
-    else:
-        assert enable_postgresql_trace_context_propagation()
-        assert enable_postgresql_trace_context_propagation()
-        for driver in (psycopg, psycopg2):
-            _sync_queries(driver, exporter, tracer)
-            _sync_concurrency(driver, exporter, tracer)
-            _unsampled_queries(driver, exporter)
-            _reset_to_default(driver)
-            _failed_internal_command(driver)
-            _failed_cleanup_command(driver)
-            _nested_cursor_queries(driver, exporter)
-            _transaction_sql(driver, exporter)
-            _parenthesized_queries(driver, exporter)
-            _skipped_middle_query(driver, exporter)
-            _custom_commit_before_query(driver, exporter)
-            asyncio.run(_delayed_sync_callback(driver, exporter))
-        asyncio.run(_async_queries(exporter, tracer))
-        asyncio.run(_async_nested_cursor_queries(exporter))
-        asyncio.run(_async_transaction_sql(exporter))
-        asyncio.run(_async_driver_regressions(exporter))
-        _custom_cursor(exporter)
-        _manual_custom_cursor(exporter)
-        asyncio.run(_async_manual_custom_cursor(exporter))
-        _psycopg_server_cursor_boundary(exporter)
-        _psycopg2_commit_boundary(exporter)
-        asyncio.run(_async_query_cancellation())
-
-    print(  # noqa: T201
-        f"POSTGRESQL_CORRELATION_OK mode={mode} psycopg={version('psycopg')} "
-        f"psycopg2={version('psycopg2-binary')} instrumentation={version('opentelemetry-instrumentation')}"
-    )
-
-
-if __name__ == "__main__":
-    main()
+    assert enable_postgresql_trace_context_propagation()
+    assert enable_postgresql_trace_context_propagation()
+    for driver in (psycopg, psycopg2):
+        _sync_queries(driver, exporter, tracer)
+        _sync_concurrency(driver, exporter, tracer)
+        _unsampled_queries(driver, exporter)
+        _reset_to_default(driver)
+        _failed_internal_command(driver)
+        _failed_cleanup_command(driver)
+        _nested_cursor_queries(driver, exporter)
+        _transaction_sql(driver, exporter)
+        _parenthesized_queries(driver, exporter)
+        _skipped_middle_query(driver, exporter)
+        _custom_commit_before_query(driver, exporter)
+        asyncio.run(_delayed_sync_callback(driver, exporter))
+    asyncio.run(_async_queries(exporter, tracer))
+    asyncio.run(_async_nested_cursor_queries(exporter))
+    asyncio.run(_async_transaction_sql(exporter))
+    asyncio.run(_async_driver_regressions(exporter))
+    _custom_cursor(exporter)
+    _manual_custom_cursor(exporter)
+    asyncio.run(_async_manual_custom_cursor(exporter))
+    _psycopg_server_cursor_boundary(exporter)
+    _psycopg2_commit_boundary(exporter)
+    asyncio.run(_async_query_cancellation())

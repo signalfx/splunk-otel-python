@@ -50,8 +50,8 @@ jobs:
     - name: Run oteltests
       run: oteltest tests/integration/*.py
 
-  postgresql-smoke:
-    name: PostgreSQL trace-context smoke test (Python ${{ matrix.python-version }}, ${{ matrix.mode }})
+  postgresql-integration:
+    name: PostgreSQL oteltest (Python ${{ matrix.python-version }}, ${{ matrix.mode }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -59,8 +59,7 @@ jobs:
         mode: [auto, manual, disabled]
         python-version: ['3.10', '3.14']
     env:
-      POSTGRESQL_SMOKE_INSTRUMENTATION: ${{ matrix.mode }}
-      SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED: ${{ matrix.mode != 'disabled' }}
+      POSTGRESQL_TEST_INSTRUMENTATION: ${{ matrix.mode }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -84,12 +83,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install smoke-test dependencies
-      run: >-
-        pip install . "psycopg[binary]" psycopg2-binary
-        opentelemetry-instrumentation-psycopg
-        opentelemetry-instrumentation-psycopg2
+    - name: Install oteltest
+      run: pip install 'oteltest>=0.49.0'
 
-    - name: Run PostgreSQL smoke test
+    - name: Run PostgreSQL oteltest
       timeout-minutes: 5
-      run: python tests/smoke/postgresql_trace_context.py
+      run: oteltest tests/integration/postgresql/trace_context.py

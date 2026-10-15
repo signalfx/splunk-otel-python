@@ -131,3 +131,23 @@ and declines incompatible versions before installing wrappers. Regression tests
 must also check behavior when instrumentation dependencies change. The current
 validation covers instrumentation 0.66b1, Psycopg 3.3.6, Psycopg2 2.9.13, and
 PostgreSQL 16; it does not establish a broader supported version range.
+
+## Integration tests
+
+The PostgreSQL CI job uses `oteltest` with PostgreSQL 16 on Python 3.10 and 3.14.
+It covers automatic instrumentation, manual instrumentation, and disabled
+propagation. Query results must match the database client spans received over
+OTLP. The same job runs the transaction, custom cursor, and concurrency regressions.
+
+To run locally, start a test database, install `oteltest>=0.49.0`, and run:
+
+```sh
+PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE=otel PGUSER=otel PGPASSWORD=otel \
+POSTGRESQL_TEST_INSTRUMENTATION=auto \
+oteltest tests/integration/postgresql/trace_context.py
+```
+
+Repeat with `POSTGRESQL_TEST_INSTRUMENTATION=manual` and `disabled`.
+The test installs this checkout and both driver instrumentations in an isolated
+environment. It exports traces to the local `oteltest` receiver on port 4317.
+Collector ingestion and Database Monitoring UI checks are separate manual tests.
