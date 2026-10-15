@@ -14,7 +14,7 @@ os.environ.setdefault("OTEL_SERVICE_NAME", "postgresql-trace-context-smoke-test"
 os.environ.setdefault("OTEL_TRACES_EXPORTER", "none")
 os.environ.setdefault("OTEL_TRACES_SAMPLER", "parentbased_always_on")
 os.environ.setdefault("SPLUNK_OPAMP_ENABLED", "false")
-os.environ.setdefault("SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED", "true")
+os.environ.setdefault("SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED", "true")
 os.environ.setdefault("PGHOST", "127.0.0.1")
 os.environ.setdefault("PGPORT", "5432")
 os.environ.setdefault("PGDATABASE", "otel")

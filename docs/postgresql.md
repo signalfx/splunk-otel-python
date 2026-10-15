@@ -42,9 +42,11 @@ For PostgreSQL, it installs:
 Start the application with:
 
 ```sh
-SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED=true \
+SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED=true \
 opentelemetry-instrument python app.py
 ```
+
+Python currently applies this setting only to PostgreSQL.
 
 The environment switch applies when `OTEL_CONFIG_FILE` is unset. Activation lasts
 for the process lifetime. To turn it off, unset the switch and restart.

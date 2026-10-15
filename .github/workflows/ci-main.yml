@@ -60,7 +60,7 @@ jobs:
         python-version: ['3.10', '3.14']
     env:
       POSTGRESQL_SMOKE_INSTRUMENTATION: ${{ matrix.mode }}
-      SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED: ${{ matrix.mode != 'disabled' }}
+      SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED: ${{ matrix.mode != 'disabled' }}
     services:
       postgres:
         image: postgres:16-alpine

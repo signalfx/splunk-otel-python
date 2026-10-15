@@ -52,7 +52,7 @@ def test_postgresql_trace_context_propagation_requires_opt_in(monkeypatch, value
         "splunk_otel.runtime.enable_postgresql_trace_context_propagation",
         lambda: enable_calls.append(True),
     )
-    env_store = {} if value is None else {"SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED": value}
+    env_store = {} if value is None else {"SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED": value}
 
     configure_postgresql_trace_context_propagation(Env(env_store))
 

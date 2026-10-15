@@ -60,7 +60,7 @@ metrics.
 
 ### Experimental PostgreSQL trace correlation
 
-Set `SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED=true` to link PostgreSQL
+Set `SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED=true` to link PostgreSQL
 query samples to APM traces and database client spans. This feature is disabled
 by default. See [PostgreSQL trace correlation](docs/postgresql.md) for setup,
 supported drivers, and limitations.

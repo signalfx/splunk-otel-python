@@ -93,7 +93,7 @@ def test_declarative_server_timing_reads_splunk_http_configuration():
 @pytest.mark.parametrize("use_config_file", [False, True])
 def test_configurator_activates_postgresql_only_without_config_file(monkeypatch, use_config_file):
     enable_calls = []
-    monkeypatch.setenv("SPLUNK_POSTGRESQL_TRACE_CONTEXT_PROPAGATION_ENABLED", "true")
+    monkeypatch.setenv("SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED", "true")
     if use_config_file:
         monkeypatch.setenv("OTEL_CONFIG_FILE", "config.yaml")
     else:
