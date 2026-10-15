@@ -58,6 +58,13 @@ Cloud instead, set `SPLUNK_REALM` and `SPLUNK_ACCESS_TOKEN` before starting your
 application. `SPLUNK_REALM` configures direct ingest endpoints for traces and
 metrics.
 
+### Experimental PostgreSQL trace correlation
+
+Set `SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED=true` to link PostgreSQL
+query samples to APM traces and database client spans. This feature is disabled
+by default. See [PostgreSQL trace correlation](docs/postgresql.md) for setup,
+supported drivers, and limitations.
+
 ## Declarative configuration
 
 The distribution includes experimental support for the OpenTelemetry declarative

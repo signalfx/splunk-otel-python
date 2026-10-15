@@ -17,11 +17,17 @@ from typing import Protocol
 from opentelemetry.instrumentation.environment_variables import OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-from splunk_otel.env import Env
+from splunk_otel.env import SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED, Env
+from splunk_otel.postgresql import enable_postgresql_trace_context_propagation
 
 _DISABLED_INSTRUMENTATIONS_WILDCARD = "*"
 _LOGGING_INSTRUMENTATION_NAME = "logging"
 _SERVER_TIMING_DEFAULT_ENABLED = True
+
+
+def configure_postgresql_trace_context_propagation(env: Env) -> None:
+    if env.is_true(SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED, "false"):
+        enable_postgresql_trace_context_propagation()
 
 
 class _LoggingInstrumentor(Protocol):
