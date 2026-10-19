@@ -20,7 +20,7 @@ import logging
 import re
 import threading
 import weakref
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import partial
@@ -32,7 +32,7 @@ from opentelemetry import trace
 from opentelemetry.instrumentation.utils import is_instrumentation_enabled, suppress_instrumentation
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
 
     from opentelemetry.trace import SpanContext
 
@@ -101,52 +101,74 @@ def enable_postgresql_trace_context_propagation() -> bool:
         if _enabled:
             return True
 
-        try:
-            dbapi = import_module("opentelemetry.instrumentation.dbapi")
-        except ImportError:
-            logger.warning("PostgreSQL trace context propagation requires DBAPI instrumentation")
+        cursor_tracer = _load_compatible_cursor_tracer()
+        if cursor_tracer is None:
             return False
-
-        cursor_tracer = getattr(dbapi, "CursorTracer", None)
-        for name in ("traced_execution", "traced_execution_async"):
-            method = getattr(cursor_tracer, name, None)
-            if not _has_execution_signature(method):
-                logger.warning("PostgreSQL trace context propagation requires compatible DBAPI execution methods")
-                return False
 
         adapters = _load_cursor_adapters()
-        if not adapters:
-            logger.warning("PostgreSQL trace context propagation requires compatible driver cursor factories")
-            return False
-        for adapter in adapters:
-            factory = getattr(adapter.module, adapter.factory_name, None)
-            if not _has_factory_signature(factory):
-                logger.warning("PostgreSQL trace context propagation requires compatible driver cursor factories")
-                return False
-
-        psycopg_adapter = next((adapter for adapter in adapters if hasattr(adapter.module, "psycopg")), None)
-        if psycopg_adapter is not None and not _has_parameter_signature(
-            getattr(psycopg_adapter.module.PsycopgInstrumentor, "instrument_connection", None), ("connection",)
-        ):
-            logger.warning("PostgreSQL trace context propagation requires compatible manual instrumentation")
-            return False
-        for adapter in adapters:
-            wrapt.wrap_function_wrapper(adapter.module, adapter.factory_name, _cursor_factory_wrapper(adapter))
-        if psycopg_adapter is not None:
-            wrapt.wrap_function_wrapper(
-                psycopg_adapter.module.PsycopgInstrumentor,
-                "instrument_connection",
-                _manual_connection_wrapper(psycopg_adapter.module),
-            )
-
-        wrapt.wrap_function_wrapper(cursor_tracer, "traced_execution", _execute_with_postgresql_trace_context)
-        wrapt.wrap_function_wrapper(
-            cursor_tracer,
-            "traced_execution_async",
-            _execute_with_postgresql_trace_context_async,
+        psycopg3_instrumentation = next(
+            (adapter.module for adapter in adapters if hasattr(adapter.module, "psycopg")), None
         )
+        if not _validate_driver_instrumentation(adapters, psycopg3_instrumentation):
+            return False
+
+        _install_postgresql_wrappers(cursor_tracer, adapters, psycopg3_instrumentation)
         _enabled = True
         return True
+
+
+def _load_compatible_cursor_tracer() -> type | None:
+    try:
+        dbapi = import_module("opentelemetry.instrumentation.dbapi")
+    except ImportError:
+        logger.warning("PostgreSQL trace context propagation requires DBAPI instrumentation")
+        return None
+
+    cursor_tracer = getattr(dbapi, "CursorTracer", None)
+    for name in ("traced_execution", "traced_execution_async"):
+        method = getattr(cursor_tracer, name, None)
+        if not _has_parameter_signature(method, ("self", "cursor", "query_method")):
+            logger.warning("PostgreSQL trace context propagation requires compatible DBAPI execution methods")
+            return None
+    return cursor_tracer
+
+
+def _validate_driver_instrumentation(adapters: list[_CursorAdapter], psycopg3_instrumentation: Any) -> bool:
+    if not adapters:
+        logger.warning("PostgreSQL trace context propagation requires compatible driver cursor factories")
+        return False
+    for adapter in adapters:
+        factory = getattr(adapter.module, adapter.factory_name, None)
+        if not _has_parameter_signature(factory, ("db_api", "base_factory")):
+            logger.warning("PostgreSQL trace context propagation requires compatible driver cursor factories")
+            return False
+
+    if psycopg3_instrumentation is not None and not _has_parameter_signature(
+        getattr(psycopg3_instrumentation.PsycopgInstrumentor, "instrument_connection", None), ("connection",)
+    ):
+        logger.warning("PostgreSQL trace context propagation requires compatible manual instrumentation")
+        return False
+    return True
+
+
+def _install_postgresql_wrappers(
+    cursor_tracer: type, adapters: list[_CursorAdapter], psycopg3_instrumentation: Any
+) -> None:
+    for adapter in adapters:
+        wrapt.wrap_function_wrapper(adapter.module, adapter.factory_name, _cursor_factory_wrapper(adapter))
+    if psycopg3_instrumentation is not None:
+        wrapt.wrap_function_wrapper(
+            psycopg3_instrumentation.PsycopgInstrumentor,
+            "instrument_connection",
+            _manual_connection_wrapper(psycopg3_instrumentation),
+        )
+
+    wrapt.wrap_function_wrapper(cursor_tracer, "traced_execution", _execute_with_postgresql_trace_context)
+    wrapt.wrap_function_wrapper(
+        cursor_tracer,
+        "traced_execution_async",
+        _execute_with_postgresql_trace_context_async,
+    )
 
 
 def _load_cursor_adapters() -> list[_CursorAdapter]:
@@ -157,34 +179,36 @@ def _load_cursor_adapters() -> list[_CursorAdapter]:
         except ImportError:
             continue
         if name == "psycopg":
-            driver = module.psycopg
-            adapters.extend(
-                _CursorAdapter(
-                    module=module,
-                    factory_name=factory_name,
-                    base_cursor=base_cursor,
-                    new_internal_cursor=partial(base_cursor, row_factory=driver.rows.tuple_row),
-                    asynchronous=asynchronous,
-                )
-                for factory_name, base_cursor, asynchronous in (
-                    ("_new_cursor_factory", driver.Cursor, False),
-                    ("_new_cursor_async_factory", driver.AsyncCursor, True),
-                )
-            )
+            adapters.extend(_create_psycopg_cursor_adapters(module))
         else:
-            adapters.append(
-                _CursorAdapter(
-                    module=module,
-                    factory_name="_new_cursor_factory",
-                    base_cursor=module.psycopg2.extensions.cursor,
-                    new_internal_cursor=module.psycopg2.extensions.cursor,
-                )
-            )
+            adapters.append(_create_psycopg2_cursor_adapter(module))
     return adapters
 
 
-def _has_factory_signature(factory) -> bool:
-    return _has_parameter_signature(factory, ("db_api", "base_factory"))
+def _create_psycopg_cursor_adapters(module) -> list[_CursorAdapter]:
+    driver = module.psycopg
+    return [
+        _CursorAdapter(
+            module=module,
+            factory_name=factory_name,
+            base_cursor=base_cursor,
+            new_internal_cursor=partial(base_cursor, row_factory=driver.rows.tuple_row),
+            asynchronous=asynchronous,
+        )
+        for factory_name, base_cursor, asynchronous in (
+            ("_new_cursor_factory", driver.Cursor, False),
+            ("_new_cursor_async_factory", driver.AsyncCursor, True),
+        )
+    ]
+
+
+def _create_psycopg2_cursor_adapter(module) -> _CursorAdapter:
+    return _CursorAdapter(
+        module=module,
+        factory_name="_new_cursor_factory",
+        base_cursor=module.psycopg2.extensions.cursor,
+        new_internal_cursor=module.psycopg2.extensions.cursor,
+    )
 
 
 def _cursor_factory_wrapper(adapter: _CursorAdapter):
@@ -263,10 +287,6 @@ class _AsyncDriverCursor:
         )
 
 
-def _has_execution_signature(method: Any) -> bool:
-    return _has_parameter_signature(method, ("self", "cursor", "query_method"))
-
-
 def _has_parameter_signature(method: Any, names: tuple[str, ...]) -> bool:
     if not callable(method):
         return False
@@ -324,6 +344,17 @@ async def _execute_with_postgresql_trace_context_async(traced_execution_async, _
     return await traced_execution_async(cursor, correlated_query_method, *query_args, **kwargs)
 
 
+@contextmanager
+def _active_query_context(connection, owner: object, traceparent: str | None) -> Iterator[None]:
+    execution = _QueryContext(connection, owner, traceparent)
+    token = _active_queries.set((*_active_queries.get(), execution))
+    try:
+        yield
+    finally:
+        execution.lifetime.finish()
+        _active_queries.reset(token)
+
+
 def _execute_driver(
     cursor,
     query_method: Callable[..., Any],
@@ -341,23 +372,17 @@ def _execute_driver(
     lock = nullcontext() if parent is not None else _get_sync_connection_lock(cursor.connection)
     with lock:
         traceparent = lease.traceparent if propagate else parent.traceparent if parent is not None else None
-        execution = _QueryContext(cursor.connection, owner, traceparent)
-        token = _active_queries.set((*_active_queries.get(), execution))
-        try:
-            if propagate:
-                _update_application_name(cursor.connection, traceparent, new_internal_cursor=new_internal_cursor)
-            return query_method(*args, **kwargs)
-        finally:
-            try:
-                if propagate and (traceparent is not None or parent is not None):
-                    _update_application_name(
-                        cursor.connection,
-                        parent.traceparent if parent is not None else None,
-                        new_internal_cursor=new_internal_cursor,
-                    )
-            finally:
-                execution.lifetime.finish()
-                _active_queries.reset(token)
+        with _active_query_context(cursor.connection, owner, traceparent):
+            return _execute_with_application_name(
+                cursor.connection,
+                query_method,
+                args,
+                kwargs,
+                traceparent=traceparent,
+                parent=parent,
+                propagate=propagate,
+                new_internal_cursor=new_internal_cursor,
+            )
 
 
 async def _execute_driver_async(
@@ -377,25 +402,65 @@ async def _execute_driver_async(
     lock = nullcontext() if parent is not None else _get_async_connection_lock(cursor.connection)
     async with lock:
         traceparent = lease.traceparent if propagate else parent.traceparent if parent is not None else None
-        execution = _QueryContext(cursor.connection, owner, traceparent)
-        token = _active_queries.set((*_active_queries.get(), execution))
-        try:
-            if propagate:
-                await _update_application_name_async(
-                    cursor.connection, traceparent, new_internal_cursor=new_internal_cursor
-                )
-            return await query_method(*args, **kwargs)
-        finally:
-            try:
-                if propagate and (traceparent is not None or parent is not None):
-                    await _update_application_name_async(
-                        cursor.connection,
-                        parent.traceparent if parent is not None else None,
-                        new_internal_cursor=new_internal_cursor,
-                    )
-            finally:
-                execution.lifetime.finish()
-                _active_queries.reset(token)
+        with _active_query_context(cursor.connection, owner, traceparent):
+            return await _execute_with_application_name_async(
+                cursor.connection,
+                query_method,
+                args,
+                kwargs,
+                traceparent=traceparent,
+                parent=parent,
+                propagate=propagate,
+                new_internal_cursor=new_internal_cursor,
+            )
+
+
+def _execute_with_application_name(
+    connection,
+    query_method: Callable[..., Any],
+    args,
+    kwargs,
+    *,
+    traceparent: str | None,
+    parent: _QueryContext | None,
+    propagate: bool,
+    new_internal_cursor: Callable[[Any], Any],
+):
+    try:
+        if propagate:
+            _update_application_name(connection, traceparent, new_internal_cursor=new_internal_cursor)
+        return query_method(*args, **kwargs)
+    finally:
+        if propagate and (traceparent is not None or parent is not None):
+            _update_application_name(
+                connection,
+                parent.traceparent if parent is not None else None,
+                new_internal_cursor=new_internal_cursor,
+            )
+
+
+async def _execute_with_application_name_async(
+    connection,
+    query_method: Callable[..., Any],
+    args,
+    kwargs,
+    *,
+    traceparent: str | None,
+    parent: _QueryContext | None,
+    propagate: bool,
+    new_internal_cursor: Callable[[Any], Any],
+):
+    try:
+        if propagate:
+            await _update_application_name_async(connection, traceparent, new_internal_cursor=new_internal_cursor)
+        return await query_method(*args, **kwargs)
+    finally:
+        if propagate and (traceparent is not None or parent is not None):
+            await _update_application_name_async(
+                connection,
+                parent.traceparent if parent is not None else None,
+                new_internal_cursor=new_internal_cursor,
+            )
 
 
 def _live_span_lease(cursor, owner: object) -> _SpanLease | None:
@@ -533,8 +598,8 @@ def _is_postgresql_client_cursor(cursor) -> bool:
     # Named cursors execute SQL during later fetches, outside this query's span.
     if getattr(cursor, "name", None):
         return False
-    return any(_is_postgresql_module(cursor_class.__module__) for cursor_class in type(cursor).__mro__)
+    return any(_is_psycopg_module(cursor_class.__module__) for cursor_class in type(cursor).__mro__)
 
 
-def _is_postgresql_module(module_name: str) -> bool:
+def _is_psycopg_module(module_name: str) -> bool:
     return any(module_name == name or module_name.startswith(f"{name}.") for name in _DRIVER_MODULE_NAMES)
