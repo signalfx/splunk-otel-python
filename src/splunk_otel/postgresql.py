@@ -18,6 +18,7 @@ import asyncio
 import inspect
 import logging
 import re
+import sys
 import threading
 import weakref
 from contextlib import contextmanager, nullcontext
@@ -31,6 +32,9 @@ import wrapt
 from opentelemetry import trace
 from opentelemetry.instrumentation.utils import is_instrumentation_enabled, suppress_instrumentation
 
+if sys.version_info >= (3, 14):
+    from string.templatelib import Interpolation, Template
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
@@ -39,6 +43,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _SET_APPLICATION_NAME_DEFAULT = "SET application_name = DEFAULT"
+_SET_APPLICATION_NAME = "SELECT pg_catalog.set_config('application_name', %s, false)"
 _DRIVER_MODULE_NAMES = ("psycopg", "psycopg2")
 _CURSOR_AND_QUERY_METHOD_ARGUMENTS = 2
 _TRANSACTION_OPERATIONS = frozenset(
@@ -487,6 +492,9 @@ def _parent_query(connection, owner: object) -> _QueryContext | None:
 
 
 def _can_propagate_statement(cursor, query_method, args, kwargs) -> bool:
+    # Internal commands can consume errors from earlier queued customer queries.
+    if getattr(getattr(cursor.connection, "info", None), "pipeline_status", 0) != 0:
+        return False
     if query_method.__name__ == "callproc":
         return True
     statement = args[0] if args else kwargs.get("query")
@@ -494,6 +502,8 @@ def _can_propagate_statement(cursor, query_method, args, kwargs) -> bool:
         statement = statement.decode("ascii", errors="replace")
     elif any(base.__module__ in ("psycopg.sql", "psycopg2.sql") for base in type(statement).__mro__):
         statement = statement.as_string(cursor.connection)
+    elif sys.version_info >= (3, 14) and isinstance(statement, Template):
+        statement = import_module("psycopg.sql").as_string(_template_for_statement_check(statement), cursor)
     if not isinstance(statement, str):
         return False
 
@@ -507,6 +517,28 @@ def _can_propagate_statement(cursor, query_method, args, kwargs) -> bool:
         return True
     operation = re.match(r"[a-z_][a-z_0-9$]*", statement, re.IGNORECASE)
     return operation is not None and operation[0].upper() not in _TRANSACTION_OPERATIONS
+
+
+def _template_for_statement_check(template: Template) -> Template:
+    # Inspect SQL without adapting parameter values or requiring text dumpers.
+    parts = []
+    for part in template:
+        if isinstance(part, str):
+            parts.append(part)
+        elif part.format_spec in ("", "s", "t", "b", "l"):
+            parts.append("NULL")
+        elif part.format_spec == "q" and isinstance(part.value, Template):
+            parts.append(
+                Interpolation(
+                    _template_for_statement_check(part.value),
+                    part.expression,
+                    conversion=part.conversion,
+                    format_spec=part.format_spec,
+                )
+            )
+        else:
+            parts.append(part)
+    return Template(*parts)
 
 
 def _strip_leading_comments(statement: str) -> str:
@@ -553,12 +585,12 @@ def _current_database_traceparent(span_context_before: SpanContext) -> str | Non
 
 
 def _update_application_name(connection, traceparent: str | None, *, new_internal_cursor: Callable[[Any], Any]) -> None:
-    statement = _application_name_statement(traceparent)
+    statement, parameters = _application_name_command(traceparent)
     try:
         cursor = new_internal_cursor(connection)
         try:
             with suppress_instrumentation():
-                result = cursor.execute(statement)
+                result = cursor.execute(statement, parameters)
             if inspect.iscoroutine(result):
                 result.close()
             if inspect.isawaitable(result):
@@ -572,12 +604,12 @@ def _update_application_name(connection, traceparent: str | None, *, new_interna
 async def _update_application_name_async(
     connection, traceparent: str | None, *, new_internal_cursor: Callable[[Any], Any]
 ) -> None:
-    statement = _application_name_statement(traceparent)
+    statement, parameters = _application_name_command(traceparent)
     try:
         cursor = new_internal_cursor(connection)
         try:
             with suppress_instrumentation():
-                result = cursor.execute(statement)
+                result = cursor.execute(statement, parameters)
                 if inspect.isawaitable(result):
                     await result
         finally:
@@ -588,10 +620,10 @@ async def _update_application_name_async(
         logger.exception("Failed to set PostgreSQL application_name")
 
 
-def _application_name_statement(traceparent: str | None) -> str:
+def _application_name_command(traceparent: str | None) -> tuple[str, tuple[str] | None]:
     if traceparent is None:
-        return _SET_APPLICATION_NAME_DEFAULT
-    return f"SET application_name = '{traceparent}'"
+        return _SET_APPLICATION_NAME_DEFAULT, None
+    return _SET_APPLICATION_NAME, (traceparent,)
 
 
 def _is_postgresql_client_cursor(cursor) -> bool:

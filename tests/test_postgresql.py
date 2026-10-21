@@ -97,14 +97,15 @@ class _FakeDriverCursor:
         self.calls = []
         self.closed = False
 
-    def execute(self, query):
-        self.calls.append(query)
-        self.connection.calls.append(query)
+    def execute(self, query, parameters=None):
+        call = (query, parameters) if parameters is not None else query
+        self.calls.append(call)
+        self.connection.calls.append(call)
         self.connection.before_execute(query)
         if query == "SET application_name = DEFAULT":
             self.connection.application_name = self.connection.default_application_name
-        elif isinstance(query, str) and query.startswith("SET application_name = '"):
-            self.connection.application_name = query.removeprefix("SET application_name = '").removesuffix("'")
+        elif query == "SELECT pg_catalog.set_config('application_name', %s, false)":
+            self.connection.application_name = parameters[0]
         return self.connection.application_name
 
     def close(self):
@@ -122,16 +123,17 @@ class _FakeAsyncDriverCursor:
         self.calls = []
         self.closed = False
 
-    async def execute(self, query):
-        self.calls.append(query)
-        self.connection.calls.append(query)
+    async def execute(self, query, parameters=None):
+        call = (query, parameters) if parameters is not None else query
+        self.calls.append(call)
+        self.connection.calls.append(call)
         result = self.connection.before_execute(query)
         if inspect.isawaitable(result):
             await result
         if query == "SET application_name = DEFAULT":
             self.connection.application_name = self.connection.default_application_name
-        elif isinstance(query, str) and query.startswith("SET application_name = '"):
-            self.connection.application_name = query.removeprefix("SET application_name = '").removesuffix("'")
+        elif query == "SELECT pg_catalog.set_config('application_name', %s, false)":
+            self.connection.application_name = parameters[0]
         return self.connection.application_name
 
     async def close(self):
@@ -195,6 +197,43 @@ def _fake_untraced_execution(_cursor, query_method, *args, **kwargs):
     return query_method(*args, **kwargs)
 
 
+@pytest.mark.parametrize("pipeline_status", [1, 2])
+@pytest.mark.parametrize("query_fails", [False, True])
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_pipeline_queries_send_no_internal_commands(pipeline_status, query_fails, asynchronous, caplog):
+    connection = FakeAsyncConnection() if asynchronous else FakeConnection()
+    connection.info = SimpleNamespace(pipeline_status=pipeline_status)
+    cursor = connection.cursor()
+    error = RuntimeError("customer pipeline query failed")
+
+    def _fake_customer_query_failure(_query):
+        if query_fails:
+            raise error
+
+    connection.before_execute = _fake_customer_query_failure
+
+    def run():
+        if asynchronous:
+            return asyncio.run(
+                _execute_with_postgresql_trace_context_async(
+                    _fake_traced_execution_async, None, (cursor, cursor.execute, "SELECT 1"), {}
+                )
+            )
+        return _execute_with_postgresql_trace_context(
+            _fake_traced_execution, None, (cursor, cursor.execute, "SELECT 1"), {}
+        )
+
+    if query_fails:
+        with pytest.raises(RuntimeError) as raised:
+            run()
+        assert raised.value is error
+    else:
+        assert run() == "customer-app"
+    assert connection.calls == ["SELECT 1"]
+    assert connection.cursors == [cursor]
+    assert not caplog.records
+
+
 @pytest.mark.parametrize("nested_fails", [False, True])
 def test_custom_cursor_queries_run_before_outer_driver_execution(nested_fails):
     connection = FakeConnection()
@@ -235,10 +274,10 @@ def test_custom_cursor_queries_run_before_outer_driver_execution(nested_fails):
     assert not thread.is_alive(), "Nested customer query deadlocked"
     assert results == [TRACEPARENT]
     assert connection.calls == [
-        f"SET application_name = '{SECOND_TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (SECOND_TRACEPARENT,)),
         "SELECT nested",
         "SET application_name = DEFAULT",
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT outer",
         "SET application_name = DEFAULT",
     ]
@@ -278,10 +317,10 @@ def test_async_custom_cursor_queries_run_before_outer_driver_execution(nested_fa
         )
         assert result == TRACEPARENT
         assert connection.calls == [
-            f"SET application_name = '{SECOND_TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (SECOND_TRACEPARENT,)),
             "SELECT nested",
             "SET application_name = DEFAULT",
-            f"SET application_name = '{TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
             "SELECT outer",
             "SET application_name = DEFAULT",
         ]
@@ -316,10 +355,10 @@ def test_async_custom_cursor_can_await_auxiliary_task_before_outer_query():
         )
         assert result == TRACEPARENT
         assert connection.calls == [
-            f"SET application_name = '{SECOND_TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (SECOND_TRACEPARENT,)),
             "SELECT child",
             "SET application_name = DEFAULT",
-            f"SET application_name = '{TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
             "SELECT outer",
             "SET application_name = DEFAULT",
         ]
@@ -407,7 +446,7 @@ def test_callproc_function_name_is_not_a_transaction_command():
     )
     assert result == TRACEPARENT
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "begin_job",
         "SET application_name = DEFAULT",
     ]
@@ -500,11 +539,13 @@ def test_query_sets_database_span_traceparent():
 
     assert result == TRACEPARENT
     assert cursor.calls == ["SELECT application_name"]
-    assert connection.cursors[0].calls == [f"SET application_name = '{TRACEPARENT}'"]
+    assert connection.cursors[0].calls == [
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,))
+    ]
     assert all(internal_cursor.closed for internal_cursor in connection.cursors)
     assert connection.application_name == "startup-app"
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT application_name",
         "SET application_name = DEFAULT",
     ]
@@ -624,11 +665,13 @@ def test_async_query_sets_database_span_traceparent():
 
     assert result == TRACEPARENT
     assert cursor.calls == ["SELECT application_name"]
-    assert connection.cursors[0].calls == [f"SET application_name = '{TRACEPARENT}'"]
+    assert connection.cursors[0].calls == [
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,))
+    ]
     assert all(internal_cursor.closed for internal_cursor in connection.cursors)
     assert connection.application_name == "startup-app"
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT application_name",
         "SET application_name = DEFAULT",
     ]
@@ -681,7 +724,7 @@ def test_shared_connection_keeps_set_and_query_together(monkeypatch, second_quer
         second_thread.start()
         assert second_query_waiting.wait(timeout=1)
         assert connection.calls == [
-            f"SET application_name = '{TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
             "SELECT first",
         ]
     finally:
@@ -692,12 +735,16 @@ def test_shared_connection_keeps_set_and_query_together(monkeypatch, second_quer
     assert not first_thread.is_alive()
     assert not second_thread.is_alive()
     second_calls = (
-        [f"SET application_name = '{SECOND_TRACEPARENT}'", second_query, "SET application_name = DEFAULT"]
+        [
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (SECOND_TRACEPARENT,)),
+            second_query,
+            "SET application_name = DEFAULT",
+        ]
         if second_query == "SELECT second"
         else [second_query]
     )
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT first",
         "SET application_name = DEFAULT",
         *second_calls,
@@ -727,7 +774,7 @@ def test_public_enable_is_idempotent(monkeypatch):
 
     assert result == TRACEPARENT
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT 1",
         "SET application_name = DEFAULT",
     ]
@@ -758,7 +805,7 @@ def test_public_enable_clears_context_before_commit_and_raw_queries(monkeypatch)
     assert connection.commit() == "startup-app"
     assert cursor.execute("SELECT untraced") == "startup-app"
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT 1",
         "SET application_name = DEFAULT",
         "COMMIT",
@@ -873,7 +920,7 @@ def test_delayed_native_call_cannot_reuse_finished_span_lease():
         )
         assert await asyncio.wait_for(completed, timeout=1) == "startup-app"
         assert connection.calls == [
-            f"SET application_name = '{TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
             "SELECT outer",
             "SET application_name = DEFAULT",
             "SELECT delayed",
@@ -912,7 +959,7 @@ def test_failed_internal_command_attempts_customer_query_and_closes_cursor(caplo
     cursor = FakePsycopgCursor(connection)
 
     def _fake_internal_command_failure(query):
-        if query.startswith("SET "):
+        if query.startswith(("SET ", "SELECT pg_catalog.set_config(")):
             message = "SET rejected"
             raise RuntimeError(message)
 
@@ -927,7 +974,7 @@ def test_failed_internal_command_attempts_customer_query_and_closes_cursor(caplo
 
     assert result == "customer-app"
     assert connection.calls == [
-        f"SET application_name = '{TRACEPARENT}'",
+        ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
         "SELECT 1",
         "SET application_name = DEFAULT",
     ]
@@ -1035,17 +1082,24 @@ def test_async_shared_connection_keeps_set_and_query_together(second_query):
                 )
             )
             await asyncio.wait_for(second_query_started.wait(), timeout=1)
-            assert connection.calls == [f"SET application_name = '{TRACEPARENT}'", "SELECT first"]
+            assert connection.calls == [
+                ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
+                "SELECT first",
+            ]
         finally:
             release_first_query.set()
             await asyncio.wait_for(asyncio.gather(*([first, second] if second is not None else [first])), timeout=1)
         second_calls = (
-            [f"SET application_name = '{SECOND_TRACEPARENT}'", second_query, "SET application_name = DEFAULT"]
+            [
+                ("SELECT pg_catalog.set_config('application_name', %s, false)", (SECOND_TRACEPARENT,)),
+                second_query,
+                "SET application_name = DEFAULT",
+            ]
             if second_query == "SELECT second"
             else [second_query]
         )
         assert connection.calls == [
-            f"SET application_name = '{TRACEPARENT}'",
+            ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
             "SELECT first",
             "SET application_name = DEFAULT",
             *second_calls,
@@ -1161,7 +1215,7 @@ def test_async_cancellation_closes_internal_cursor_and_releases_connection():
         internal_command_started = asyncio.Event()
 
         class BlockingInternalCursor(FakeAsyncPsycopgCursor):
-            async def execute(self, _query):
+            async def execute(self, _query, _parameters=None):
                 internal_command_started.set()
                 await asyncio.Event().wait()
 

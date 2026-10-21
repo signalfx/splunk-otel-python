@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from importlib import import_module
@@ -17,6 +18,189 @@ _DEFAULT_APPLICATION_NAME = "startup-app"
 def _traceparent(span) -> str:
     context = span.get_span_context()
     return f"00-{context.trace_id:032x}-{context.span_id:016x}-{int(context.trace_flags) & 0xFF:02x}"
+
+
+def _bounded_query_statistics(driver, exporter):
+    with driver.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection:
+        connection.autocommit = True
+        with suppress_instrumentation(), connection.cursor() as cursor:
+            cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")
+            cursor.execute("SHOW pg_stat_statements.track_utility")
+            assert cursor.fetchone()[0] == "on"
+            cursor.execute("SELECT pg_stat_statements_reset()")
+
+        exporter.clear()
+        contexts = set()
+        with connection.cursor() as cursor:
+            for _ in range(64):
+                cursor.execute(_QUERY)
+                contexts.add(cursor.fetchone()[0])
+        assert len(contexts) == 64
+        for context in contexts:
+            _assert_database_span(exporter, context)
+
+        with suppress_instrumentation(), connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT query, calls FROM pg_stat_statements "
+                "WHERE query LIKE 'SELECT pg_catalog.set_config(%' OR query LIKE 'SET application_name%'"
+            )
+            entries = cursor.fetchall()
+            assert len(entries) == 2, entries
+            setup_calls = [calls for query, calls in entries if query.startswith("SELECT pg_catalog.set_config(")]
+            assert setup_calls == [64], entries
+            cursor.execute("SELECT calls FROM pg_stat_statements WHERE query LIKE 'SELECT current_setting(%'")
+            assert cursor.fetchall() == [(64,)]
+            cursor.execute("SELECT dealloc FROM pg_stat_statements_info")
+            assert cursor.fetchone()[0] == 0
+
+
+def _pipeline_errors(exporter):
+    import psycopg
+
+    for autocommit in (False, True):
+        with psycopg.connect(autocommit=autocommit, application_name=_DEFAULT_APPLICATION_NAME) as connection:
+            with suppress_instrumentation(), connection.cursor() as cursor:
+                cursor.execute("CREATE TEMP TABLE pipeline_errors (id integer PRIMARY KEY)")
+            connection.commit()
+            exporter.clear()
+            constraint_name = None
+            try:
+                with connection.pipeline() as pipeline, connection.cursor() as cursor:
+                    cursor.execute(_QUERY)
+                    assert cursor.fetchone()[0] == _DEFAULT_APPLICATION_NAME
+                    cursor.execute("INSERT INTO pipeline_errors VALUES (1)")
+                    cursor.execute("INSERT INTO pipeline_errors VALUES (1)")
+                    pipeline.sync()
+            except psycopg.errors.UniqueViolation as error:
+                constraint_name = error.diag.constraint_name
+            assert constraint_name == "pipeline_errors_pkey"
+            assert exporter.get_finished_spans()
+            connection.rollback()
+            exporter.clear()
+            with connection.cursor() as cursor:
+                cursor.execute(_QUERY)
+                _assert_database_span(exporter, cursor.fetchone()[0])
+
+
+async def _async_pipeline_errors(exporter):
+    import psycopg
+
+    for autocommit in (False, True):
+        async with await psycopg.AsyncConnection.connect(
+            autocommit=autocommit, application_name=_DEFAULT_APPLICATION_NAME
+        ) as connection:
+            with suppress_instrumentation():
+                async with connection.cursor() as cursor:
+                    await cursor.execute("CREATE TEMP TABLE pipeline_errors (id integer PRIMARY KEY)")
+            await connection.commit()
+            exporter.clear()
+            constraint_name = None
+            try:
+                async with connection.pipeline() as pipeline, connection.cursor() as cursor:
+                    await cursor.execute(_QUERY)
+                    assert (await cursor.fetchone())[0] == _DEFAULT_APPLICATION_NAME
+                    await cursor.execute("INSERT INTO pipeline_errors VALUES (1)")
+                    await cursor.execute("INSERT INTO pipeline_errors VALUES (1)")
+                    await pipeline.sync()
+            except psycopg.errors.UniqueViolation as error:
+                constraint_name = error.diag.constraint_name
+            assert constraint_name == "pipeline_errors_pkey"
+            assert exporter.get_finished_spans()
+            await connection.rollback()
+            exporter.clear()
+            async with connection.cursor() as cursor:
+                await cursor.execute(_QUERY)
+                _assert_database_span(exporter, (await cursor.fetchone())[0])
+
+
+def _template_queries():
+    from string.templatelib import Interpolation, Template
+
+    from psycopg import sql
+
+    return (
+        Template("SELECT current_setting('application_name')"),
+        Template("SELECT current_setting(", Interpolation("application_name", "setting"), ")"),
+        Template("SELECT current_setting('application_name') AS ", Interpolation("name", "column", format_spec="i")),
+        Template("", Interpolation(Template("SELECT current_setting('application_name')"), "query", format_spec="q")),
+        Template("SELECT current_setting('application_name'), ", Interpolation("O'Reilly", "value"), "::text"),
+    ), Template("", Interpolation(sql.SQL("COMMIT"), "command", format_spec="q"))
+
+
+def _binary_template_queries(cursor):
+    import struct
+    from string.templatelib import Interpolation, Template
+
+    from psycopg.adapt import Dumper
+    from psycopg.pq import Format
+
+    class BinaryValue:
+        def __init__(self, value):
+            self.value = value
+
+    class BinaryValueDumper(Dumper):
+        format = Format.BINARY
+        oid = 23
+
+        def dump(self, value):
+            return struct.pack("!i", value.value)
+
+    cursor.adapters.register_dumper(BinaryValue, BinaryValueDumper)
+    value = BinaryValue(42)
+    queries = tuple(
+        Template("SELECT current_setting('application_name'), ", Interpolation(value, "value", format_spec=format_spec))
+        for format_spec in ("", "b")
+    )
+    return (*queries, Template("", Interpolation(queries[0], "query", format_spec="q")))
+
+
+def _sync_template_queries(exporter):
+    import psycopg
+
+    queries, commit = _template_queries()
+    with psycopg.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection, connection.cursor() as cursor:
+        for query in queries:
+            exporter.clear()
+            cursor.execute(query)
+            row = cursor.fetchone()
+            _assert_database_span(exporter, row[0])
+            if len(row) > 1:
+                assert row[1] == "O'Reilly"
+        for query in _binary_template_queries(cursor):
+            exporter.clear()
+            cursor.execute(query)
+            application_name, value = cursor.fetchone()
+            assert value == 42
+            _assert_database_span(exporter, application_name)
+        cursor.execute(commit)
+        assert connection.info.transaction_status == psycopg.pq.TransactionStatus.IDLE
+        assert connection.info.parameter_status("application_name") == _DEFAULT_APPLICATION_NAME
+
+
+async def _async_template_queries(exporter):
+    import psycopg
+
+    queries, commit = _template_queries()
+    async with (
+        await psycopg.AsyncConnection.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection,
+        connection.cursor() as cursor,
+    ):
+        for query in queries:
+            exporter.clear()
+            await cursor.execute(query)
+            row = await cursor.fetchone()
+            _assert_database_span(exporter, row[0])
+            if len(row) > 1:
+                assert row[1] == "O'Reilly"
+        for query in _binary_template_queries(cursor):
+            exporter.clear()
+            await cursor.execute(query)
+            application_name, value = await cursor.fetchone()
+            assert value == 42
+            _assert_database_span(exporter, application_name)
+        await cursor.execute(commit)
+        assert connection.info.transaction_status == psycopg.pq.TransactionStatus.IDLE
+        assert connection.info.parameter_status("application_name") == _DEFAULT_APPLICATION_NAME
 
 
 def _assert_database_span(exporter, application_name, parent_context=None):
@@ -143,15 +327,17 @@ async def _async_queries(exporter, tracer):
                 assert (await cursor.fetchone())[0] == _DEFAULT_APPLICATION_NAME
         assert len([span for span in exporter.get_finished_spans() if span.kind == SpanKind.CLIENT]) == 12
 
-    class RejectingSetCursor(psycopg.AsyncCursor):
+    class RejectingApplicationNameCursor(psycopg.AsyncCursor):
         async def execute(self, query, *args, **kwargs):
-            if query.startswith("SET application_name"):
-                query = "SET nonexistent_correlation_parameter = 'failure'"
+            if query.startswith(("SET application_name", "SELECT pg_catalog.set_config(")):
+                return await super().execute("SET nonexistent_correlation_parameter = 'failure'")
             return await super().execute(query, *args, **kwargs)
 
     connection = await psycopg.AsyncConnection.connect()
     try:
-        with patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingSetCursor)):
+        with patch.object(
+            connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingApplicationNameCursor)
+        ):
             async with connection.cursor() as cursor:
                 failed = False
                 try:
@@ -207,16 +393,18 @@ def _failed_internal_command(driver):
     cursor_class = driver.Cursor if driver.__name__ == "psycopg" else driver.extensions.cursor
     transaction_error = driver.errors.InFailedSqlTransaction
 
-    class RejectingSetCursor(cursor_class):
+    class RejectingApplicationNameCursor(cursor_class):
         def execute(self, query, *args, **kwargs):
-            if query.startswith("SET application_name"):
-                query = "SET nonexistent_correlation_parameter = 'failure'"
+            if query.startswith(("SET application_name", "SELECT pg_catalog.set_config(")):
+                return super().execute("SET nonexistent_correlation_parameter = 'failure'")
             return super().execute(query, *args, **kwargs)
 
     connection = driver.connect()
     try:
         with (
-            patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingSetCursor)),
+            patch.object(
+                connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingApplicationNameCursor)
+            ),
             connection.cursor() as cursor,
         ):
             try:
@@ -237,7 +425,9 @@ def _failed_internal_command(driver):
     try:
         connection.autocommit = True
         with (
-            patch.object(connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingSetCursor)),
+            patch.object(
+                connection.cursor_factory, "_new_internal_cursor", staticmethod(RejectingApplicationNameCursor)
+            ),
             connection.cursor() as cursor,
         ):
             cursor.execute("SELECT 1")
@@ -741,6 +931,7 @@ def run_regressions(exporter, tracer):
     assert enable_postgresql_trace_context_propagation()
     assert enable_postgresql_trace_context_propagation()
     for driver in (psycopg, psycopg2):
+        _bounded_query_statistics(driver, exporter)
         _sync_queries(driver, exporter, tracer)
         _sync_concurrency(driver, exporter, tracer)
         _unsampled_queries(driver, exporter)
@@ -763,3 +954,8 @@ def run_regressions(exporter, tracer):
     _psycopg_server_cursor_boundary(exporter)
     _psycopg2_commit_boundary(exporter)
     asyncio.run(_async_query_cancellation())
+    _pipeline_errors(exporter)
+    asyncio.run(_async_pipeline_errors(exporter))
+    if sys.version_info >= (3, 14):
+        _sync_template_queries(exporter)
+        asyncio.run(_async_template_queries(exporter))

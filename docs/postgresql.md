@@ -1,145 +1,76 @@
 # PostgreSQL trace correlation
 
-This experimental feature connects sampled PostgreSQL queries in Splunk Database
-Monitoring to the APM trace and database client span that executed them. It places
-the database client span's W3C `traceparent` in PostgreSQL's `application_name`.
-It sends only `traceparent`, without baggage or `tracestate`. Valid unsampled
-span contexts also work.
+This experimental feature lets Splunk Database Monitoring link PostgreSQL query
+samples to APM traces. It puts the database span's trace and span IDs in
+PostgreSQL's `application_name` while a query runs.
 
-## Database Monitoring prerequisites
+## Setup
 
-Configure a Collector with the PostgreSQL receiver, database monitoring
-permissions, and both `db.server.query_sample` and `db.server.top_query` enabled.
-Export database metrics and query events to Splunk Database Monitoring. Query
-events use `/v3/event` with the `X-splunk-instrumentation-library: dbmon` header.
-See the [PostgreSQL receiver setup instructions](https://help.splunk.com/en/splunk-observability-cloud/monitor-databases/get-data-in/configure-receivers/postgresql-receiver).
+Configure the [PostgreSQL receiver](https://help.splunk.com/en/splunk-observability-cloud/monitor-databases/get-data-in/configure-receivers/postgresql-receiver)
+with `db.server.query_sample` and `db.server.top_query` enabled. The receiver must
+read trace IDs from `application_name`; Splunk Collector 0.162.0 was tested.
+Send database metrics, query events, and application traces to the same Splunk
+organization. A query sample can link to a trace only if APM has that trace.
 
-The receiver must support extracting trace and span IDs from `application_name`.
-End-to-end correlation was validated with Splunk Collector 0.162.0. The minimum
-compatible Collector version has not yet been established for this feature.
-The application must also export traces to APM in the same organization; those
-traces can use a separate export path. A query sample can link to a trace only
-when that trace is available in APM.
-
-## Enablement
-
-The feature is disabled by default. In the same Python environment as your
-application, install `splunk-opentelemetry` and your application's PostgreSQL
-driver first. Then install instrumentation for the installed libraries:
+Install `splunk-opentelemetry` and your PostgreSQL driver in the application's
+Python environment. Then run:
 
 ```sh
 opentelemetry-bootstrap -a install
-```
-
-This command selects instrumentation versions that match the installed distro.
-For PostgreSQL, it installs:
-
-| Application driver | Instrumentation package |
-|---|---|
-| `psycopg` (Psycopg 3) | [opentelemetry-instrumentation-psycopg](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/psycopg/psycopg.html) |
-| `psycopg2` or `psycopg2-binary` | [opentelemetry-instrumentation-psycopg2](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/psycopg2/psycopg2.html) |
-
-Start the application with:
-
-```sh
 SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED=true \
 opentelemetry-instrument python app.py
 ```
 
-Python currently applies this setting only to PostgreSQL.
+The feature is off by default. The setting works when `OTEL_CONFIG_FILE` is unset.
+To turn it off, unset the setting and restart the application.
 
-The environment switch applies when `OTEL_CONFIG_FILE` is unset. Activation lasts
-for the process lifetime. To turn it off, unset the switch and restart.
+For manual instrumentation, call `init_splunk_otel()` before using
+`PsycopgInstrumentor` or `Psycopg2Instrumentor` and before creating connections.
+You can also enable it directly with
+`splunk_otel.postgresql.enable_postgresql_trace_context_propagation()`.
 
-Manual instrumentation must initialize the Splunk distro first with
-`init_splunk_otel()`, or call
-`splunk_otel.postgresql.enable_postgresql_trace_context_propagation()` before using
-`PsycopgInstrumentor` or `Psycopg2Instrumentor`. Enable the feature before creating
-instrumented connections and cursors.
+## Supported queries
 
-## Driver coverage
+The feature supports Psycopg 3 sync and async connections and Psycopg2 sync
+connections. Python 3.14 template queries require Psycopg 3.3 or later.
+Custom cursor methods must call the driver method through `super()`.
 
-The feature targets Psycopg 3 synchronous and asynchronous connections and
-Psycopg2 synchronous connections. Psycopg2 asynchronous connections pass through
-without trace propagation.
+The feature skips:
 
-Custom cursor methods must delegate through `super()` to the driver method.
-The feature sets context after those custom hooks, immediately before the driver
-executes the query. Direct calls to native driver methods can bypass this adapter.
+- Psycopg2 async connections and Psycopg 3 queries inside explicit pipelines.
+- Named/server cursors, fetch operations, and COPY.
+- SQL transaction commands, such as BEGIN, COMMIT, ROLLBACK, and SAVEPOINT.
+- SQL CALL, DO, and query batches. Any semicolon except one at the end causes
+  the query to be skipped, even inside a string or comment.
 
-Named/server cursors, cursor fetch operations, and COPY operations are outside
-this feature's automatic coverage. Named cursors can execute SQL later during
-fetch, after the execute span has ended, so this feature skips propagation for
-them in both drivers.
+Standalone `executemany` is supported. Queries in a pipeline still get normal
+tracing, but no correlation commands. Correlation resumes after the pipeline exits.
 
-SQL transaction-control statements (including BEGIN, COMMIT, ROLLBACK, and
-savepoint commands), SQL CALL, and DO run without propagation commands. Those
-statements can change transaction boundaries, making SET and cleanup unsafe.
-SQL batches also run without propagation. The adapter conservatively skips any
-statement with a semicolon other than a single trailing semicolon, including
-semicolons inside strings or comments. These calls still participate in the
-connection lock.
+## Connection changes and cost
 
-## Connection behavior
+Each correlated query adds two database commands: one to set `application_name`
+and one to reset it. The set command uses parameters, so each new trace ID does
+not create a separate `pg_stat_statements` entry.
 
-The feature uses a native driver cursor on the same connection for internal
-commands. It suppresses instrumentation and bypasses customer cursor hooks for
-those commands. A per-connection lock covers SET, driver execution, and cleanup.
-Customer hooks run outside this lock. Auxiliary queries from those hooks finish
-their own propagation before the outer query starts driver execution.
+After the query, the feature resets `application_name` to the connection's
+configured default. It does not restore a value the application set through SQL.
 
-Nested driver executions in the same thread or async task can reuse the lock.
-Cleanup restores the active outer driver's setting, including through skipped
-intermediate statements. Other threads and tasks must acquire the lock. Context
-copied into a delayed callback cannot grant ownership after its query has finished.
-Each correlated query sends two additional commands: SET before driver execution
-and context restoration afterward.
+Queries that use this feature share a lock on the connection. Raw cursors and
+queries with instrumentation suppressed can bypass the lock and see another
+query's trace IDs. Span duration includes lock waiting and the extra commands.
 
-This opt-in owns the connection's `application_name` during execution. Cleanup
-of the outermost query resets the setting to the connection's configured default
-before releasing the instrumentation lock, including when the query raises an
-exception. If instrumentation creates no valid new database span for an eligible
-statement, the feature sends SET DEFAULT before execution. It does not restore
-a value that the application previously set through SQL.
+The feature logs failures in its own commands. A failed command can abort the
+application's transaction or leave trace IDs in `application_name`. The
+application must handle recovery; the feature does not roll back transactions.
+Cleanup errors do not replace the application's query result or error.
 
-The lock only coordinates wrapped queries. Raw cursors and suppressed queries
-can bypass it and observe another query's context during execution. Failed
-cleanup can also leave trace context set until the application recovers the
-connection or rolls back its transaction.
+## Tests
 
-## Failure behavior and query duration
+Tested with PostgreSQL 16, Psycopg 3.3.6, Psycopg2 2.9.13, and OpenTelemetry
+instrumentation 0.66b1. Other versions have not been validated.
 
-The feature logs internal command failures and attempts the customer query. A
-failed setup command can leave a transaction aborted, so the customer query can
-also fail. Cleanup failures do not replace the customer query's result or error;
-they can still leave an otherwise successful transaction aborted. The feature
-does not roll back application transactions.
-
-The extra commands add latency. Database span duration and database operation
-duration metrics include lock waiting and the additional commands.
-
-## Instrumentation compatibility
-
-The Splunk adapter uses the installed OpenTelemetry driver instrumentors to
-create spans. It wraps shared DBAPI execution callbacks to capture the database
-span context, then adapts the Psycopg cursor factories to apply that context at
-driver execution. It also adapts Psycopg 3 manual connection instrumentation to
-include the application's custom cursor factory.
-
-These hooks use private instrumentation APIs. Activation checks their signatures
-and declines incompatible versions before installing wrappers. Regression tests
-must also check behavior when instrumentation dependencies change. The current
-validation covers instrumentation 0.66b1, Psycopg 3.3.6, Psycopg2 2.9.13, and
-PostgreSQL 16; it does not establish a broader supported version range.
-
-## Integration tests
-
-The PostgreSQL CI job uses `oteltest` with PostgreSQL 16 on Python 3.10 and 3.14.
-It covers automatic instrumentation, manual instrumentation, and disabled
-propagation. Query results must match the database client spans received over
-OTLP. The same job runs the transaction, custom cursor, and concurrency regressions.
-
-To run locally, start a test database, install `oteltest>=0.49.0`, and run:
+To run the integration tests, start PostgreSQL with `pg_stat_statements` preloaded
+and utility tracking enabled. Install `oteltest>=0.49.0`, then run:
 
 ```sh
 PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE=otel PGUSER=otel PGPASSWORD=otel \
@@ -148,6 +79,3 @@ oteltest tests/integration/postgresql/trace_context.py
 ```
 
 Repeat with `POSTGRESQL_TEST_INSTRUMENTATION=manual` and `disabled`.
-The test installs this checkout and both driver instrumentations in an isolated
-environment. It exports traces to the local `oteltest` receiver on port 4317.
-Collector ingestion and Database Monitoring UI checks are separate manual tests.
