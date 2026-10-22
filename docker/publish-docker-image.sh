@@ -149,6 +149,14 @@ build_and_publish_secureapp_docker_image() {
     .
 }
 
+sign_published_docker_image() {
+  local image="$1"
+
+  echo ">>> Signing the published operator Docker image ${image} ..."
+  artifact-ci sign docker "${image}"
+  artifact-ci verify docker "${image}" -u "${SIGNING_SERVICE_ADDR}"
+}
+
 login_to_quay_io() {
   echo ">>> Logging into quay.io ..."
   docker login -u "$QUAY_USERNAME" -p "$QUAY_PASSWORD" quay.io
@@ -160,4 +168,6 @@ check_package_available
 build_docker_images
 login_to_quay_io
 build_and_publish_standard_docker_image
+sign_published_docker_image "${repo}:${release_tag}"
 build_and_publish_secureapp_docker_image
+sign_published_docker_image "${repo}:${release_tag}-secureapp"
