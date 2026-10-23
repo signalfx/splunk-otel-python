@@ -28,12 +28,13 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 _logger = logging.getLogger(__name__)
 _enable_lock = threading.Lock()
 _enabled = False
+_CURSOR_AND_QUERY_METHOD_ARGUMENTS = 2
 _QUERY_START = re.compile(r"^(SELECT|INSERT|UPDATE|DELETE|REPLACE|WITH|SHOW|EXPLAIN|DESCRIBE|DESC)\s", re.IGNORECASE)
 
 
 def enable_mysql_trace_context_propagation() -> bool:
     """Enable experimental correlation for built-in Connector/Python buffered cursors."""
-    global _enabled
+    global _enabled  # noqa: PLW0603 - Process-lifetime activation is serialized by _enable_lock.
 
     with _enable_lock:
         if _enabled:
@@ -64,35 +65,34 @@ def enable_mysql_trace_context_propagation() -> bool:
 
 def _load_connector_cursor_types(connector):
     cursors = import_module("mysql.connector.cursor")
-    cursor_types = {
-        cursor_type: (connector.MySQLConnection, "have_next_result")
-        for cursor_type in (
+    cursor_types = dict.fromkeys(
+        (
             cursors.MySQLCursorBuffered,
             cursors.MySQLCursorBufferedRaw,
             cursors.MySQLCursorBufferedDict,
-        )
-    }
+        ),
+        (connector.MySQLConnection, "have_next_result"),
+    )
     if connector.HAVE_CEXT:
         cext = import_module("mysql.connector.cursor_cext")
         cursor_types.update(
-            {
-                cursor_type: (connector.CMySQLConnection, "more_results")
-                for cursor_type in (
+            dict.fromkeys(
+                (
                     cext.CMySQLCursorBuffered,
                     cext.CMySQLCursorBufferedRaw,
                     cext.CMySQLCursorBufferedDict,
-                )
-            }
+                ),
+                (connector.CMySQLConnection, "more_results"),
+            )
         )
     return cursor_types
 
 
 def _execute_with_mysql_trace_context(wrapped, cursor_tracer, args, kwargs, *, connector, cursor_types):
-    if len(args) < 2:
+    if len(args) < _CURSOR_AND_QUERY_METHOD_ARGUMENTS:
         return wrapped(*args, **kwargs)
     cursor, query_method, *query_args = args
-    # The pinned DBAPI callback has no public extension hook.
-    integration = cursor_tracer._db_api_integration
+    integration = cursor_tracer._db_api_integration  # noqa: SLF001 - The DBAPI callback has no public integration accessor.
     if (
         integration.database_system != "mysql"
         or integration.connect_module is not connector
@@ -105,7 +105,7 @@ def _execute_with_mysql_trace_context(wrapped, cursor_tracer, args, kwargs, *, c
     connection_type, pending_attribute = cursor_types[type(cursor)]
     try:
         # Connector stores a weak proxy; get_self() returns the physical connection.
-        connection = cursor._connection.get_self()
+        connection = cursor._connection.get_self()  # noqa: SLF001 - Connector cursors have no public connection accessor.
     except (AttributeError, ReferenceError):
         return wrapped(*args, **kwargs)
     if type(connection) is not connection_type:

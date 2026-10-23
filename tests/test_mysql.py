@@ -39,7 +39,8 @@ class _FakeConnection:
 
     def fail_if_requested(self, phase, operation):
         if (phase, operation) == (self.failure_phase, self.failure_operation):
-            raise RuntimeError("internal failure")
+            message = "internal failure"
+            raise RuntimeError(message)
 
 
 class _FakeInternalCursor:
@@ -116,7 +117,7 @@ def test_internal_failure_does_not_replace_query_result_or_error(failure_phase, 
     database_context = SpanContext(0x123, 0x456, False)
 
     if query_fails:
-        with pytest.raises(ValueError) as caught:
+        with pytest.raises(ValueError, match="query failure") as caught:
             execute_with_trace_context(connection, query.execute, database_context, "SELECT 1")
         assert caught.value is query_error
     else:
@@ -134,7 +135,7 @@ def test_query_error_clears_context_and_closes_internal_cursors():
     error = ValueError("query failure")
     query = _FakeQuery(connection, error=error)
 
-    with pytest.raises(ValueError) as caught:
+    with pytest.raises(ValueError, match="query failure") as caught:
         execute_with_trace_context(connection, query.execute, SpanContext(0x123, 0x456, False), "SELECT 1")
 
     assert caught.value is error

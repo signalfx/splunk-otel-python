@@ -16,9 +16,6 @@ import os
 
 import pytest
 
-mysql = pytest.importorskip("mysql.connector")
-instrumentation = pytest.importorskip("opentelemetry.instrumentation.mysql")
-
 from opentelemetry.instrumentation.utils import suppress_instrumentation
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -27,6 +24,9 @@ from opentelemetry.sdk.trace.sampling import ALWAYS_OFF
 from opentelemetry.trace import NoOpTracerProvider, SpanKind
 
 from splunk_otel.mysql import enable_mysql_trace_context_propagation
+
+mysql = pytest.importorskip("mysql.connector")
+instrumentation = pytest.importorskip("opentelemetry.instrumentation.mysql")
 
 pytestmark = pytest.mark.manual
 
