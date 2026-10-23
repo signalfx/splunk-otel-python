@@ -507,6 +507,89 @@ async def _async_nested_cursor_queries(exporter):
                     assert (await cursor.fetchone())[0] == _DEFAULT_APPLICATION_NAME
 
 
+def _transaction_configuration_statements(driver):
+    sql = import_module(f"{driver.__name__}.sql")
+    return (
+        ("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE", "transaction_isolation", "serializable"),
+        ("SET TRANSACTION READ ONLY", "transaction_read_only", "on"),
+        ("SET TRANSACTION DEFERRABLE", "transaction_deferrable", "on"),
+        ("SET transaction_isolation = 'serializable'", "transaction_isolation", "serializable"),
+        (b"SET SESSION transaction_isolation TO 'repeatable read'", "transaction_isolation", "repeatable read"),
+        (
+            sql.SQL("set /* outer /* nested */ comment */ local \"transaction_isolation\" to 'serializable'"),
+            "transaction_isolation",
+            "serializable",
+        ),
+        ("SET LOCAL transaction_read_only = on", "transaction_read_only", "on"),
+        ("SET SESSION transaction_deferrable = on", "transaction_deferrable", "on"),
+    )
+
+
+def _transaction_configuration(driver, exporter):
+    sql = import_module(f"{driver.__name__}.sql")
+    for autocommit in (False, True):
+        with driver.connect(application_name=_DEFAULT_APPLICATION_NAME) as connection, connection.cursor() as cursor:
+            connection.autocommit = autocommit
+            for statement, setting, expected in _transaction_configuration_statements(driver):
+                cursor.execute("BEGIN")
+                cursor.execute(statement)
+                exporter.clear()
+                cursor.execute("SELECT current_setting(%s), current_setting('application_name')", (setting,))
+                value, application_name = cursor.fetchone()
+                assert value == expected
+                _assert_database_span(exporter, application_name)
+                connection.rollback()
+
+            with driver.connect() as source, source.cursor() as source_cursor:
+                source_cursor.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
+                source_cursor.execute("SELECT pg_export_snapshot(), pg_current_snapshot()::text")
+                snapshot_id, snapshot = source_cursor.fetchone()
+                cursor.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
+                cursor.execute(sql.SQL("SET TRANSACTION SNAPSHOT {}").format(sql.Literal(snapshot_id)))
+                exporter.clear()
+                cursor.execute("SELECT pg_current_snapshot()::text, current_setting('application_name')")
+                imported_snapshot, application_name = cursor.fetchone()
+                assert imported_snapshot == snapshot
+                _assert_database_span(exporter, application_name)
+                connection.rollback()
+
+
+async def _async_transaction_configuration(exporter):
+    import psycopg
+
+    for autocommit in (False, True):
+        async with (
+            await psycopg.AsyncConnection.connect(
+                autocommit=autocommit, application_name=_DEFAULT_APPLICATION_NAME
+            ) as connection,
+            connection.cursor() as cursor,
+        ):
+            for statement, setting, expected in _transaction_configuration_statements(psycopg):
+                await cursor.execute("BEGIN")
+                await cursor.execute(statement)
+                exporter.clear()
+                await cursor.execute("SELECT current_setting(%s), current_setting('application_name')", (setting,))
+                value, application_name = await cursor.fetchone()
+                assert value == expected
+                _assert_database_span(exporter, application_name)
+                await connection.rollback()
+
+            async with await psycopg.AsyncConnection.connect() as source, source.cursor() as source_cursor:
+                await source_cursor.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
+                await source_cursor.execute("SELECT pg_export_snapshot(), pg_current_snapshot()::text")
+                snapshot_id, snapshot = await source_cursor.fetchone()
+                await cursor.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
+                await cursor.execute(
+                    psycopg.sql.SQL("SET TRANSACTION SNAPSHOT {}").format(psycopg.sql.Literal(snapshot_id))
+                )
+                exporter.clear()
+                await cursor.execute("SELECT pg_current_snapshot()::text, current_setting('application_name')")
+                imported_snapshot, application_name = await cursor.fetchone()
+                assert imported_snapshot == snapshot
+                _assert_database_span(exporter, application_name)
+                await connection.rollback()
+
+
 def _transaction_sql(driver, exporter):
     sql = import_module(f"{driver.__name__}.sql")
     statements = (
@@ -940,6 +1023,7 @@ def run_regressions(exporter, tracer):
         _failed_cleanup_command(driver)
         _nested_cursor_queries(driver, exporter)
         _transaction_sql(driver, exporter)
+        _transaction_configuration(driver, exporter)
         _parenthesized_queries(driver, exporter)
         _skipped_middle_query(driver, exporter)
         _custom_commit_before_query(driver, exporter)
@@ -947,6 +1031,7 @@ def run_regressions(exporter, tracer):
     asyncio.run(_async_queries(exporter, tracer))
     asyncio.run(_async_nested_cursor_queries(exporter))
     asyncio.run(_async_transaction_sql(exporter))
+    asyncio.run(_async_transaction_configuration(exporter))
     asyncio.run(_async_driver_regressions(exporter))
     _custom_cursor(exporter)
     _manual_custom_cursor(exporter)

@@ -70,6 +70,7 @@ class FakeConnection:
         self.application_name = "customer-app"
         self.calls = []
         self.cursors = []
+        self.info = SimpleNamespace(pipeline_status=0)
         self.before_execute = lambda _query: None
 
     def cursor(self):
@@ -111,6 +112,14 @@ class _FakeDriverCursor:
     def close(self):
         self.closed = True
 
+    def executemany(self, query, parameters_list):
+        self.connection.info.pipeline_status = 1
+        try:
+            for parameters in parameters_list:
+                _FakeDriverCursor.execute(self, query, parameters)
+        finally:
+            self.connection.info.pipeline_status = 0
+
     def callproc(self, name):
         return _FakeDriverCursor.execute(self, name)
 
@@ -138,6 +147,14 @@ class _FakeAsyncDriverCursor:
 
     async def close(self):
         self.closed = True
+
+    async def executemany(self, query, parameters_list):
+        self.connection.info.pipeline_status = 1
+        try:
+            for parameters in parameters_list:
+                await _FakeAsyncDriverCursor.execute(self, query, parameters)
+        finally:
+            self.connection.info.pipeline_status = 0
 
 
 def _fake_internal_cursor_factory(connection):
@@ -381,6 +398,19 @@ def test_async_custom_cursor_can_await_auxiliary_task_before_outer_query():
         "ROLLBACK TO SAVEPOINT customer_savepoint",
         "PREPARE TRANSACTION 'customer_transaction'",
         "COMMIT PREPARED 'customer_transaction'",
+        "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+        "SET TRANSACTION READ ONLY",
+        "SET TRANSACTION DEFERRABLE",
+        "SET TRANSACTION SNAPSHOT '00000003-0000001B-1'",
+        "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+        "SET transaction_isolation = 'serializable'",
+        "SET SESSION transaction_isolation TO 'repeatable read'",
+        "SET LOCAL \"transaction_isolation\" = 'serializable'",
+        "SET transaction_read_only = on",
+        "SET LOCAL transaction_deferrable = on",
+        "-- customer comment\n SET /* outer /* nested */ comment */ TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+        "set /* setting */ local /* name */ \"transaction_isolation\" to 'serializable';",
+        b"SET TRANSACTION ISOLATION LEVEL SERIALIZABLE",
         "CALL customer_procedure()",
         "DO $$ BEGIN COMMIT; END $$",
         "SELECT 1; COMMIT",
@@ -416,9 +446,18 @@ def test_transaction_control_and_batches_send_only_customer_statement(statement,
 
 
 @pytest.mark.parametrize(
-    "statement", ["SELECT 1;", "-- comment\nSELECT 1", "/* outer /* nested */ comment */ SELECT 1"]
+    "statement",
+    [
+        "SELECT 1;",
+        "-- comment\nSELECT 1",
+        "/* outer /* nested */ comment */ SELECT 1",
+        "SET statement_timeout = '1s'",
+        "SET LOCAL statement_timeout = '1s'",
+        "SET SESSION \"statement_timeout\" = '1s'",
+        "SET \"myapp.transaction_isolation\" = 'serializable'",
+    ],
 )
-def test_data_statement_after_comments_propagates_context(statement):
+def test_statement_without_transaction_configuration_propagates_context(statement):
     connection = FakeConnection()
     cursor = FakePsycopgCursor(connection)
     assert (
@@ -677,8 +716,9 @@ def test_async_query_sets_database_span_traceparent():
     ]
 
 
+@pytest.mark.parametrize("first_method", ["execute", "executemany"])
 @pytest.mark.parametrize("second_query", ["SELECT second", "COMMIT"])
-def test_shared_connection_keeps_set_and_query_together(monkeypatch, second_query):
+def test_shared_connection_keeps_set_and_query_together(monkeypatch, first_method, second_query):
     connection = FakeConnection()
     first_cursor = FakePsycopgCursor(connection)
     second_cursor = FakePsycopgCursor(connection)
@@ -708,15 +748,19 @@ def test_shared_connection_keeps_set_and_query_together(monkeypatch, second_quer
 
     connection.before_execute = before_execute
 
-    def run(cursor, query, span_context):
-        def wrapped(_cursor, query_method, *args, **kwargs):
+    def run(cursor, method, query, span_context):
+        def _fake_traced_execution(_cursor, query_method, *args, **kwargs):
             with trace.use_span(NonRecordingSpan(span_context)):
                 return query_method(*args, **kwargs)
 
-        _execute_with_postgresql_trace_context(wrapped, None, (cursor, cursor.execute, query), {})
+        args = (cursor, getattr(cursor, method), query)
+        if method == "executemany":
+            args += ([()],)
+        _execute_with_postgresql_trace_context(_fake_traced_execution, None, args, {})
 
-    first_thread = threading.Thread(target=run, args=(first_cursor, "SELECT first", DATABASE_CONTEXT))
-    second_thread = threading.Thread(target=run, args=(second_cursor, second_query, SECOND_DATABASE_CONTEXT))
+    first_thread = threading.Thread(target=run, args=(first_cursor, first_method, "SELECT first", DATABASE_CONTEXT))
+    second_thread = threading.Thread(target=run, args=(second_cursor, "execute", second_query, SECOND_DATABASE_CONTEXT))
+    first_call = ("SELECT first", ()) if first_method == "executemany" else "SELECT first"
 
     try:
         first_thread.start()
@@ -725,7 +769,7 @@ def test_shared_connection_keeps_set_and_query_together(monkeypatch, second_quer
         assert second_query_waiting.wait(timeout=1)
         assert connection.calls == [
             ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
-            "SELECT first",
+            first_call,
         ]
     finally:
         release_first_query.set()
@@ -745,7 +789,7 @@ def test_shared_connection_keeps_set_and_query_together(monkeypatch, second_quer
     )
     assert connection.calls == [
         ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
-        "SELECT first",
+        first_call,
         "SET application_name = DEFAULT",
         *second_calls,
     ]
@@ -1040,8 +1084,9 @@ def test_failed_cleanup_does_not_replace_customer_result_or_exception(query_fail
     assert "Failed to set PostgreSQL application_name" in caplog.text
 
 
+@pytest.mark.parametrize("first_method", ["execute", "executemany"])
 @pytest.mark.parametrize("second_query", ["SELECT second", "COMMIT"])
-def test_async_shared_connection_keeps_set_and_query_together(second_query):
+def test_async_shared_connection_keeps_set_and_query_together(first_method, second_query):
     async def run():
         connection = FakeAsyncConnection()
         first_query_started = asyncio.Event()
@@ -1062,11 +1107,15 @@ def test_async_shared_connection_keeps_set_and_query_together(second_query):
 
         first_cursor = FakeAsyncPsycopgCursor(connection)
         second_cursor = FakeAsyncPsycopgCursor(connection)
+        first_args = (first_cursor, getattr(first_cursor, first_method), "SELECT first")
+        if first_method == "executemany":
+            first_args += ([()],)
+        first_call = ("SELECT first", ()) if first_method == "executemany" else "SELECT first"
         first = asyncio.create_task(
             _execute_with_postgresql_trace_context_async(
                 _fake_traced_execution_async,
                 None,
-                (first_cursor, first_cursor.execute, "SELECT first"),
+                first_args,
                 {},
             )
         )
@@ -1084,7 +1133,7 @@ def test_async_shared_connection_keeps_set_and_query_together(second_query):
             await asyncio.wait_for(second_query_started.wait(), timeout=1)
             assert connection.calls == [
                 ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
-                "SELECT first",
+                first_call,
             ]
         finally:
             release_first_query.set()
@@ -1100,7 +1149,7 @@ def test_async_shared_connection_keeps_set_and_query_together(second_query):
         )
         assert connection.calls == [
             ("SELECT pg_catalog.set_config('application_name', %s, false)", (TRACEPARENT,)),
-            "SELECT first",
+            first_call,
             "SET application_name = DEFAULT",
             *second_calls,
         ]

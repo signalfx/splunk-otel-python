@@ -49,6 +49,9 @@ _CURSOR_AND_QUERY_METHOD_ARGUMENTS = 2
 _TRANSACTION_OPERATIONS = frozenset(
     {"BEGIN", "START", "COMMIT", "END", "ROLLBACK", "ABORT", "SAVEPOINT", "RELEASE", "PREPARE", "CALL", "DO"}
 )
+_TRANSACTION_SETTINGS = frozenset(
+    {"TRANSACTION", "CHARACTERISTICS", "TRANSACTION_ISOLATION", "TRANSACTION_READ_ONLY", "TRANSACTION_DEFERRABLE"}
+)
 
 
 class _Lifetime:
@@ -372,10 +375,10 @@ def _execute_driver(
     lease = _live_span_lease(cursor, owner)
     if not is_instrumentation_enabled() or lease is None:
         return query_method(*args, **kwargs)
-    propagate = _can_propagate_statement(cursor, query_method, args, kwargs)
     parent = _parent_query(cursor.connection, owner)
     lock = nullcontext() if parent is not None else _get_sync_connection_lock(cursor.connection)
     with lock:
+        propagate = _can_propagate_statement(cursor, query_method, args, kwargs)
         traceparent = lease.traceparent if propagate else parent.traceparent if parent is not None else None
         with _active_query_context(cursor.connection, owner, traceparent):
             return _execute_with_application_name(
@@ -402,10 +405,10 @@ async def _execute_driver_async(
     lease = _live_span_lease(cursor, owner)
     if not is_instrumentation_enabled() or lease is None:
         return await query_method(*args, **kwargs)
-    propagate = _can_propagate_statement(cursor, query_method, args, kwargs)
     parent = _parent_query(cursor.connection, owner)
     lock = nullcontext() if parent is not None else _get_async_connection_lock(cursor.connection)
     async with lock:
+        propagate = _can_propagate_statement(cursor, query_method, args, kwargs)
         traceparent = lease.traceparent if propagate else parent.traceparent if parent is not None else None
         with _active_query_context(cursor.connection, owner, traceparent):
             return await _execute_with_application_name_async(
@@ -516,7 +519,23 @@ def _can_propagate_statement(cursor, query_method, args, kwargs) -> bool:
     if statement.startswith("("):
         return True
     operation = re.match(r"[a-z_][a-z_0-9$]*", statement, re.IGNORECASE)
-    return operation is not None and operation[0].upper() not in _TRANSACTION_OPERATIONS
+    if operation is None or operation[0].upper() in _TRANSACTION_OPERATIONS:
+        return False
+    # Transaction settings and snapshot imports must precede the first SELECT.
+    return operation[0].upper() != "SET" or not _sets_transaction_characteristics(statement[operation.end() :])
+
+
+def _sets_transaction_characteristics(statement: str) -> bool:
+    for _ in range(2):
+        statement = _strip_leading_comments(statement)
+        setting = re.match(r'[a-z_][a-z_0-9$]*|"[^"]*"', statement, re.IGNORECASE)
+        if setting is None:
+            return False
+        name = setting[0].strip('"').upper()
+        if name not in {"SESSION", "LOCAL"}:
+            return name in _TRANSACTION_SETTINGS
+        statement = statement[setting.end() :]
+    return False
 
 
 def _template_for_statement_check(template: Template) -> Template:

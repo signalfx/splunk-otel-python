@@ -40,6 +40,9 @@ The feature skips:
 - Psycopg2 async connections and Psycopg 3 queries inside explicit pipelines.
 - Named/server cursors, fetch operations, and COPY.
 - SQL transaction commands, such as BEGIN, COMMIT, ROLLBACK, and SAVEPOINT.
+- Transaction settings, such as SET TRANSACTION (including SNAPSHOT),
+  SET SESSION CHARACTERISTICS, and SET [SESSION | LOCAL] transaction_isolation,
+  transaction_read_only, or transaction_deferrable.
 - SQL CALL, DO, and query batches. Any semicolon except one at the end causes
   the query to be skipped, even inside a string or comment.
 
