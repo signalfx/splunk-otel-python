@@ -15,7 +15,7 @@
 import pytest
 
 from splunk_otel.env import Env
-from splunk_otel.runtime import configure_logging_instrumentation
+from splunk_otel.runtime import configure_logging_instrumentation, configure_postgresql_trace_context_propagation
 
 
 class _FakeLoggingInstrumentor:
@@ -43,6 +43,20 @@ def test_logging_instrumentation_respects_disabled_instrumentations(disabled_ins
 def test_logging_instrumentation_is_enabled_when_not_disabled():
     logging_instrumentor = _configure_logging({"OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "requests,flask"})
     assert logging_instrumentor.instrument_calls == 1
+
+
+@pytest.mark.parametrize(("value", "expected_calls"), [(None, []), ("false", []), ("true", [True])])
+def test_postgresql_trace_context_propagation_requires_opt_in(monkeypatch, value, expected_calls):
+    enable_calls = []
+    monkeypatch.setattr(
+        "splunk_otel.runtime.enable_postgresql_trace_context_propagation",
+        lambda: enable_calls.append(True),
+    )
+    env_store = {} if value is None else {"SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED": value}
+
+    configure_postgresql_trace_context_propagation(Env(env_store))
+
+    assert enable_calls == expected_calls
 
 
 def _configure_logging(env_store):
