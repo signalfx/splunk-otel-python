@@ -14,10 +14,11 @@ variant:
 quay.io/signalfx/splunk-otel-instrumentation-python:<tag>-secureapp
 ```
 
-The SecureApp image is intended for Python application containers running Python
-3.10 or later. The auto-instrumentation image contains native Python
-dependencies, so the application container platform must match the image
-platform.
+The SecureApp image supports CPython 3.10–3.14 on glibc-based Linux. It selects
+the bundled dependencies for the application's Python minor version at startup.
+The application container CPU architecture must match the image architecture
+(AMD64 or ARM64). See the [image documentation](auto-instrumentation-images.md) for
+limitations and compatibility tests.
 
 ## What SecureApp Sends
 
