@@ -14,6 +14,10 @@ that matches the machine running the pod.
 Both variants support **CPython 3.10–3.14** on glibc-based Linux. Each image
 includes dependencies for all supported Python minor versions.
 
+Each supported Python version has its own dependency directory. Identical files
+share storage through relative symlinks, reducing the image and copied payload
+size. Files that differ between versions stay separate.
+
 The application and init image must use the same CPU architecture. Alpine/musl,
 PyPy, free-threaded CPython, and Python versions outside this range are not
 supported by these images.
