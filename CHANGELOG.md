@@ -1,9 +1,15 @@
 # Changelog
 
 ## Unreleased
+
+## 2.13.3 - 2026-10-29
 - Require Requests 2.33.0 or later to prevent installing vulnerable versions
+- Require wrapt 2.5.1 or later
+- Add PostgreSQL query-to-trace correlation
 - Bundle dependencies for each CPython minor version from 3.10 through 3.14 in the standard and SecureApp auto-instrumentation images on AMD64 and ARM64
 - Load declarative-configuration dependencies only when file configuration is used
+- Sign and verify the standard and SecureApp auto-instrumentation images during release publishing
+- Accept PyPI package availability on the final release-publishing retry
 
 ## 2.13.2 - 2026-10-13
 - Upgrade the OpAMP client to 0.4b0 and remove the direct `requests` dependency workaround
