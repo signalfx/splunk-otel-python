@@ -49,3 +49,92 @@ jobs:
 
     - name: Run oteltests
       run: oteltest tests/integration/*.py
+
+  image-compatibility:
+    name: Init image (${{ matrix.os }}, ${{ matrix.variant }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        variant: [standard, secureapp]
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+    - name: Build the checkout wheel
+      run: |
+        python3 -m pip wheel --no-deps --wheel-dir docker .
+        python3 - <<'PY'
+        from pathlib import Path
+        wheel = next(Path("docker").glob("splunk_opentelemetry-*.whl"))
+        requirements = Path("docker/requirements.txt")
+        lines = requirements.read_text().splitlines()
+        lines[0] = f"./{wheel.name}"
+        requirements.write_text("\n".join(lines) + "\n")
+        PY
+    - name: Build and test the copied image payload
+      env:
+        VARIANT: ${{ matrix.variant }}
+      run: |
+        platform="linux/$(test "$(uname -m)" = aarch64 && echo arm64 || echo amd64)"
+        build_args=()
+        test_args=()
+        if [ "$VARIANT" = secureapp ]; then
+          build_args+=(--build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true)
+          test_args+=(--secureapp)
+        fi
+        docker buildx build --platform "$platform" --load -t python-init:test "${build_args[@]}" docker
+        python3 tests/smoke/test-image-compatibility.py --image python-init:test --platform "$platform" "${test_args[@]}"
+
+  postgresql-integration:
+    name: PostgreSQL oteltest (Python ${{ matrix.python-version }}, ${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [auto, manual, disabled]
+        python-version: ['3.10', '3.14']
+    env:
+      POSTGRESQL_TEST_INSTRUMENTATION: ${{ matrix.mode }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: otel
+          POSTGRES_USER: otel
+          POSTGRES_PASSWORD: otel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U otel -d otel"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install oteltest
+      run: pip install 'oteltest>=0.49.0'
+
+    - name: Enable PostgreSQL query statistics
+      env:
+        POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+      run: |
+        docker exec "$POSTGRES_CONTAINER" psql -U otel -d otel -c "ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements'"
+        docker restart "$POSTGRES_CONTAINER"
+        for attempt in {1..30}; do
+          if docker exec "$POSTGRES_CONTAINER" pg_isready -U otel -d otel; then
+            exit 0
+          fi
+          sleep 1
+        done
+        exit 1
+
+    - name: Run PostgreSQL oteltest
+      timeout-minutes: 5
+      run: oteltest tests/integration/postgresql/trace_context.py

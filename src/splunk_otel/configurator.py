@@ -12,16 +12,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import logging
+from __future__ import annotations
 
-from opentelemetry.configuration import load_config_file
-from opentelemetry.configuration._logger_provider import configure_logger_provider
-from opentelemetry.configuration._meter_provider import configure_meter_provider
-from opentelemetry.configuration._propagator import configure_propagator
-from opentelemetry.configuration._resource import create_resource
-from opentelemetry.configuration._tracer_provider import configure_tracer_provider
-from opentelemetry.configuration.instrumentation import configure_instrumentation
-from opentelemetry.configuration.models import OpenTelemetryConfiguration, Resource as ResourceConfig
+import logging
+from typing import TYPE_CHECKING
+
 from opentelemetry.instrumentation.propagators import set_global_response_propagator
 from opentelemetry.sdk._configuration import _OTelSDKConfigurator
 from opentelemetry.sdk.environment_variables import OTEL_CONFIG_FILE
@@ -36,7 +31,11 @@ from splunk_otel.propagator import ServerTimingResponsePropagator
 from splunk_otel.runtime import (
     _SERVER_TIMING_DEFAULT_ENABLED,
     configure_logging_instrumentation,
+    configure_postgresql_trace_context_propagation,
 )
+
+if TYPE_CHECKING:
+    from opentelemetry.configuration.models import OpenTelemetryConfiguration, Resource as ResourceConfig
 
 _logger = logging.getLogger(__name__)
 
@@ -68,11 +67,19 @@ class SplunkConfigurator(_OTelSDKConfigurator):
         # A later change will configure profiling and callgraphs from OTEL_CONFIG_FILE.
         # For now, start them from environment variables only when no config file is set.
         if not config_file:
+            configure_postgresql_trace_context_propagation(env)
             _start_profiling_if_enabled()
             _configure_callgraphs_if_enabled()
 
 
 def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfiguration | None:
+    from opentelemetry.configuration import load_config_file
+    from opentelemetry.configuration._logger_provider import configure_logger_provider
+    from opentelemetry.configuration._meter_provider import configure_meter_provider
+    from opentelemetry.configuration._propagator import configure_propagator
+    from opentelemetry.configuration._tracer_provider import configure_tracer_provider
+    from opentelemetry.configuration.instrumentation import configure_instrumentation
+
     if kwargs:
         _logger.warning(
             "%s is set; ignoring configurator kwargs: %s",
@@ -111,6 +118,8 @@ def _declarative_server_timing_enabled(config: OpenTelemetryConfiguration) -> bo
 
 
 def _create_declarative_resource(resource_config: ResourceConfig | None) -> Resource:
+    from opentelemetry.configuration._resource import create_resource
+
     resource = create_resource(resource_config)
     attributes = {
         "telemetry.distro.name": _DISTRO_NAME,
