@@ -57,16 +57,14 @@ check_package_available() {
   for i in $(seq 1 $max_attempts); do
       if curl --silent --fail "https://pypi.org/pypi/$package_name/$package_version/json" > /dev/null; then
           echo "Package $package_name==$package_version is available on PyPI."
-          break
+          return 0
       fi
       echo "Attempt $i: Package not yet available. Retrying in $sleep_seconds seconds..."
       sleep $sleep_seconds
   done
 
-  if [ "$i" -eq "$max_attempts" ]; then
-      echo "ERROR: Package $package_name==$package_version was not found on PyPI after $max_attempts attempts."
-      exit 1
-  fi
+  echo "ERROR: Package $package_name==$package_version was not found on PyPI after $max_attempts attempts."
+  exit 1
 }
 
 check_about_version() {
