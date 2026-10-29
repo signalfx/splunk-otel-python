@@ -1,23 +1,13 @@
 # Overview
 
 This directory contains a Dockerfile and an `example-instrumentation.yaml` file for creating a
-Docker init container that can be used to auto-instrumetation your Python app via the kubernetes
+Docker init container that can be used to auto-instrument your Python app via the Kubernetes
 [OTel Operator](https://github.com/open-telemetry/opentelemetry-operator).
 
-Release publishing creates two Python auto-instrumentation images:
-
-- `quay.io/signalfx/splunk-otel-instrumentation-python:<tag>`
-- `quay.io/signalfx/splunk-otel-instrumentation-python:<tag>-secureapp`
-
-Both images are published for `linux/amd64` and `linux/arm64` under the same
-tags. Container runtimes select the image that matches the node platform.
-
-Use the `<tag>-secureapp` image when the init container should also include the
-Cisco SecureApp Python agent. The SecureApp image is intended for Python
-application containers running Python 3.10 or later. SecureApp dependency logs
-require collector routing to the SecureApp event endpoint; see
-[`docs/secureapp.md`](../docs/secureapp.md) and
-[`docs/examples/secureapp-collector-config.yaml`](../docs/examples/secureapp-collector-config.yaml).
+The standard and SecureApp init images support CPython 3.10–3.14 on glibc-based
+Linux for AMD64 and ARM64. Each image tag includes dependencies for all supported
+Python minor versions. See [auto-instrumentation images](../docs/auto-instrumentation-images.md)
+for image tags, packaging, limitations, and build and test instructions.
 
 # Installation
 

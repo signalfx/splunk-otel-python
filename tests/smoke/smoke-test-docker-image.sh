@@ -13,6 +13,7 @@ set -euo pipefail
 #   SPLUNK_ACCESS_TOKEN=<token> SPLUNK_REALM=eu0 ./tests/smoke/smoke-test-docker-image.sh
 #   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --image <image:tag>
 #   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --platform linux/arm64
+#   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --python-version 3.13
 #   SPLUNK_ACCESS_TOKEN=<token> ./tests/smoke/smoke-test-docker-image.sh --secureapp
 #
 # The --secureapp mode verifies the SecureApp image variant can populate
@@ -27,6 +28,7 @@ SECUREAPP_IMAGE="quay.io/signalfx/splunk-otel-instrumentation-python:latest-secu
 IMAGE="${DEFAULT_IMAGE}"
 PLATFORM="linux/amd64"
 VERIFY_SECUREAPP=false
+PYTHON_VERSION="3.11"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -35,6 +37,7 @@ while [[ $# -gt 0 ]]; do
         --image)   IMAGE="$2"; shift 2 ;;
         --platform=*) PLATFORM="${1#--platform=}"; shift ;;
         --platform)   PLATFORM="$2"; shift 2 ;;
+        --python-version) PYTHON_VERSION="$2"; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -69,14 +72,13 @@ if [ "${VERIFY_SECUREAPP}" = "true" ]; then
 fi
 docker run --rm --platform "$PLATFORM" \
     -v "${VOLUME}:/autoinstrumentation:ro" \
-    -e PYTHONPATH=/autoinstrumentation \
+    -e PYTHONPATH=/autoinstrumentation/opentelemetry/instrumentation/auto_instrumentation:/autoinstrumentation \
     -e OTEL_SERVICE_NAME="${SERVICE_NAME}" \
     -e SPLUNK_ACCESS_TOKEN="${SPLUNK_ACCESS_TOKEN}" \
     -e SPLUNK_REALM="${REALM}" \
     -e OTEL_BSP_SCHEDULE_DELAY=200 \
     -e VERIFY_SECUREAPP="${VERIFY_SECUREAPP}" \
-    python:3.11-slim \
-    /autoinstrumentation/bin/opentelemetry-instrument \
+    "python:${PYTHON_VERSION}-slim-bookworm" \
     python -c "
 import importlib.metadata
 import os

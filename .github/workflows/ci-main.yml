@@ -50,6 +50,41 @@ jobs:
     - name: Run oteltests
       run: oteltest tests/integration/*.py
 
+  image-compatibility:
+    name: Init image (${{ matrix.os }}, ${{ matrix.variant }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        variant: [standard, secureapp]
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+    - name: Build the checkout wheel
+      run: |
+        python3 -m pip wheel --no-deps --wheel-dir docker .
+        python3 - <<'PY'
+        from pathlib import Path
+        wheel = next(Path("docker").glob("splunk_opentelemetry-*.whl"))
+        requirements = Path("docker/requirements.txt")
+        lines = requirements.read_text().splitlines()
+        lines[0] = f"./{wheel.name}"
+        requirements.write_text("\n".join(lines) + "\n")
+        PY
+    - name: Build and test the copied image payload
+      env:
+        VARIANT: ${{ matrix.variant }}
+      run: |
+        platform="linux/$(test "$(uname -m)" = aarch64 && echo arm64 || echo amd64)"
+        build_args=()
+        test_args=()
+        if [ "$VARIANT" = secureapp ]; then
+          build_args+=(--build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true)
+          test_args+=(--secureapp)
+        fi
+        docker buildx build --platform "$platform" --load -t python-init:test "${build_args[@]}" docker
+        python3 tests/smoke/test-image-compatibility.py --image python-init:test --platform "$platform" "${test_args[@]}"
+
   postgresql-integration:
     name: PostgreSQL oteltest (Python ${{ matrix.python-version }}, ${{ matrix.mode }})
     runs-on: ubuntu-latest
