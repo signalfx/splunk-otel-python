@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Upgrade the OpAMP client to 0.5b0
 
 ## 2.13.3 - 2026-10-29
 - Require Requests 2.33.0 or later to prevent installing vulnerable versions

@@ -54,7 +54,6 @@ def main():
         "yaml._yaml",
         "charset_normalizer.cd",
         "charset_normalizer.md",
-        "uuid_utils._uuid_utils",
         "google._upb._message",
         "psutil._psutil_linux",
     ):
