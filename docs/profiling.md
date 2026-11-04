@@ -5,6 +5,10 @@ profiling** (also called snapshot profiling). Both modes collect CPU stack trace
 export them as `pprof` data via the OTel logs exporter, with trace and span IDs
 embedded so profiles can be correlated with traces in Splunk APM.
 
+Both profiling modes require `OTEL_CONFIG_FILE` to be unset. When it is set, the
+distribution does not start either profiler, even if its environment variable is
+set to `true`.
+
 ## Continuous profiling
 
 Continuous profiling samples all threads at a fixed interval, regardless of whether
