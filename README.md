@@ -78,9 +78,25 @@ OTEL_CONFIG_FILE=/path/to/config.yaml opentelemetry-instrument python app.py
 See the [basic declarative configuration example](docs/examples/declarative-config.yaml),
 which exports traces, metrics, and logs to a local Collector at `http://localhost:4317`.
 
-This support configures upstream OpenTelemetry SDK components. The GDI
-`distribution.splunk` configuration block is not supported yet. Configure
+This support configures upstream OpenTelemetry SDK components. Configure
 exporters, including their endpoints and authentication headers, in the YAML file.
+
+Support for the GDI `distribution.splunk` configuration block is limited to
+`instrumentations.http.trace_response_header_enabled`, which defaults to `true`.
+To disable the trace response header, add this block to the YAML file:
+
+```yaml
+distribution:
+  splunk:
+    instrumentations:
+      http:
+        trace_response_header_enabled: false
+```
+
+When `OTEL_CONFIG_FILE` is set, the distribution does not enable
+[continuous or call graph profiling](docs/profiling.md) or
+[PostgreSQL trace correlation](docs/postgresql.md).
+
 OpAMP does not report the declarative file as effective configuration and cannot
 manage it remotely yet.
 
