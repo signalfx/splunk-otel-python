@@ -9,7 +9,12 @@ from splunk_otel._declarative_profiling import _configure_declarative_continuous
 
 
 @pytest.fixture
-def profiling_contexts(monkeypatch):
+def logger_provider_configs():
+    return []
+
+
+@pytest.fixture
+def profiling_contexts(monkeypatch, logger_provider_configs):
     contexts = []
 
     class FakeProfilingContext:
@@ -28,7 +33,8 @@ def profiling_contexts(monkeypatch):
 
     monkeypatch.setattr("splunk_otel.profile.ProfilingContext", FakeProfilingContext)
 
-    def _fake_create_logger_provider(_logger_provider_config, _resource):
+    def _fake_create_logger_provider(logger_provider_config, _resource):
+        logger_provider_configs.append(logger_provider_config)
         return NoOpLoggerProvider()
 
     monkeypatch.setattr("splunk_otel._declarative_profiling.create_logger_provider", _fake_create_logger_provider)
@@ -121,6 +127,30 @@ def test_yaml_without_cpu_profiler_does_not_start_profiling(monkeypatch, profili
     _configure_declarative_continuous_profiling(distribution_config, Resource({}))
 
     assert not profiling_contexts
+
+
+@pytest.mark.parametrize("http_exporter_config", [None, {}, {"endpoint": None}, {"endpoint": ""}])
+def test_unset_profile_endpoint_uses_sdk_default(
+    monkeypatch, profiling_contexts, logger_provider_configs, http_exporter_config
+):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:1/base")
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", "http://localhost:1/logs")
+
+    _configure_declarative_continuous_profiling(
+        {
+            "splunk": {
+                "profiling": {
+                    "always_on": {"cpu_profiler": {}},
+                    "exporter": {"otlp_log_http": http_exporter_config},
+                }
+            }
+        },
+        Resource({}),
+    )
+
+    (logger_provider_config,) = logger_provider_configs
+    assert logger_provider_config.processors[0].batch.exporter.otlp_http.endpoint == "http://localhost:4318/v1/logs"
+    assert profiling_contexts[0].started
 
 
 @pytest.mark.parametrize("interval_millis", [0, -1, True, 1.0, 1.5, "1000", None])

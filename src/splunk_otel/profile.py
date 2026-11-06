@@ -276,6 +276,7 @@ class _IntervalTimer:
         self.running = False
         self.pause_at = None
         self.wakeup_event = threading.Event()
+        self._stop_event = threading.Event()
 
     def start(self):
         self.pause_at = None
@@ -284,6 +285,7 @@ class _IntervalTimer:
         if self.running:
             return
 
+        self._stop_event.clear()
         self.running = True
         self.thread.start()
 
@@ -299,11 +301,12 @@ class _IntervalTimer:
             self.target()
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
-            time.sleep(sleep_seconds)
+            self._stop_event.wait(sleep_seconds)
 
     def stop(self):
         self.running = False
         self.pause_at = None
+        self._stop_event.set()
         self.wakeup_event.set()  # unblock _loop() if waiting, so it can return and thread can exit
         if self.thread.is_alive():
             self.thread.join()

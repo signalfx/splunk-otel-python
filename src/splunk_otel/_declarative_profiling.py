@@ -59,8 +59,9 @@ def _configure_declarative_continuous_profiling(distribution_config: dict | None
 def _create_profiling_logger_provider(profiling_config: dict, resource: Resource) -> LoggerProvider:
     http_exporter_config = _config_at(profiling_config, ("exporter", "otlp_log_http"))
     default_endpoint = urljoin(otlp_http_logs.DEFAULT_ENDPOINT, otlp_http_logs.DEFAULT_LOGS_EXPORT_PATH)
-    # An omitted endpoint lets the exporter read environment settings, so supply the SDK default explicitly.
-    http_exporter_config = {"endpoint": default_endpoint, **http_exporter_config}
+    # Missing or null endpoints must use the SDK default rather than environment settings.
+    endpoint = http_exporter_config.get("endpoint") or default_endpoint
+    http_exporter_config = {**http_exporter_config, "endpoint": endpoint}
     logger_provider_data = {"processors": [{"batch": {"exporter": {"otlp_http": http_exporter_config}}}]}
     logger_provider_config = _dict_to_dataclass(logger_provider_data, LoggerProviderConfig)
     return create_logger_provider(logger_provider_config, resource)

@@ -3,6 +3,7 @@ import gzip
 import json
 import random
 import time
+from threading import Event, Thread
 from collections import OrderedDict
 from os.path import abspath, dirname
 
@@ -178,6 +179,19 @@ def test_interval_timer_pause_and_resume():
     assert len(ticks) > count_at_pause, "timer should tick again after start()"
 
     timer.stop()
+
+
+def test_interval_timer_stop_interrupts_long_sampling_interval():
+    sampled = Event()
+    timer = _IntervalTimer(60000, sampled.set)
+    timer.start()
+    assert sampled.wait(timeout=2)
+
+    stop_thread = Thread(target=timer.stop, daemon=True)
+    stop_thread.start()
+    stop_thread.join(timeout=2)
+
+    assert not stop_thread.is_alive(), "stop must interrupt the sampling wait"
 
 
 class _FakeLogger(Logger):
