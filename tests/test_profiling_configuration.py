@@ -4,7 +4,7 @@ from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
-from splunk_otel.profile import start_continuous_profiling_from_environment
+from splunk_otel.profile import start_profiling
 from splunk_otel.declarative_profiling import configure_declarative_continuous_profiling
 
 
@@ -51,15 +51,30 @@ def test_yaml_starts_continuous_profiling(monkeypatch, profiling_contexts, cpu_p
     assert context.resource is resource
 
 
-def test_environment_starts_continuous_profiling(profiling_contexts):
+def test_start_profiling_uses_supplied_environment(monkeypatch, profiling_contexts):
+    monkeypatch.setenv("OTEL_SERVICE_NAME", "process-service")
+    monkeypatch.setenv("SPLUNK_PROFILER_CALL_STACK_INTERVAL", "9999")
     environment = Env({"OTEL_SERVICE_NAME": "environment-service", "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "250"})
 
-    context = start_continuous_profiling_from_environment(environment)
+    context = start_profiling(environment)
 
     assert profiling_contexts == [context]
     assert context.started
     assert context.interval_millis == 250
     assert context.resource.attributes["service.name"] == "environment-service"
+
+
+def test_start_profiling_without_arguments_uses_process_environment(monkeypatch, profiling_contexts):
+    monkeypatch.setenv("OTEL_SERVICE_NAME", "process-service")
+    monkeypatch.setenv("SPLUNK_PROFILER_CALL_STACK_INTERVAL", "500")
+    monkeypatch.setenv("SPLUNK_PROFILER_ENABLED", "false")
+
+    context = start_profiling()
+
+    assert profiling_contexts == [context]
+    assert context.started
+    assert context.interval_millis == 500
+    assert context.resource.attributes["service.name"] == "process-service"
 
 
 @pytest.mark.parametrize("configuration_source", ["environment", "declarative"])
@@ -71,7 +86,7 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
 
     monkeypatch.setattr("splunk_otel.profile.atexit.register", _fake_register_shutdown)
     if configuration_source == "environment":
-        start_continuous_profiling_from_environment(Env({"OTEL_SERVICE_NAME": "environment-service"}))
+        start_profiling(Env({"OTEL_SERVICE_NAME": "environment-service"}))
     else:
         configure_declarative_continuous_profiling(
             {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}}}}, Resource({})

@@ -76,10 +76,11 @@ class ProfilingContext:
 def configure_environment_continuous_profiling(env=None):
     env = env or Env()
     if env.is_true(SPLUNK_PROFILER_ENABLED):
-        start_continuous_profiling_from_environment(env)
+        start_profiling(env)
 
 
-def start_continuous_profiling_from_environment(env=None):
+def start_profiling(env=None):
+    """Start continuous profiling using environment settings."""
     env = env or Env()
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     service_name = env.getval(OTEL_SERVICE_NAME)
