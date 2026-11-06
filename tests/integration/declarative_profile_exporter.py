@@ -25,7 +25,7 @@ distribution:
     profiling:
       exporter:
         otlp_log_http:
-          endpoint: http://localhost:4318/v1/logs
+          endpoint: http://localhost:14318/v1/logs
           headers:
             - name: x-profile-test
               value: yaml-token
@@ -53,11 +53,11 @@ distribution:
         from oteltest.sink import HttpSink, raise_if_port_in_use
         from oteltest.sink.handler import AccumulatingHandler
 
-        raise_if_port_in_use(4318)
+        raise_if_port_in_use(14318)
         self.profile_handler = AccumulatingHandler()
-        self.profile_sink = HttpSink(self.profile_handler, logging.getLogger(__name__))
+        self.profile_sink = HttpSink(self.profile_handler, logging.getLogger(__name__), port=14318)
         self.profile_sink.start()
-        wait_for_server("localhost", 4318)
+        wait_for_server("localhost", 14318)
 
     def on_stop(self, telemetry, stdout, stderr, returncode):
         from oteltest.telemetry import extract_leaves, get_logs

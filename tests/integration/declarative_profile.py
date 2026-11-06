@@ -7,10 +7,7 @@ from lib import project_path, trace_loop
 
 
 if __name__ == "__main__":
-    from opentelemetry import _logs
-
     trace_loop(3)
-    _logs.get_logger_provider().force_flush()
 
 
 class DeclarativeProfileOtelTest:
@@ -18,11 +15,12 @@ class DeclarativeProfileOtelTest:
         return (project_path(),)
 
     def declarative_configuration(self):
-        config = Path(project_path(), "docs", "examples", "declarative-config.yaml").read_text()
-        config = config.replace("${OTEL_SERVICE_NAME:-my-python-service}", "yaml-profile-service")
-        return (
-            config
-            + """
+        return """
+file_format: "1.0"
+resource:
+  attributes:
+    - name: service.name
+      value: yaml-profile-service
 distribution:
   splunk:
     profiling:
@@ -30,13 +28,14 @@ distribution:
         cpu_profiler:
           sampling_interval: 250
 """
-        )
 
     def environment_variables(self):
         return {
             "OTEL_SERVICE_NAME": "environment-service",
             "SPLUNK_PROFILER_ENABLED": "false",
             "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "9999",
+            "SPLUNK_PROFILER_LOGS_ENDPOINT": "http://localhost:1/unused",
+            "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://localhost:1/unused",
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
         }
 
@@ -44,7 +43,7 @@ distribution:
         return "opentelemetry-instrument"
 
     def is_http(self):
-        return False
+        return True
 
     def on_start(self):
         pass

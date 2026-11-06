@@ -46,11 +46,11 @@ distribution:
 ```
 
 `sampling_interval` must be a positive integer in milliseconds. Profiles use the
-file's `resource` attributes. By default, profiles export through the file's
-`logger_provider`, as shown in the
-[declarative configuration example](examples/declarative-config.yaml).
+file's `resource` attributes and a dedicated OTLP HTTP exporter. When no profiling
+exporter is configured, profiles go to `http://localhost:4318/v1/logs`.
+Profile export does not require a `logger_provider` block.
 
-To send profiles to a separate OTLP HTTP endpoint, add `exporter` under
+To configure the profile export endpoint or headers, add `exporter` under
 `distribution.splunk.profiling`:
 
 ```yaml

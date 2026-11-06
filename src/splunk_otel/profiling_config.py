@@ -39,10 +39,7 @@ def configure_continuous_profiling(distribution: dict | None, resource: Resource
 
 
 def _create_profiling_logger(profiling: dict, resource: Resource):
-    if "exporter" not in profiling:
-        return _get_profiling_logger()
-
-    exporter = _mapping(profiling["exporter"], "profiling.exporter")
+    exporter = _mapping(profiling.get("exporter"), "profiling.exporter")
     if exporter and set(exporter) != {"otlp_log_http"}:
         message = "profiling.exporter supports only otlp_log_http"
         raise ConfigurationError(message)
