@@ -1,3 +1,4 @@
+import atexit as _atexit
 import base64
 import gzip
 import sys
@@ -12,6 +13,7 @@ from collections.abc import Callable
 import opentelemetry.context
 import wrapt
 from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
+from opentelemetry._logs import LoggerProvider as _LoggerProvider
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import ReadWriteLogRecord
@@ -79,21 +81,27 @@ def _start_profiling_if_enabled(env=None):
 
 
 def start_profiling(env=None):
+    """Start continuous profiling using environment settings."""
     env = env or Env()
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    svcname = env.getval(OTEL_SERVICE_NAME)
-
-    ctx = ProfilingContext(
-        _mk_resource(svcname),
-        interval_millis,
-        get_logger(_SCOPE_NAME, _SCOPE_VERSION),
+    service_name = env.getval(OTEL_SERVICE_NAME)
+    return _start_continuous_profiling(
+        resource=_mk_resource(service_name),
+        interval_millis=interval_millis,
+        logger=_get_profiling_logger(),
     )
-    ctx.start()
-    return ctx
 
 
-def _get_profiling_logger() -> Logger:
-    return get_logger(_SCOPE_NAME, _SCOPE_VERSION)
+def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
+    context = ProfilingContext(resource, interval_millis, logger)
+    context.start()
+    # Providers register shutdown first; stop sampling before they flush at exit.
+    _atexit.register(context.stop)
+    return context
+
+
+def _get_profiling_logger(logger_provider: _LoggerProvider | None = None) -> Logger:
+    return get_logger(_SCOPE_NAME, _SCOPE_VERSION, logger_provider=logger_provider)
 
 
 def _mk_resource(service_name) -> Resource:
@@ -268,6 +276,7 @@ class _IntervalTimer:
         self.running = False
         self.pause_at = None
         self.wakeup_event = threading.Event()
+        self._stop_event = threading.Event()
 
     def start(self):
         self.pause_at = None
@@ -276,6 +285,7 @@ class _IntervalTimer:
         if self.running:
             return
 
+        self._stop_event.clear()
         self.running = True
         self.thread.start()
 
@@ -283,19 +293,24 @@ class _IntervalTimer:
         while self.running:
             start_time_seconds = time.monotonic()
 
-            if self.pause_at is not None and start_time_seconds >= self.pause_at:
-                self.wakeup_event.clear()  # clear event so next line will block
-                self.wakeup_event.wait()  # wait for event.set() (either via start() or stop())
+            pause_at = self.pause_at
+            if pause_at is not None and start_time_seconds >= pause_at:
+                self.wakeup_event.clear()
+                # Recheck state because clear() can erase a concurrent stop or resume signal.
+                if not self.running or self.pause_at is None:
+                    continue
+                self.wakeup_event.wait()
                 continue
 
             self.target()
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
-            time.sleep(sleep_seconds)
+            self._stop_event.wait(sleep_seconds)
 
     def stop(self):
         self.running = False
         self.pause_at = None
+        self._stop_event.set()
         self.wakeup_event.set()  # unblock _loop() if waiting, so it can return and thread can exit
         if self.thread.is_alive():
             self.thread.join()

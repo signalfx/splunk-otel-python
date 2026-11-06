@@ -3,6 +3,7 @@ import gzip
 import json
 import random
 import time
+from threading import Event, Thread
 from collections import OrderedDict
 from os.path import abspath, dirname
 
@@ -11,6 +12,8 @@ from google.protobuf.json_format import MessageToDict
 from opentelemetry._logs import Logger
 from opentelemetry.context import attach, detach
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogRecordExportResult
 from opentelemetry.trace import (
     NonRecordingSpan,
     SpanContext,
@@ -25,6 +28,7 @@ from splunk_otel.profile import (
     _pb_profile_to_str,
     _ProfileScraper,
     _stacktraces_to_cpu_profile,
+    _start_continuous_profiling,
     _StringTable,
 )
 
@@ -158,26 +162,196 @@ def test_interval_timer_stop_before_start():
     timer.stop()
 
 
-def test_interval_timer_pause_and_resume():
-    # pause_after() should halt ticking; start() should resume it.
-    ticks = []
-    timer = _IntervalTimer(20, lambda: ticks.append(1))
+def test_interval_timer_stop_interrupts_long_sampling_interval():
+    sampled = Event()
+    timer = _IntervalTimer(60000, sampled.set)
     timer.start()
+    assert sampled.wait(timeout=2)
 
-    time.sleep(0.1)
-    assert len(ticks) > 0, "timer should have ticked before pause"
+    stop_thread = Thread(target=timer.stop, daemon=True)
+    stop_thread.start()
+    stop_thread.join(timeout=2)
 
-    timer.pause_after(0)
-    time.sleep(0.2)  # enough for the timer to reach pause_at and block
-    count_at_pause = len(ticks)
-    time.sleep(0.1)  # confirm no new ticks while paused
-    assert len(ticks) == count_at_pause, "timer should not tick while paused"
+    assert not stop_thread.is_alive(), "stop must interrupt the sampling wait"
 
+
+@pytest.mark.parametrize("pause_state", ["paused", "entering_pause"])
+@pytest.mark.parametrize("pause_action", ["stop", "resume"])
+def test_interval_timer_stop_or_resume_during_pause(monkeypatch, pause_state, pause_action):
+    pause_reached = Event()
+    release_pause = Event()
+    wakeup_requested = Event()
+    resume_requested = Event()
+    sampled_while_paused = Event()
+    resumed = Event()
+
+    def _fake_sample():
+        if pause_reached.is_set():
+            if not resume_requested.is_set():
+                sampled_while_paused.set()
+            resumed.set()
+        else:
+            timer.pause_after(0)
+
+    timer = _IntervalTimer(0, _fake_sample)
+    wakeup_clear = timer.wakeup_event.clear
+    wakeup_wait = timer.wakeup_event.wait
+    wakeup_set = timer.wakeup_event.set
+
+    def _fake_wakeup_clear():
+        if pause_state == "entering_pause":
+            pause_reached.set()
+            assert release_pause.wait(timeout=5)
+        wakeup_clear()
+
+    def _fake_wakeup_wait():
+        if pause_state == "paused":
+            pause_reached.set()
+        return wakeup_wait()
+
+    def _fake_wakeup_set():
+        wakeup_set()
+        wakeup_requested.set()
+
+    monkeypatch.setattr(timer.wakeup_event, "clear", _fake_wakeup_clear)
+    monkeypatch.setattr(timer.wakeup_event, "wait", _fake_wakeup_wait)
+    monkeypatch.setattr(timer.wakeup_event, "set", _fake_wakeup_set)
     timer.start()
-    time.sleep(0.1)  # let it resume
-    assert len(ticks) > count_at_pause, "timer should tick again after start()"
+    try:
+        assert pause_reached.wait(timeout=2)
+        assert not resumed.is_set(), "sampling must stay paused until resume is requested"
+        wakeup_requested.clear()
+        if pause_action == "stop":
+            stop_thread = Thread(target=timer.stop, daemon=True)
+            stop_thread.start()
+            assert wakeup_requested.wait(timeout=2)
+            release_pause.set()
+            stop_thread.join(timeout=2)
+            assert not stop_thread.is_alive(), "stop must wake a paused sampler"
+        else:
+            resume_requested.set()
+            timer.start()
+            release_pause.set()
+            assert resumed.wait(timeout=2), "resume must wake a paused sampler"
+        assert not sampled_while_paused.is_set(), "sampling must stay paused until resume is requested"
+    finally:
+        release_pause.set()
+        wakeup_set()
+        timer.stop()
 
-    timer.stop()
+
+def test_interval_timer_stop_waits_for_current_sample(monkeypatch):
+    sample_started = Event()
+    release_sample = Event()
+    stop_waiting = Event()
+    lifecycle = []
+
+    def _fake_sample():
+        sample_started.set()
+        assert release_sample.wait(timeout=5)
+        lifecycle.append("sample completed")
+
+    timer = _IntervalTimer(60000, _fake_sample)
+    sampler_join = timer.thread.join
+
+    def _fake_sampler_join(timeout=None):
+        stop_waiting.set()
+        sampler_join(timeout)
+
+    def _stop_timer():
+        timer.stop()
+        lifecycle.append("stop completed")
+
+    monkeypatch.setattr(timer.thread, "join", _fake_sampler_join)
+    timer.start()
+    try:
+        assert sample_started.wait(timeout=2)
+        stop_thread = Thread(target=_stop_timer, daemon=True)
+        stop_thread.start()
+        assert stop_waiting.wait(timeout=2)
+        assert stop_thread.is_alive()
+        assert not lifecycle
+        release_sample.set()
+        stop_thread.join(timeout=2)
+        assert not stop_thread.is_alive()
+        assert lifecycle == ["sample completed", "stop completed"]
+    finally:
+        release_sample.set()
+        timer.stop()
+
+
+def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch):
+    shutdown_callbacks = []
+    sample_started = Event()
+    release_sample = Event()
+    stop_waiting = Event()
+    exported_records = []
+    lifecycle = []
+    timers = []
+
+    def _fake_register_shutdown(callback):
+        shutdown_callbacks.append(callback)
+        return callback
+
+    def _fake_interval_timer(interval_millis, target):
+        timer = _IntervalTimer(interval_millis, target)
+        timers.append(timer)
+        return timer
+
+    class FakeLogExporter:
+        def export(self, records):
+            exported_records.extend(records)
+            lifecycle.append("sample exported")
+            return LogRecordExportResult.SUCCESS
+
+        def shutdown(self):
+            lifecycle.append("exporter shut down")
+
+    monkeypatch.setattr("splunk_otel.profile._atexit.register", _fake_register_shutdown)
+    monkeypatch.setattr("splunk_otel.profile._IntervalTimer", _fake_interval_timer)
+    resource = Resource({"service.name": "final-profile-test"})
+    provider = LoggerProvider(resource=resource)
+    provider.add_log_record_processor(BatchLogRecordProcessor(FakeLogExporter(), schedule_delay_millis=60000))
+    logger = provider.get_logger("otel.profiling")
+
+    class FakeProfilingLogger:
+        def emit(self, record):
+            sample_started.set()
+            assert release_sample.wait(timeout=5)
+            logger.emit(record)
+            lifecycle.append("sample emitted")
+
+    context = _start_continuous_profiling(resource=resource, interval_millis=60000, logger=FakeProfilingLogger())
+    (timer,) = timers
+    sampler_join = timer.thread.join
+
+    def _fake_sampler_join(timeout=None):
+        stop_waiting.set()
+        sampler_join(timeout)
+
+    def _release_final_sample():
+        if stop_waiting.wait(timeout=5):
+            release_sample.set()
+
+    monkeypatch.setattr(timer.thread, "join", _fake_sampler_join)
+    release_thread = Thread(target=_release_final_sample, daemon=True)
+    release_thread.start()
+    try:
+        assert sample_started.wait(timeout=2)
+        assert not exported_records
+        for shutdown in reversed(shutdown_callbacks):
+            shutdown()
+        release_thread.join(timeout=2)
+        assert not release_thread.is_alive()
+        assert lifecycle == ["sample emitted", "sample exported", "exporter shut down"]
+        (record,) = exported_records
+        assert record.log_record.attributes["profiling.instrumentation.source"] == "continuous"
+        assert _pb_profile_from_str(record.log_record.body).sample
+    finally:
+        release_sample.set()
+        context.stop()
+        provider.shutdown()
+        release_thread.join(timeout=2)
 
 
 class _FakeLogger(Logger):
