@@ -5,9 +5,8 @@ profiling** (also called snapshot profiling). Both modes collect CPU stack trace
 export them as `pprof` data via the OTel logs exporter, with trace and span IDs
 embedded so profiles can be correlated with traces in Splunk APM.
 
-Both profiling modes require `OTEL_CONFIG_FILE` to be unset. When it is set, the
-distribution does not start either profiler, even if its environment variable is
-set to `true`.
+Continuous profiling supports environment variables and YAML configuration.
+Call graph profiling requires `OTEL_CONFIG_FILE` to be unset.
 
 ## Continuous profiling
 
@@ -30,6 +29,31 @@ opentelemetry-instrument python app.py
 | `SPLUNK_PROFILER_ENABLED`             | `false`                                     | Set to `true` to enable continuous profiling.                                        |
 | `SPLUNK_PROFILER_CALL_STACK_INTERVAL` | `1000`                                      | How often (in milliseconds) to collect a stack sample from all threads.              |
 | `SPLUNK_PROFILER_LOGS_ENDPOINT`       | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes. |
+
+### YAML configuration
+
+When `OTEL_CONFIG_FILE` is set, add the following block to enable continuous CPU
+profiling. An empty `cpu_profiler: {}` block uses the default sampling interval
+of 1000 milliseconds. Omit `cpu_profiler` to disable continuous profiling.
+
+```yaml
+distribution:
+  splunk:
+    profiling:
+      always_on:
+        cpu_profiler:
+          sampling_interval: 1000
+```
+
+`sampling_interval` must be a positive integer in milliseconds. Profiles use the
+file's `resource` attributes and export through the file's `logger_provider`.
+Configure the log export endpoint and authentication headers there, as shown in
+the [declarative configuration example](examples/declarative-config.yaml).
+The GDI `profiling.exporter` block is not supported.
+
+`SPLUNK_PROFILER_ENABLED`, `SPLUNK_PROFILER_CALL_STACK_INTERVAL`, and
+`SPLUNK_PROFILER_LOGS_ENDPOINT` do not control profiling when `OTEL_CONFIG_FILE`
+is set. To use environment values, reference them explicitly in the YAML file.
 
 ### How it works
 
