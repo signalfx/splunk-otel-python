@@ -162,28 +162,6 @@ def test_interval_timer_stop_before_start():
     timer.stop()
 
 
-def test_interval_timer_pause_and_resume():
-    # pause_after() should halt ticking; start() should resume it.
-    ticks = []
-    timer = _IntervalTimer(20, lambda: ticks.append(1))
-    timer.start()
-
-    time.sleep(0.1)
-    assert len(ticks) > 0, "timer should have ticked before pause"
-
-    timer.pause_after(0)
-    time.sleep(0.2)  # enough for the timer to reach pause_at and block
-    count_at_pause = len(ticks)
-    time.sleep(0.1)  # confirm no new ticks while paused
-    assert len(ticks) == count_at_pause, "timer should not tick while paused"
-
-    timer.start()
-    time.sleep(0.1)  # let it resume
-    assert len(ticks) > count_at_pause, "timer should tick again after start()"
-
-    timer.stop()
-
-
 def test_interval_timer_stop_interrupts_long_sampling_interval():
     sampled = Event()
     timer = _IntervalTimer(60000, sampled.set)
@@ -203,10 +181,14 @@ def test_interval_timer_stop_or_resume_during_pause(monkeypatch, pause_state, pa
     pause_reached = Event()
     release_pause = Event()
     wakeup_requested = Event()
+    resume_requested = Event()
+    sampled_while_paused = Event()
     resumed = Event()
 
     def _fake_sample():
         if pause_reached.is_set():
+            if not resume_requested.is_set():
+                sampled_while_paused.set()
             resumed.set()
         else:
             timer.pause_after(0)
@@ -237,6 +219,7 @@ def test_interval_timer_stop_or_resume_during_pause(monkeypatch, pause_state, pa
     timer.start()
     try:
         assert pause_reached.wait(timeout=2)
+        assert not resumed.is_set(), "sampling must stay paused until resume is requested"
         wakeup_requested.clear()
         if pause_action == "stop":
             stop_thread = Thread(target=timer.stop, daemon=True)
@@ -246,9 +229,11 @@ def test_interval_timer_stop_or_resume_during_pause(monkeypatch, pause_state, pa
             stop_thread.join(timeout=2)
             assert not stop_thread.is_alive(), "stop must wake a paused sampler"
         else:
+            resume_requested.set()
             timer.start()
             release_pause.set()
             assert resumed.wait(timeout=2), "resume must wake a paused sampler"
+        assert not sampled_while_paused.is_set(), "sampling must stay paused until resume is requested"
     finally:
         release_pause.set()
         wakeup_set()
