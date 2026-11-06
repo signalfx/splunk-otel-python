@@ -1,10 +1,14 @@
 # Copyright Splunk Inc.
 # SPDX-License-Identifier: Apache-2.0
 
+import json
+from importlib.resources import files
+
+from jsonschema import Draft202012Validator, ValidationError, validators
 from opentelemetry.configuration import ConfigurationError
 from opentelemetry.configuration._conversion import _dict_to_dataclass
 from opentelemetry.configuration._logger_provider import create_logger_provider
-from opentelemetry.configuration.file._loader import _validate_schema
+from opentelemetry.configuration.file._loader import _get_schema
 from opentelemetry.configuration.models import LoggerProvider as LoggerProviderConfig
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk.resources import Resource
@@ -15,20 +19,27 @@ from splunk_otel.profile import (
     _start_continuous_profiling,
 )
 
+_PROFILING_SCHEMA = json.loads(files("splunk_otel").joinpath("_profiling_schema.json").read_text(encoding="utf-8"))
+# Protobuf sampling periods need Python integers; JSON Schema also accepts 1.0.
+_ProfilingValidator = validators.extend(
+    Draft202012Validator,
+    type_checker=Draft202012Validator.TYPE_CHECKER.redefine("integer", lambda _checker, value: type(value) is int),
+)
+_PROFILING_VALIDATOR = _ProfilingValidator(
+    {**_PROFILING_SCHEMA, "$defs": {**_get_schema()["$defs"], **_PROFILING_SCHEMA["$defs"]}}
+)
+
 
 def _configure_declarative_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
-    distribution = _mapping_or_empty(distribution, "distribution")
-    splunk = _mapping_or_empty(distribution.get("splunk"), "splunk")
-    profiling = _mapping_or_empty(splunk.get("profiling"), "profiling")
-    always_on = _mapping_or_empty(profiling.get("always_on"), "always_on")
+    _validate_profiling_config(distribution)
+    splunk = (distribution or {}).get("splunk") or {}
+    profiling = splunk.get("profiling") or {}
+    always_on = profiling.get("always_on") or {}
     if "cpu_profiler" not in always_on:
         return
 
-    cpu_profiler = _mapping_or_empty(always_on["cpu_profiler"], "cpu_profiler")
+    cpu_profiler = always_on["cpu_profiler"] or {}
     interval_millis = cpu_profiler.get("sampling_interval", _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    if type(interval_millis) is not int or interval_millis <= 0:
-        message = "cpu_profiler.sampling_interval must be a positive integer in milliseconds"
-        raise ConfigurationError(message)
 
     logger_provider = _create_profiling_logger_provider(profiling, resource)
     logger = _get_profiling_logger(logger_provider)
@@ -36,23 +47,18 @@ def _configure_declarative_continuous_profiling(distribution: dict | None, resou
 
 
 def _create_profiling_logger_provider(profiling: dict, resource: Resource) -> LoggerProvider:
-    exporter = _mapping_or_empty(profiling.get("exporter"), "profiling.exporter")
-    if exporter and set(exporter) != {"otlp_log_http"}:
-        message = "profiling.exporter supports only otlp_log_http"
-        raise ConfigurationError(message)
-    http_exporter_config = _mapping_or_empty(exporter.get("otlp_log_http"), "profiling.exporter.otlp_log_http")
+    exporter = profiling.get("exporter") or {}
+    http_exporter_config = exporter.get("otlp_log_http") or {}
     http_exporter_config = {"endpoint": "http://localhost:4318/v1/logs", **http_exporter_config}
     logger_provider_data = {"processors": [{"batch": {"exporter": {"otlp_http": http_exporter_config}}}]}
-    # Apply the same schema and model conversion as the standard YAML log exporter.
-    _validate_schema({"file_format": "1.0", "logger_provider": logger_provider_data})
     logger_provider_config = _dict_to_dataclass(logger_provider_data, LoggerProviderConfig)
     return create_logger_provider(logger_provider_config, resource)
 
 
-def _mapping_or_empty(value: object, name: str) -> dict:
-    if value is None:
-        return {}
-    if not isinstance(value, dict):
-        message = f"{name} must be a mapping"
-        raise ConfigurationError(message)
-    return value
+def _validate_profiling_config(distribution: dict | None) -> None:
+    try:
+        _PROFILING_VALIDATOR.validate(distribution)
+    except ValidationError as error:
+        path = ".".join(["distribution", *(str(part) for part in error.absolute_path)])
+        message = f"{path}: {error.message}"
+        raise ConfigurationError(message) from error

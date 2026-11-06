@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": ["object", "null"],
+  "properties": {
+    "splunk": {
+      "type": ["object", "null"],
+      "properties": {
+        "profiling": {"$ref": "#/$defs/SplunkProfiling"}
+      }
+    }
+  },
+  "$defs": {
+    "SplunkProfiling": {
+      "type": ["object", "null"],
+      "properties": {
+        "always_on": {
+          "type": ["object", "null"],
+          "properties": {
+            "cpu_profiler": {
+              "type": ["object", "null"],
+              "properties": {
+                "sampling_interval": {"type": "integer", "minimum": 1}
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "$comment": "Exporter settings are used only when continuous CPU profiling is enabled.",
+        "type": "object",
+        "required": ["always_on"],
+        "properties": {
+          "always_on": {"type": "object", "required": ["cpu_profiler"]}
+        }
+      },
+      "then": {
+        "properties": {
+          "exporter": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "properties": {
+              "otlp_log_http": {
+                "anyOf": [
+                  {"type": "null"},
+                  {"$ref": "#/$defs/OtlpHttpExporter"}
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

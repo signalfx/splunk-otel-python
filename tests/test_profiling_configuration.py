@@ -108,6 +108,7 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
         {"splunk": {"profiling": {}}},
         {"splunk": {"profiling": {"always_on": {}}}},
         {"splunk": {"profiling": {"callgraphs": {}}}},
+        {"splunk": {"profiling": {"exporter": {"otlp_log_grpc": {}}}}},
     ],
 )
 def test_yaml_without_cpu_profiler_does_not_start_profiling(monkeypatch, profiling_contexts, distribution):
@@ -118,9 +119,12 @@ def test_yaml_without_cpu_profiler_does_not_start_profiling(monkeypatch, profili
     assert not profiling_contexts
 
 
-@pytest.mark.parametrize("interval", [0, -1, True, 1.5, "1000", None])
+@pytest.mark.parametrize("interval", [0, -1, True, 1.0, 1.5, "1000", None])
 def test_invalid_sampling_interval_fails_before_starting(profiling_contexts, interval):
-    with pytest.raises(ConfigurationError, match="sampling_interval must be a positive integer"):
+    with pytest.raises(
+        ConfigurationError,
+        match=r"distribution\.splunk\.profiling\.always_on\.cpu_profiler\.sampling_interval",
+    ):
         _configure_declarative_continuous_profiling(
             {"splunk": {"profiling": {"always_on": {"cpu_profiler": {"sampling_interval": interval}}}}},
             Resource({}),
@@ -136,7 +140,7 @@ def test_invalid_profiling_block_fails_before_starting(profiling_contexts, key):
     for parent in reversed(keys[: keys.index(key)]):
         config = {parent: config}
 
-    with pytest.raises(ConfigurationError, match=f"{key} must be a mapping"):
+    with pytest.raises(ConfigurationError, match=key):
         _configure_declarative_continuous_profiling(config, Resource({}))
 
     assert not profiling_contexts
