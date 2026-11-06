@@ -29,7 +29,11 @@ def _create_profiling_validator():
         Draft202012Validator,
         type_checker=Draft202012Validator.TYPE_CHECKER.redefine("integer", lambda _checker, value: type(value) is int),
     )
-    return validator_class({**profiling_schema, "$defs": {**_get_schema()["$defs"], **profiling_schema["$defs"]}})
+    opentelemetry_definitions = _get_schema()["$defs"]
+    profiling_definitions = profiling_schema["$defs"]
+    combined_definitions = {**opentelemetry_definitions, **profiling_definitions}
+    combined_schema = {**profiling_schema, "$defs": combined_definitions}
+    return validator_class(combined_schema)
 
 
 _PROFILING_VALIDATOR = _create_profiling_validator()
