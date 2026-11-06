@@ -41,13 +41,12 @@ _PROFILING_VALIDATOR = _create_profiling_validator()
 
 def _configure_declarative_continuous_profiling(distribution_config: dict | None, resource: Resource) -> None:
     _validate_profiling_config(distribution_config)
-    splunk_config = (distribution_config or {}).get("splunk") or {}
-    profiling_config = splunk_config.get("profiling") or {}
-    always_on_config = profiling_config.get("always_on") or {}
+    profiling_config = _config_at(distribution_config, ("splunk", "profiling"))
+    always_on_config = _config_at(profiling_config, ("always_on",))
     if "cpu_profiler" not in always_on_config:
         return
 
-    cpu_profiler_config = always_on_config["cpu_profiler"] or {}
+    cpu_profiler_config = _config_at(always_on_config, ("cpu_profiler",))
     interval_millis = cpu_profiler_config.get("sampling_interval", _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
 
     logger_provider = _create_profiling_logger_provider(profiling_config, resource)
@@ -56,12 +55,19 @@ def _configure_declarative_continuous_profiling(distribution_config: dict | None
 
 
 def _create_profiling_logger_provider(profiling_config: dict, resource: Resource) -> LoggerProvider:
-    exporter_config = profiling_config.get("exporter") or {}
-    http_exporter_config = exporter_config.get("otlp_log_http") or {}
+    http_exporter_config = _config_at(profiling_config, ("exporter", "otlp_log_http"))
     http_exporter_config = {"endpoint": "http://localhost:4318/v1/logs", **http_exporter_config}
     logger_provider_data = {"processors": [{"batch": {"exporter": {"otlp_http": http_exporter_config}}}]}
     logger_provider_config = _dict_to_dataclass(logger_provider_data, LoggerProviderConfig)
     return create_logger_provider(logger_provider_config, resource)
+
+
+def _config_at(config: dict | None, path: tuple[str, ...]) -> dict:
+    """Read mapping-valued sections from already validated configuration."""
+    section = config or {}
+    for key in path:
+        section = section.get(key) or {}
+    return section
 
 
 def _validate_profiling_config(distribution_config: dict | None) -> None:
