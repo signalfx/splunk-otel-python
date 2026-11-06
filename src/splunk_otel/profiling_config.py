@@ -1,8 +1,6 @@
 # Copyright Splunk Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-import atexit
-
 from opentelemetry.configuration import ConfigurationError
 from opentelemetry.configuration._conversion import _dict_to_dataclass
 from opentelemetry.configuration._logger_provider import create_logger_provider
@@ -14,11 +12,11 @@ from opentelemetry.sdk.resources import Resource
 from splunk_otel.profile import (
     _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS,
     _get_profiling_logger,
-    ProfilingContext,
+    start_continuous_profiling,
 )
 
 
-def configure_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
+def configure_declarative_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
     distribution = _mapping(distribution, "distribution")
     splunk = _mapping(distribution.get("splunk"), "splunk")
     profiling = _mapping(splunk.get("profiling"), "profiling")
@@ -34,10 +32,7 @@ def configure_continuous_profiling(distribution: dict | None, resource: Resource
 
     provider = _create_profiling_logger_provider(profiling, resource)
     logger = _get_profiling_logger(provider)
-    context = ProfilingContext(resource, interval, logger)
-    context.start()
-    # The provider registers shutdown first; stop sampling before it flushes at exit.
-    atexit.register(context.stop)
+    start_continuous_profiling(resource=resource, interval_millis=interval, logger=logger)
 
 
 def _create_profiling_logger_provider(profiling: dict, resource: Resource) -> LoggerProvider:

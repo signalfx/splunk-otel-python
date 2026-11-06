@@ -1,3 +1,4 @@
+import atexit
 import base64
 import gzip
 import sys
@@ -81,15 +82,20 @@ def _start_profiling_if_enabled(env=None):
 def start_profiling(env=None):
     env = env or Env()
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    svcname = env.getval(OTEL_SERVICE_NAME)
-
-    ctx = ProfilingContext(
-        _mk_resource(svcname),
-        interval_millis,
-        get_logger(_SCOPE_NAME, _SCOPE_VERSION),
+    service_name = env.getval(OTEL_SERVICE_NAME)
+    return start_continuous_profiling(
+        resource=_mk_resource(service_name),
+        interval_millis=interval_millis,
+        logger=_get_profiling_logger(),
     )
-    ctx.start()
-    return ctx
+
+
+def start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
+    context = ProfilingContext(resource, interval_millis, logger)
+    context.start()
+    # Providers register shutdown first; stop sampling before they flush at exit.
+    atexit.register(context.stop)
+    return context
 
 
 def _get_profiling_logger(logger_provider: LoggerProvider | None = None) -> Logger:

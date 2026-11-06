@@ -78,7 +78,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     from opentelemetry.configuration._propagator import configure_propagator
     from opentelemetry.configuration._tracer_provider import configure_tracer_provider
     from opentelemetry.configuration.instrumentation import configure_instrumentation
-    from splunk_otel.profiling_config import configure_continuous_profiling
+    from splunk_otel.profiling_config import configure_declarative_continuous_profiling
 
     if kwargs:
         _logger.warning(
@@ -98,7 +98,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     configure_logger_provider(config.logger_provider, resource)
     configure_propagator(config.propagator)
     configure_instrumentation(config.instrumentation_development)
-    configure_continuous_profiling(config.distribution, resource)
+    configure_declarative_continuous_profiling(config.distribution, resource)
     return config
 
 
