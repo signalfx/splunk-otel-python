@@ -92,8 +92,8 @@ def start_profiling(env=None):
     return ctx
 
 
-def _get_profiling_logger() -> Logger:
-    return get_logger(_SCOPE_NAME, _SCOPE_VERSION)
+def _get_profiling_logger(logger_provider=None) -> Logger:
+    return get_logger(_SCOPE_NAME, _SCOPE_VERSION, logger_provider=logger_provider)
 
 
 def _mk_resource(service_name) -> Resource:

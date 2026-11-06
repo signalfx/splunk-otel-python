@@ -20,6 +20,9 @@ def profiling_contexts(monkeypatch):
         def start(self):
             self.started = True
 
+        def stop(self):
+            self.started = False
+
     monkeypatch.setattr("splunk_otel.profiling_config.ProfilingContext", FakeProfilingContext)
     return contexts
 
@@ -77,5 +80,27 @@ def test_invalid_profiling_block_fails_before_starting(profiling_contexts, key):
 
     with pytest.raises(ConfigurationError, match=f"{key} must be a mapping"):
         configure_continuous_profiling(config, Resource({}))
+
+    assert not profiling_contexts
+
+
+@pytest.mark.parametrize(
+    "exporter",
+    [
+        False,
+        {"otlp_log_grpc": {}},
+        {"otlp_log_http": False},
+        {"otlp_log_http": {}, "console": {}},
+        {"otlp_log_http": {"endpoint": 123}},
+        {"otlp_log_http": {"headers": "invalid"}},
+        {"otlp_log_http": {"timeout": "invalid"}},
+    ],
+)
+def test_invalid_profile_exporter_fails_before_starting(profiling_contexts, exporter):
+    with pytest.raises(ConfigurationError):
+        configure_continuous_profiling(
+            {"splunk": {"profiling": {"exporter": exporter, "always_on": {"cpu_profiler": {}}}}},
+            Resource({}),
+        )
 
     assert not profiling_contexts

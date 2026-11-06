@@ -46,10 +46,33 @@ distribution:
 ```
 
 `sampling_interval` must be a positive integer in milliseconds. Profiles use the
-file's `resource` attributes and export through the file's `logger_provider`.
-Configure the log export endpoint and authentication headers there, as shown in
-the [declarative configuration example](examples/declarative-config.yaml).
-The GDI `profiling.exporter` block is not supported.
+file's `resource` attributes. By default, profiles export through the file's
+`logger_provider`, as shown in the
+[declarative configuration example](examples/declarative-config.yaml).
+
+To send profiles to a separate OTLP HTTP endpoint, add `exporter` under
+`distribution.splunk.profiling`:
+
+```yaml
+distribution:
+  splunk:
+    profiling:
+      exporter:
+        otlp_log_http:
+          endpoint: http://localhost:4318/v1/logs
+          headers:
+            - name: X-SF-TOKEN
+              value: ${SPLUNK_ACCESS_TOKEN}
+      always_on:
+        cpu_profiler:
+          sampling_interval: 1000
+```
+
+The dedicated exporter receives only profile logs. Application logs continue
+through `logger_provider`. An empty `otlp_log_http: {}` block uses
+`http://localhost:4318/v1/logs`. The block accepts the standard OTLP HTTP log
+exporter settings, including `headers`, `timeout` (in milliseconds), and
+`compression`. The profiling thread stops and its exporter flushes at process exit.
 
 `SPLUNK_PROFILER_ENABLED`, `SPLUNK_PROFILER_CALL_STACK_INTERVAL`, and
 `SPLUNK_PROFILER_LOGS_ENDPOINT` do not control profiling when `OTEL_CONFIG_FILE`
