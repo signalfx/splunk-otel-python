@@ -293,9 +293,13 @@ class _IntervalTimer:
         while self.running:
             start_time_seconds = time.monotonic()
 
-            if self.pause_at is not None and start_time_seconds >= self.pause_at:
-                self.wakeup_event.clear()  # clear event so next line will block
-                self.wakeup_event.wait()  # wait for event.set() (either via start() or stop())
+            pause_at = self.pause_at
+            if pause_at is not None and start_time_seconds >= pause_at:
+                self.wakeup_event.clear()
+                # Recheck state because clear() can erase a concurrent stop or resume signal.
+                if not self.running or self.pause_at is None:
+                    continue
+                self.wakeup_event.wait()
                 continue
 
             self.target()
