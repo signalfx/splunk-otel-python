@@ -4,8 +4,8 @@ from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
-from splunk_otel.profile import start_profiling
-from splunk_otel.profiling_config import configure_declarative_continuous_profiling
+from splunk_otel.profile import start_profiling_from_environment
+from splunk_otel.declarative_profiling import configure_declarative_continuous_profiling
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def profiling_contexts(monkeypatch):
     def _fake_create_logger_provider(_config, _resource):
         return NoOpLoggerProvider()
 
-    monkeypatch.setattr("splunk_otel.profiling_config.create_logger_provider", _fake_create_logger_provider)
+    monkeypatch.setattr("splunk_otel.declarative_profiling.create_logger_provider", _fake_create_logger_provider)
     return contexts
 
 
@@ -54,7 +54,7 @@ def test_yaml_starts_continuous_profiling(monkeypatch, profiling_contexts, cpu_p
 def test_environment_starts_continuous_profiling(profiling_contexts):
     environment = Env({"OTEL_SERVICE_NAME": "environment-service", "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "250"})
 
-    context = start_profiling(environment)
+    context = start_profiling_from_environment(environment)
 
     assert profiling_contexts == [context]
     assert context.started
@@ -71,7 +71,7 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
 
     monkeypatch.setattr("splunk_otel.profile.atexit.register", _fake_register_shutdown)
     if configuration_source == "environment":
-        start_profiling(Env({"OTEL_SERVICE_NAME": "environment-service"}))
+        start_profiling_from_environment(Env({"OTEL_SERVICE_NAME": "environment-service"}))
     else:
         configure_declarative_continuous_profiling(
             {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}}}}, Resource({})

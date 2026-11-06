@@ -10,7 +10,7 @@ if __name__ == "__main__":
     trace_loop(3)
 
 
-class DeclarativeProfileOtelTest:
+class DeclarativeDefaultProfileExporterOtelTest:
     def requirements(self):
         return (project_path(),)
 

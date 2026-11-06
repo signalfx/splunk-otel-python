@@ -26,7 +26,7 @@ from splunk_otel.__about__ import __version__ as version
 from splunk_otel.callgraphs import _configure_callgraphs_if_enabled
 from splunk_otel.distro import _DEFAULT_SERVICE_NAME, _DISTRO_NAME
 from splunk_otel.env import SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, Env
-from splunk_otel.profile import _start_profiling_if_enabled
+from splunk_otel.profile import configure_environment_continuous_profiling
 from splunk_otel.propagator import ServerTimingResponsePropagator
 from splunk_otel.runtime import (
     _SERVER_TIMING_DEFAULT_ENABLED,
@@ -67,7 +67,7 @@ class SplunkConfigurator(_OTelSDKConfigurator):
         # Call graphs and PostgreSQL trace correlation do not support file configuration yet.
         if not config_file:
             configure_postgresql_trace_context_propagation(env)
-            _start_profiling_if_enabled()
+            configure_environment_continuous_profiling()
             _configure_callgraphs_if_enabled()
 
 
@@ -78,7 +78,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     from opentelemetry.configuration._propagator import configure_propagator
     from opentelemetry.configuration._tracer_provider import configure_tracer_provider
     from opentelemetry.configuration.instrumentation import configure_instrumentation
-    from splunk_otel.profiling_config import configure_declarative_continuous_profiling
+    from splunk_otel.declarative_profiling import configure_declarative_continuous_profiling
 
     if kwargs:
         _logger.warning(

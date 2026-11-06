@@ -11,7 +11,7 @@ if __name__ == "__main__":
     trace_loop(1)
 
 
-class DeclarativeProfileExporterOtelTest:
+class DeclarativeCustomProfileExporterOtelTest:
     def requirements(self):
         return (project_path(),)
 
