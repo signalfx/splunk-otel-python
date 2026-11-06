@@ -39,35 +39,35 @@ def _create_profiling_validator():
 _PROFILING_VALIDATOR = _create_profiling_validator()
 
 
-def _configure_declarative_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
-    _validate_profiling_config(distribution)
-    splunk = (distribution or {}).get("splunk") or {}
-    profiling = splunk.get("profiling") or {}
-    always_on = profiling.get("always_on") or {}
-    if "cpu_profiler" not in always_on:
+def _configure_declarative_continuous_profiling(distribution_config: dict | None, resource: Resource) -> None:
+    _validate_profiling_config(distribution_config)
+    splunk_config = (distribution_config or {}).get("splunk") or {}
+    profiling_config = splunk_config.get("profiling") or {}
+    always_on_config = profiling_config.get("always_on") or {}
+    if "cpu_profiler" not in always_on_config:
         return
 
-    cpu_profiler = always_on["cpu_profiler"] or {}
-    interval_millis = cpu_profiler.get("sampling_interval", _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
+    cpu_profiler_config = always_on_config["cpu_profiler"] or {}
+    interval_millis = cpu_profiler_config.get("sampling_interval", _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
 
-    logger_provider = _create_profiling_logger_provider(profiling, resource)
+    logger_provider = _create_profiling_logger_provider(profiling_config, resource)
     logger = _get_profiling_logger(logger_provider)
     _start_continuous_profiling(resource=resource, interval_millis=interval_millis, logger=logger)
 
 
-def _create_profiling_logger_provider(profiling: dict, resource: Resource) -> LoggerProvider:
-    exporter = profiling.get("exporter") or {}
-    http_exporter_config = exporter.get("otlp_log_http") or {}
+def _create_profiling_logger_provider(profiling_config: dict, resource: Resource) -> LoggerProvider:
+    exporter_config = profiling_config.get("exporter") or {}
+    http_exporter_config = exporter_config.get("otlp_log_http") or {}
     http_exporter_config = {"endpoint": "http://localhost:4318/v1/logs", **http_exporter_config}
     logger_provider_data = {"processors": [{"batch": {"exporter": {"otlp_http": http_exporter_config}}}]}
     logger_provider_config = _dict_to_dataclass(logger_provider_data, LoggerProviderConfig)
     return create_logger_provider(logger_provider_config, resource)
 
 
-def _validate_profiling_config(distribution: dict | None) -> None:
+def _validate_profiling_config(distribution_config: dict | None) -> None:
     try:
-        _PROFILING_VALIDATOR.validate(distribution)
+        _PROFILING_VALIDATOR.validate(distribution_config)
     except ValidationError as error:
-        path = ".".join(["distribution", *(str(part) for part in error.absolute_path)])
-        message = f"{path}: {error.message}"
+        config_path = ".".join(["distribution", *(str(part) for part in error.absolute_path)])
+        message = f"{config_path}: {error.message}"
         raise ConfigurationError(message) from error

@@ -51,15 +51,15 @@ distribution:
     def on_stop(self, telemetry, stdout, stderr, returncode):
         from oteltest.telemetry import extract_leaves, get_attribute
 
-        profile_path = Path(project_path(), "src", "splunk_otel", "profile_pb2.py")
-        spec = importlib.util.spec_from_file_location("profile_pb2", profile_path)
+        profile_proto_path = Path(project_path(), "src", "splunk_otel", "profile_pb2.py")
+        spec = importlib.util.spec_from_file_location("profile_pb2", profile_proto_path)
         profile_pb2 = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(profile_pb2)
 
         assert returncode == 0, stderr
-        resources = extract_leaves(telemetry, "log_requests", "pbreq", "resource_logs")
-        profiles = []
-        for resource_logs in resources:
+        resource_log_groups = extract_leaves(telemetry, "log_requests", "pbreq", "resource_logs")
+        profile_records = []
+        for resource_logs in resource_log_groups:
             for scope_logs in resource_logs.scope_logs:
                 if scope_logs.scope.name != "otel.profiling":
                     continue
@@ -71,10 +71,10 @@ distribution:
                     get_attribute(resource_logs.resource.attributes, "telemetry.distro.name").value.string_value
                     == "splunk-opentelemetry"
                 )
-                profiles.extend(scope_logs.log_records)
+                profile_records.extend(scope_logs.log_records)
 
-        assert profiles
-        for record in profiles:
+        assert profile_records
+        for record in profile_records:
             assert (
                 get_attribute(record.attributes, "profiling.instrumentation.source").value.string_value == "continuous"
             )
@@ -82,7 +82,7 @@ distribution:
             profile.ParseFromString(gzip.decompress(base64.b64decode(record.body.string_value)))
             assert profile.sample
             for sample in profile.sample:
-                (period,) = [
+                (sample_period_millis,) = [
                     label.num for label in sample.label if profile.string_table[label.key] == "source.event.period"
                 ]
-                assert period == 250
+                assert sample_period_millis == 250

@@ -16,9 +16,9 @@ class DeclarativeCustomProfileExporterOtelTest:
         return (project_path(),)
 
     def declarative_configuration(self):
-        config = Path(project_path(), "docs", "examples", "declarative-config.yaml").read_text()
+        config_yaml = Path(project_path(), "docs", "examples", "declarative-config.yaml").read_text()
         return (
-            config
+            config_yaml
             + """
 distribution:
   splunk:
@@ -65,13 +65,13 @@ distribution:
         self.profile_sink.stop()
         assert returncode == 0, stderr
         assert any(record.body.string_value == "application log" for record in get_logs(telemetry))
-        application_scopes = extract_leaves(telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
-        assert all(scope.scope.name != "otel.profiling" for scope in application_scopes)
+        application_scope_logs = extract_leaves(telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
+        assert all(scope.scope.name != "otel.profiling" for scope in application_scope_logs)
 
         profile_telemetry = self.profile_handler.telemetry
-        profile_scopes = extract_leaves(profile_telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
-        assert profile_scopes
-        assert all(scope.scope.name == "otel.profiling" and scope.log_records for scope in profile_scopes)
+        profile_scope_logs = extract_leaves(profile_telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
+        assert profile_scope_logs
+        assert all(scope.scope.name == "otel.profiling" and scope.log_records for scope in profile_scope_logs)
         for request in profile_telemetry.log_requests:
             headers = {key.lower(): value for key, value in request.headers.items()}
             assert headers["x-profile-test"] == "yaml-token"
