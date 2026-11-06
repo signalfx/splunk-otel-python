@@ -19,17 +19,20 @@ from splunk_otel.profile import (
     _start_continuous_profiling,
 )
 
-_PROFILING_SCHEMA = json.loads(files("splunk_otel").joinpath("_profiling_schema.json").read_text(encoding="utf-8"))
-# JSON Schema accepts 1.0 as an integer, but protobuf sampling periods require
-# Python int values. The exact-type check rejects floats and bools for every
-# integer field in this validator, including HTTP exporter settings.
-_ProfilingValidator = validators.extend(
-    Draft202012Validator,
-    type_checker=Draft202012Validator.TYPE_CHECKER.redefine("integer", lambda _checker, value: type(value) is int),
-)
-_PROFILING_VALIDATOR = _ProfilingValidator(
-    {**_PROFILING_SCHEMA, "$defs": {**_get_schema()["$defs"], **_PROFILING_SCHEMA["$defs"]}}
-)
+
+def _create_profiling_validator():
+    profiling_schema = json.loads(files("splunk_otel").joinpath("_profiling_schema.json").read_text(encoding="utf-8"))
+    # JSON Schema accepts 1.0 as an integer, but protobuf sampling periods require
+    # Python int values. The exact-type check rejects floats and bools for every
+    # integer field in this validator, including HTTP exporter settings.
+    validator_class = validators.extend(
+        Draft202012Validator,
+        type_checker=Draft202012Validator.TYPE_CHECKER.redefine("integer", lambda _checker, value: type(value) is int),
+    )
+    return validator_class({**profiling_schema, "$defs": {**_get_schema()["$defs"], **profiling_schema["$defs"]}})
+
+
+_PROFILING_VALIDATOR = _create_profiling_validator()
 
 
 def _configure_declarative_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
