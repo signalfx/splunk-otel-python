@@ -20,7 +20,9 @@ from splunk_otel.profile import (
 )
 
 _PROFILING_SCHEMA = json.loads(files("splunk_otel").joinpath("_profiling_schema.json").read_text(encoding="utf-8"))
-# Protobuf sampling periods need Python integers; JSON Schema also accepts 1.0.
+# JSON Schema accepts 1.0 as an integer, but protobuf sampling periods require
+# Python int values. The exact-type check rejects floats and bools for every
+# integer field in this validator, including HTTP exporter settings.
 _ProfilingValidator = validators.extend(
     Draft202012Validator,
     type_checker=Draft202012Validator.TYPE_CHECKER.redefine("integer", lambda _checker, value: type(value) is int),
