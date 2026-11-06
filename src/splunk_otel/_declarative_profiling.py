@@ -12,11 +12,11 @@ from opentelemetry.sdk.resources import Resource
 from splunk_otel.profile import (
     _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS,
     _get_profiling_logger,
-    start_continuous_profiling,
+    _start_continuous_profiling,
 )
 
 
-def configure_declarative_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
+def _configure_declarative_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
     distribution = _mapping_or_empty(distribution, "distribution")
     splunk = _mapping_or_empty(distribution.get("splunk"), "splunk")
     profiling = _mapping_or_empty(splunk.get("profiling"), "profiling")
@@ -32,7 +32,7 @@ def configure_declarative_continuous_profiling(distribution: dict | None, resour
 
     logger_provider = _create_profiling_logger_provider(profiling, resource)
     logger = _get_profiling_logger(logger_provider)
-    start_continuous_profiling(resource=resource, interval_millis=interval_millis, logger=logger)
+    _start_continuous_profiling(resource=resource, interval_millis=interval_millis, logger=logger)
 
 
 def _create_profiling_logger_provider(profiling: dict, resource: Resource) -> LoggerProvider:

@@ -1,4 +1,4 @@
-import atexit
+import atexit as _atexit
 import base64
 import gzip
 import sys
@@ -12,7 +12,8 @@ from collections.abc import Callable
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import Logger, LoggerProvider, LogRecord, SeverityNumber, get_logger
+from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
+from opentelemetry._logs import LoggerProvider as _LoggerProvider
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import ReadWriteLogRecord
@@ -73,7 +74,7 @@ class ProfilingContext:
         self._timer.pause_after(seconds)
 
 
-def configure_environment_continuous_profiling(env=None):
+def _start_profiling_if_enabled(env=None):
     env = env or Env()
     if env.is_true(SPLUNK_PROFILER_ENABLED):
         start_profiling(env)
@@ -84,22 +85,22 @@ def start_profiling(env=None):
     env = env or Env()
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     service_name = env.getval(OTEL_SERVICE_NAME)
-    return start_continuous_profiling(
+    return _start_continuous_profiling(
         resource=_mk_resource(service_name),
         interval_millis=interval_millis,
         logger=_get_profiling_logger(),
     )
 
 
-def start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
+def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
     context = ProfilingContext(resource, interval_millis, logger)
     context.start()
     # Providers register shutdown first; stop sampling before they flush at exit.
-    atexit.register(context.stop)
+    _atexit.register(context.stop)
     return context
 
 
-def _get_profiling_logger(logger_provider: LoggerProvider | None = None) -> Logger:
+def _get_profiling_logger(logger_provider: _LoggerProvider | None = None) -> Logger:
     return get_logger(_SCOPE_NAME, _SCOPE_VERSION, logger_provider=logger_provider)
 
 

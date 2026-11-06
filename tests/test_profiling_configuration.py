@@ -5,7 +5,7 @@ from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
 from splunk_otel.profile import start_profiling
-from splunk_otel.declarative_profiling import configure_declarative_continuous_profiling
+from splunk_otel._declarative_profiling import _configure_declarative_continuous_profiling
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def profiling_contexts(monkeypatch):
     def _fake_create_logger_provider(_config, _resource):
         return NoOpLoggerProvider()
 
-    monkeypatch.setattr("splunk_otel.declarative_profiling.create_logger_provider", _fake_create_logger_provider)
+    monkeypatch.setattr("splunk_otel._declarative_profiling.create_logger_provider", _fake_create_logger_provider)
     return contexts
 
 
@@ -41,7 +41,7 @@ def test_yaml_starts_continuous_profiling(monkeypatch, profiling_contexts, cpu_p
     monkeypatch.setenv("SPLUNK_PROFILER_CALL_STACK_INTERVAL", "9999")
     resource = Resource({"service.name": "yaml-service", "deployment.environment.name": "test"})
 
-    configure_declarative_continuous_profiling(
+    _configure_declarative_continuous_profiling(
         {"splunk": {"profiling": {"always_on": {"cpu_profiler": cpu_profiler}}}}, resource
     )
 
@@ -84,11 +84,11 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
     def _fake_register_shutdown(callback):
         shutdown_callbacks.append(callback)
 
-    monkeypatch.setattr("splunk_otel.profile.atexit.register", _fake_register_shutdown)
+    monkeypatch.setattr("splunk_otel.profile._atexit.register", _fake_register_shutdown)
     if configuration_source == "environment":
         start_profiling(Env({"OTEL_SERVICE_NAME": "environment-service"}))
     else:
-        configure_declarative_continuous_profiling(
+        _configure_declarative_continuous_profiling(
             {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}}}}, Resource({})
         )
 
@@ -113,7 +113,7 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
 def test_yaml_without_cpu_profiler_does_not_start_profiling(monkeypatch, profiling_contexts, distribution):
     monkeypatch.setenv("SPLUNK_PROFILER_ENABLED", "true")
 
-    configure_declarative_continuous_profiling(distribution, Resource({}))
+    _configure_declarative_continuous_profiling(distribution, Resource({}))
 
     assert not profiling_contexts
 
@@ -121,7 +121,7 @@ def test_yaml_without_cpu_profiler_does_not_start_profiling(monkeypatch, profili
 @pytest.mark.parametrize("interval", [0, -1, True, 1.5, "1000", None])
 def test_invalid_sampling_interval_fails_before_starting(profiling_contexts, interval):
     with pytest.raises(ConfigurationError, match="sampling_interval must be a positive integer"):
-        configure_declarative_continuous_profiling(
+        _configure_declarative_continuous_profiling(
             {"splunk": {"profiling": {"always_on": {"cpu_profiler": {"sampling_interval": interval}}}}},
             Resource({}),
         )
@@ -137,7 +137,7 @@ def test_invalid_profiling_block_fails_before_starting(profiling_contexts, key):
         config = {parent: config}
 
     with pytest.raises(ConfigurationError, match=f"{key} must be a mapping"):
-        configure_declarative_continuous_profiling(config, Resource({}))
+        _configure_declarative_continuous_profiling(config, Resource({}))
 
     assert not profiling_contexts
 
@@ -156,7 +156,7 @@ def test_invalid_profiling_block_fails_before_starting(profiling_contexts, key):
 )
 def test_invalid_profile_exporter_fails_before_starting(profiling_contexts, exporter):
     with pytest.raises(ConfigurationError):
-        configure_declarative_continuous_profiling(
+        _configure_declarative_continuous_profiling(
             {"splunk": {"profiling": {"exporter": exporter, "always_on": {"cpu_profiler": {}}}}},
             Resource({}),
         )

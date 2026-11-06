@@ -140,7 +140,7 @@ def test_configurator_activates_postgresql_only_without_config_file(monkeypatch,
         lambda *_a, **_k: OpenTelemetryConfiguration(file_format="1.0"),
     )
     monkeypatch.setattr("splunk_otel.configurator.configure_logging_instrumentation", lambda _env: None)
-    monkeypatch.setattr("splunk_otel.configurator.configure_environment_continuous_profiling", lambda: None)
+    monkeypatch.setattr("splunk_otel.configurator._start_profiling_if_enabled", lambda: None)
     monkeypatch.setattr("splunk_otel.configurator._configure_callgraphs_if_enabled", lambda: None)
     monkeypatch.setattr(
         "splunk_otel.runtime.enable_postgresql_trace_context_propagation",
