@@ -3,6 +3,7 @@
 
 import json
 from importlib.resources import files
+from urllib.parse import urljoin
 
 from jsonschema import Draft202012Validator, ValidationError, validators
 from opentelemetry.configuration import ConfigurationError
@@ -10,6 +11,7 @@ from opentelemetry.configuration._conversion import _dict_to_dataclass
 from opentelemetry.configuration._logger_provider import create_logger_provider
 from opentelemetry.configuration.file._loader import _get_schema
 from opentelemetry.configuration.models import LoggerProvider as LoggerProviderConfig
+from opentelemetry.exporter.otlp.proto.http import _log_exporter as otlp_http_logs
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk.resources import Resource
 
@@ -56,7 +58,9 @@ def _configure_declarative_continuous_profiling(distribution_config: dict | None
 
 def _create_profiling_logger_provider(profiling_config: dict, resource: Resource) -> LoggerProvider:
     http_exporter_config = _config_at(profiling_config, ("exporter", "otlp_log_http"))
-    http_exporter_config = {"endpoint": "http://localhost:4318/v1/logs", **http_exporter_config}
+    default_endpoint = urljoin(otlp_http_logs.DEFAULT_ENDPOINT, otlp_http_logs.DEFAULT_LOGS_EXPORT_PATH)
+    # An omitted endpoint lets the exporter read environment settings, so supply the SDK default explicitly.
+    http_exporter_config = {"endpoint": default_endpoint, **http_exporter_config}
     logger_provider_data = {"processors": [{"batch": {"exporter": {"otlp_http": http_exporter_config}}}]}
     logger_provider_config = _dict_to_dataclass(logger_provider_data, LoggerProviderConfig)
     return create_logger_provider(logger_provider_config, resource)
