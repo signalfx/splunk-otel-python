@@ -11,7 +11,7 @@ from collections.abc import Callable
 
 import opentelemetry.context
 import wrapt
-from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
+from opentelemetry._logs import Logger, LoggerProvider, LogRecord, SeverityNumber, get_logger
 from opentelemetry.context import Context
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import ReadWriteLogRecord
@@ -92,7 +92,7 @@ def start_profiling(env=None):
     return ctx
 
 
-def _get_profiling_logger(logger_provider=None) -> Logger:
+def _get_profiling_logger(logger_provider: LoggerProvider | None = None) -> Logger:
     return get_logger(_SCOPE_NAME, _SCOPE_VERSION, logger_provider=logger_provider)
 
 

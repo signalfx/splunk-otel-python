@@ -8,6 +8,7 @@ from opentelemetry.configuration._conversion import _dict_to_dataclass
 from opentelemetry.configuration._logger_provider import create_logger_provider
 from opentelemetry.configuration.file._loader import _validate_schema
 from opentelemetry.configuration.models import LoggerProvider as LoggerProviderConfig
+from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.profile import (
@@ -18,10 +19,10 @@ from splunk_otel.profile import (
 
 
 def configure_continuous_profiling(distribution: dict | None, resource: Resource) -> None:
-    config = _mapping(distribution, "distribution")
-    for key in ("splunk", "profiling"):
-        config = _mapping(config.get(key), key)
-    always_on = _mapping(config.get("always_on"), "always_on")
+    distribution = _mapping(distribution, "distribution")
+    splunk = _mapping(distribution.get("splunk"), "splunk")
+    profiling = _mapping(splunk.get("profiling"), "profiling")
+    always_on = _mapping(profiling.get("always_on"), "always_on")
     if "cpu_profiler" not in always_on:
         return
 
@@ -31,14 +32,15 @@ def configure_continuous_profiling(distribution: dict | None, resource: Resource
         message = "cpu_profiler.sampling_interval must be a positive integer in milliseconds"
         raise ConfigurationError(message)
 
-    logger = _create_profiling_logger(config, resource)
+    provider = _create_profiling_logger_provider(profiling, resource)
+    logger = _get_profiling_logger(provider)
     context = ProfilingContext(resource, interval, logger)
     context.start()
     # The provider registers shutdown first; stop sampling before it flushes at exit.
     atexit.register(context.stop)
 
 
-def _create_profiling_logger(profiling: dict, resource: Resource):
+def _create_profiling_logger_provider(profiling: dict, resource: Resource) -> LoggerProvider:
     exporter = _mapping(profiling.get("exporter"), "profiling.exporter")
     if exporter and set(exporter) != {"otlp_log_http"}:
         message = "profiling.exporter supports only otlp_log_http"
@@ -48,8 +50,8 @@ def _create_profiling_logger(profiling: dict, resource: Resource):
     provider_config = {"processors": [{"batch": {"exporter": {"otlp_http": http}}}]}
     # Apply the same schema and model conversion as the standard YAML log exporter.
     _validate_schema({"file_format": "1.0", "logger_provider": provider_config})
-    provider = create_logger_provider(_dict_to_dataclass(provider_config, LoggerProviderConfig), resource)
-    return _get_profiling_logger(provider)
+    config = _dict_to_dataclass(provider_config, LoggerProviderConfig)
+    return create_logger_provider(config, resource)
 
 
 def _mapping(value: object, name: str) -> dict:

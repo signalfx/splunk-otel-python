@@ -1,4 +1,5 @@
 import pytest
+from opentelemetry._logs import NoOpLoggerProvider
 from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
@@ -24,6 +25,11 @@ def profiling_contexts(monkeypatch):
             self.started = False
 
     monkeypatch.setattr("splunk_otel.profiling_config.ProfilingContext", FakeProfilingContext)
+
+    def _fake_create_logger_provider(_config, _resource):
+        return NoOpLoggerProvider()
+
+    monkeypatch.setattr("splunk_otel.profiling_config.create_logger_provider", _fake_create_logger_provider)
     return contexts
 
 
