@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 from opentelemetry import trace
 from opentelemetry._logs import NoOpLoggerProvider
@@ -269,6 +271,31 @@ def test_both_profiling_modes_share_one_dedicated_logger(
     assert continuous.started
     assert continuous.logger is callgraphs.logger
     assert len(logger_provider_configs) == 1
+
+
+def test_callgraphs_cleans_up_when_another_provider_registers_first(monkeypatch, profiling_contexts):
+    candidate = TracerProvider(shutdown_on_exit=False)
+    competing_provider = trace.NoOpTracerProvider()
+    shutdown = Mock(wraps=candidate.shutdown)
+    monkeypatch.setattr(candidate, "shutdown", shutdown)
+    monkeypatch.setattr(trace, "get_tracer_provider", trace.ProxyTracerProvider)
+
+    def _fake_create_tracer_provider(**_kwargs):
+        return candidate
+
+    monkeypatch.setattr("splunk_otel._declarative_profiling.create_tracer_provider", _fake_create_tracer_provider)
+
+    def _fake_register_tracer_provider(_provider):
+        monkeypatch.setattr(trace, "get_tracer_provider", lambda: competing_provider)
+
+    monkeypatch.setattr(trace, "set_tracer_provider", _fake_register_tracer_provider)
+
+    with pytest.raises(ConfigurationError, match="could not install a tracer provider"):
+        _configure_declarative_profiling({"splunk": {"profiling": {"callgraphs": {}}}}, Resource({}))
+
+    assert trace.get_tracer_provider() is competing_provider
+    shutdown.assert_called_once_with()
+    assert not profiling_contexts
 
 
 @pytest.mark.parametrize("callgraphs_config", [False, [], "enabled"])

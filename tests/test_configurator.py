@@ -110,6 +110,7 @@ def test_callgraphs_uses_the_registered_tracer_provider(tmp_path, existing_provi
     )
     script = dedent("""
         import sys
+        from unittest.mock import patch
         from opentelemetry import trace
         from opentelemetry.configuration import ConfigurationError
         from opentelemetry.sdk.resources import Resource
@@ -127,13 +128,17 @@ def test_callgraphs_uses_the_registered_tracer_provider(tmp_path, existing_provi
             trace.set_tracer_provider(original)
 
         if existing_provider == "noop":
-            try:
-                _configure_declarative_sdk(sys.argv[1])
-            except ConfigurationError as error:
-                assert "distribution.splunk.profiling.callgraphs" in str(error)
-                assert "already configured" in str(error)
-            else:
-                raise AssertionError("Call graphs accepted an uninstalled tracer provider")
+            with patch(
+                "splunk_otel._declarative_profiling.create_tracer_provider",
+                side_effect=AssertionError("Call graphs created a provider despite an incompatible global provider"),
+            ):
+                try:
+                    _configure_declarative_sdk(sys.argv[1])
+                except ConfigurationError as error:
+                    assert "distribution.splunk.profiling.callgraphs" in str(error)
+                    assert "already configured" in str(error)
+                else:
+                    raise AssertionError("Call graphs accepted an incompatible tracer provider")
             assert trace.get_tracer_provider() is original
         else:
             _configure_declarative_sdk(sys.argv[1])

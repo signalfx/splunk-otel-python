@@ -76,17 +76,25 @@ def _configure_declarative_profiling(distribution_config: dict | None, resource:
 
 def _configure_callgraphs_tracer_provider(resource: Resource) -> SDKTracerProvider:
     tracer_provider: trace.TracerProvider = trace.get_tracer_provider()
-    if not isinstance(tracer_provider, SDKTracerProvider):
-        tracer_provider = create_tracer_provider(config=None, resource=resource)
-        trace.set_tracer_provider(tracer_provider)
-        # Registration can be refused without raising if a provider is already installed.
-        if trace.get_tracer_provider() is not tracer_provider:
-            tracer_provider.shutdown()
-            message = (
-                "distribution.splunk.profiling.callgraphs could not install a tracer provider "
-                "because a global tracer provider is already configured"
-            )
-            raise ConfigurationError(message)
+    if isinstance(tracer_provider, SDKTracerProvider):
+        return tracer_provider
+    if not isinstance(tracer_provider, trace.ProxyTracerProvider):
+        message = (
+            "distribution.splunk.profiling.callgraphs requires an SDK tracer provider, "
+            "but an incompatible global tracer provider is already configured"
+        )
+        raise ConfigurationError(message)
+
+    tracer_provider = create_tracer_provider(config=None, resource=resource)
+    trace.set_tracer_provider(tracer_provider)
+    # Another thread can register a provider after the placeholder check.
+    if trace.get_tracer_provider() is not tracer_provider:
+        tracer_provider.shutdown()
+        message = (
+            "distribution.splunk.profiling.callgraphs could not install a tracer provider "
+            "because a global tracer provider is already configured"
+        )
+        raise ConfigurationError(message)
     return tracer_provider
 
 
