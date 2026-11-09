@@ -3,6 +3,7 @@ import gzip
 import json
 import random
 import time
+from contextlib import ExitStack
 from threading import Event, Thread
 from collections import OrderedDict
 from os.path import abspath, dirname
@@ -10,10 +11,12 @@ from os.path import abspath, dirname
 import pytest
 from google.protobuf.json_format import MessageToDict
 from opentelemetry._logs import Logger
+from opentelemetry import baggage, trace
 from opentelemetry.context import attach, detach
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogRecordExportResult
+from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.trace import (
     NonRecordingSpan,
     SpanContext,
@@ -280,7 +283,8 @@ def test_interval_timer_stop_waits_for_current_sample(monkeypatch):
         timer.stop()
 
 
-def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch):
+@pytest.mark.parametrize("profiling_mode", ["continuous", "callgraphs", "callgraphs_without_tracer_provider"])
+def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_mode):
     shutdown_callbacks = []
     sample_started = Event()
     release_sample = Event()
@@ -310,6 +314,9 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch):
     monkeypatch.setattr("splunk_otel.profile._atexit.register", _fake_register_shutdown)
     monkeypatch.setattr("splunk_otel.profile._IntervalTimer", _fake_interval_timer)
     resource = Resource({"service.name": "final-profile-test"})
+    tracer_provider = (
+        None if profiling_mode == "callgraphs_without_tracer_provider" else TracerProvider(resource=resource)
+    )
     provider = LoggerProvider(resource=resource)
     provider.add_log_record_processor(BatchLogRecordProcessor(FakeLogExporter(), schedule_delay_millis=60000))
     logger = provider.get_logger("otel.profiling")
@@ -321,7 +328,35 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch):
             logger.emit(record)
             lifecycle.append("sample emitted")
 
-    context = _start_continuous_profiling(resource=resource, interval_millis=60000, logger=FakeProfilingLogger())
+    active_spans = ExitStack()
+    if profiling_mode == "continuous":
+        _start_continuous_profiling(resource=resource, interval_millis=60000, logger=FakeProfilingLogger())
+    else:
+        from splunk_otel._declarative_profiling import _configure_declarative_profiling
+
+        def _fake_get_tracer_provider():
+            return tracer_provider if tracer_provider is not None else trace.ProxyTracerProvider()
+
+        def _fake_set_tracer_provider(provider):
+            nonlocal tracer_provider
+            tracer_provider = provider
+
+        monkeypatch.setattr(trace, "get_tracer_provider", _fake_get_tracer_provider)
+        monkeypatch.setattr(trace, "set_tracer_provider", _fake_set_tracer_provider)
+        monkeypatch.setattr("splunk_otel._declarative_profiling.create_logger_provider", lambda *_args: provider)
+        monkeypatch.setattr(
+            "splunk_otel._declarative_profiling._get_profiling_logger", lambda _provider: FakeProfilingLogger()
+        )
+        monkeypatch.setattr(
+            "splunk_otel._declarative_profiling._configure_callgraphs_propagator", lambda _probability: None
+        )
+        _configure_declarative_profiling({"splunk": {"profiling": {"callgraphs": {"sampling_interval": 1}}}}, resource)
+        assert tracer_provider is not None
+        active_spans.enter_context(
+            tracer_provider.get_tracer("test").start_as_current_span(
+                "selected", context=baggage.set_baggage("splunk.trace.snapshot.volume", "highest")
+            )
+        )
     (timer,) = timers
     sampler_join = timer.thread.join
 
@@ -345,11 +380,15 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch):
         assert not release_thread.is_alive()
         assert lifecycle == ["sample emitted", "sample exported", "exporter shut down"]
         (record,) = exported_records
-        assert record.log_record.attributes["profiling.instrumentation.source"] == "continuous"
+        expected_source = "continuous" if profiling_mode == "continuous" else "snapshot"
+        assert record.log_record.attributes["profiling.instrumentation.source"] == expected_source
         assert _pb_profile_from_str(record.log_record.body).sample
     finally:
         release_sample.set()
-        context.stop()
+        active_spans.close()
+        timer.stop()
+        if tracer_provider is not None:
+            tracer_provider.shutdown()
         provider.shutdown()
         release_thread.join(timeout=2)
 

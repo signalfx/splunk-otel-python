@@ -81,8 +81,8 @@ which exports traces, metrics, and logs to a local Collector at `http://localhos
 This support configures upstream OpenTelemetry SDK components. Configure
 exporters, including their endpoints and authentication headers, in the YAML file.
 
-The GDI `distribution.splunk` configuration block supports continuous CPU profiling
-and `instrumentations.http.trace_response_header_enabled`, which defaults to `true`.
+The GDI `distribution.splunk` configuration block supports continuous CPU profiling,
+call graph profiling, and `instrumentations.http.trace_response_header_enabled`, which defaults to `true`.
 To disable the trace response header, add this block to the YAML file:
 
 ```yaml
@@ -93,9 +93,10 @@ distribution:
         trace_response_header_enabled: false
 ```
 
-To enable continuous profiling, see [profiling configuration](docs/profiling.md#yaml-configuration).
+To enable profiling, see the YAML examples for
+[continuous profiling](docs/profiling.md#yaml-configuration) and
+[call graph profiling](docs/profiling.md#yaml-configuration-1).
 When `OTEL_CONFIG_FILE` is set, the distribution does not enable
-[call graph profiling](docs/profiling.md#call-graph-profiling) or
 [PostgreSQL trace correlation](docs/postgresql.md).
 
 OpAMP does not report the declarative file as effective configuration and cannot

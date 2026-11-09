@@ -45,7 +45,8 @@ def test_disabled_file_skips_sdk_setup(tmp_path, caplog):
     assert "disabled=true" in caplog.text
 
 
-def test_environment_configuration_does_not_import_file_configuration():
+@pytest.mark.parametrize("enable_profiling", [False, True])
+def test_environment_configuration_does_not_import_file_configuration(enable_profiling):
     env = {key: value for key, value in os.environ.items() if not key.startswith(("OTEL_", "SPLUNK_"))}
     env.update(
         PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
@@ -54,16 +55,26 @@ def test_environment_configuration_does_not_import_file_configuration():
         OTEL_METRICS_EXPORTER="none",
         OTEL_LOGS_EXPORTER="none",
         OTEL_PYTHON_DISABLED_INSTRUMENTATIONS="system_metrics",
+        SPLUNK_PROFILER_ENABLED=str(enable_profiling).lower(),
+        SPLUNK_SNAPSHOT_PROFILER_ENABLED=str(enable_profiling).lower(),
     )
     result = subprocess.run(
         [
             sys.executable,
             "-c",
             (
-                "import sys; from splunk_otel.configurator import SplunkConfigurator; "
-                "SplunkConfigurator().configure(); "
-                "assert 'opentelemetry.configuration' not in sys.modules; "
-                "assert 'jsonschema' not in sys.modules; assert 'rpds' not in sys.modules"
+                "import sys\n"
+                "from importlib.abc import MetaPathFinder\n"
+                "class BlockFileConfigurationImports(MetaPathFinder):\n"
+                "    def find_spec(self, fullname, path, target=None):\n"
+                "        if fullname.startswith(('opentelemetry.configuration', 'jsonschema', 'rpds')):\n"
+                "            raise ImportError(fullname)\n"
+                "sys.meta_path.insert(0, BlockFileConfigurationImports())\n"
+                "from splunk_otel.configurator import SplunkConfigurator\n"
+                "SplunkConfigurator().configure()\n"
+                "assert 'opentelemetry.configuration' not in sys.modules\n"
+                "assert 'jsonschema' not in sys.modules\n"
+                "assert 'rpds' not in sys.modules\n"
             ),
         ],
         env=env,

@@ -16,7 +16,6 @@ import logging
 import re
 
 from opentelemetry.instrumentation.distro import BaseDistro
-from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.environment_variables import (
     OTEL_CONFIG_FILE,
     OTEL_EXPORTER_OTLP_HEADERS,
@@ -27,7 +26,6 @@ from opentelemetry.sdk.environment_variables import (
     OTEL_RESOURCE_ATTRIBUTES,
     OTEL_SERVICE_NAME,
 )
-from opentelemetry.propagate import get_global_textmap, set_global_textmap
 
 from splunk_otel.__about__ import __version__ as version
 from splunk_otel.env import (
@@ -40,7 +38,7 @@ from splunk_otel.env import (
     SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
     Env,
 )
-from splunk_otel.propagator import CallgraphsPropagator
+from splunk_otel.propagator import _configure_callgraphs_propagator, _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
 
 _DISTRO_NAME = "splunk-opentelemetry"
 
@@ -114,18 +112,12 @@ class EnvironmentConfiguration:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
 
     def _set_callgraphs_propagator(self) -> None:
-        # Strip any existing CallgraphsPropagator before conditionally adding a fresh one,
-        # so this method is idempotent and the result depends only on the current config.
-        current = get_global_textmap()
-        if isinstance(current, CompositePropagator):
-            propagators = [p for p in current._propagators if not isinstance(p, CallgraphsPropagator)]  # noqa SLF001
-        else:
-            propagators = [current]
-
+        selection_probability = None
         if self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"):
-            propagators.append(CallgraphsPropagator(self.env.getfloat(SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, 0.01)))
-
-        set_global_textmap(CompositePropagator(propagators))
+            selection_probability = self.env.getfloat(
+                SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
+            )
+        _configure_callgraphs_propagator(selection_probability)
 
 
 class SplunkDistro(BaseDistro):

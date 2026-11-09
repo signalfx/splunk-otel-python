@@ -34,7 +34,36 @@ def wait_for_server(host, port, path="/", retries=20, delay=0.5):
     raise RuntimeError(msg)
 
 
-def assert_snapshot_profile(tel):
+def callgraph_trace_loop():
+    from opentelemetry.propagate import get_global_textmap
+
+    tracer = trace.get_tracer("callgraph-test")
+    for span_name, decision in [
+        ("local-decision", None),
+        ("upstream-selected", "highest"),
+        ("upstream-disabled", "off"),
+    ]:
+        # A high trace ID makes local selection deterministic for probabilities below 1.
+        carrier = {"traceparent": "00-ffffffffffffffffffffffffffffffff-0000000000000001-01"}
+        if decision is not None:
+            carrier["baggage"] = f"splunk.trace.snapshot.volume={decision}"
+        parent_context = get_global_textmap().extract(carrier)
+        with tracer.start_as_current_span(span_name, context=parent_context):
+            time.sleep(0.25)
+
+
+def assert_callgraph_spans(telemetry, selected_names):
+    from oteltest.telemetry import extract_leaves, get_attribute
+
+    spans = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "scope_spans", "spans")
+    assert {span.name for span in spans} == {"local-decision", "upstream-selected", "upstream-disabled"}
+    for span in spans:
+        selected_attribute = get_attribute(span.attributes, "splunk.snapshot.profiling")
+        assert bool(selected_attribute and selected_attribute.value.bool_value) == (span.name in selected_names)
+    return {span.span_id.hex() for span in spans if span.name in selected_names}
+
+
+def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=None):
     """
     Decode and validate snapshot profiling telemetry received by oteltest.
 
@@ -63,35 +92,35 @@ def assert_snapshot_profile(tel):
     profiling_scope_logs = [sl for sl in scope_logs if sl.scope.name == "otel.profiling"]
     assert profiling_scope_logs, "No otel.profiling scope logs received"
 
-    log_record = profiling_scope_logs[0].log_records[0]
+    snapshot_records = [
+        record
+        for scope in profiling_scope_logs
+        for record in scope.log_records
+        if get_attribute(record.attributes, "profiling.instrumentation.source").value.string_value == "snapshot"
+    ]
+    assert snapshot_records, "No snapshot profiles received"
+    sampled_span_ids = set()
+    for log_record in snapshot_records:
+        fmt_attr = get_attribute(log_record.attributes, "profiling.data.format")
+        assert fmt_attr.value.string_value == "pprof-gzip-base64"
 
-    fmt_attr = get_attribute(log_record.attributes, "profiling.data.format")
-    assert fmt_attr.value.string_value == "pprof-gzip-base64"
-
-    src_attr = get_attribute(log_record.attributes, "profiling.instrumentation.source")
-    assert src_attr.value.string_value == "snapshot"
-
-    encoded = log_record.body.string_value
-    raw = gzip.decompress(base64.b64decode(encoded))
-    profile = profile_pb2.Profile()
-    profile.ParseFromString(raw)
-    strings = list(profile.string_table)
-
-    assert len(profile.sample) > 0, "pprof profile contains no samples"
-
-    for sample in profile.sample:
-        assert len(sample.location_id) > 0, "sample has empty stack"
-
-        trace_id = ""
-        span_id = ""
-        for lbl in sample.label:
-            key: str = str(strings[lbl.key])
-            if key == "trace_id":
-                trace_id = str(strings[lbl.str])
-            elif key == "span_id":
-                span_id = str(strings[lbl.str])
-
-        assert trace_id, f"sample missing trace_id, got: {trace_id!r}"
-        assert trace_id != "0" * 32, "sample has zero trace_id"
-        assert span_id, f"sample missing span_id, got: {span_id!r}"
-        assert span_id != "0" * 16, "sample has zero span_id"
+        raw = gzip.decompress(base64.b64decode(log_record.body.string_value))
+        profile = profile_pb2.Profile()
+        profile.ParseFromString(raw)
+        strings = list(profile.string_table)
+        assert profile.sample, "pprof profile contains no samples"
+        for sample in profile.sample:
+            assert sample.location_id, "sample has empty stack"
+            labels = {strings[label.key]: strings[label.str] for label in sample.label}
+            trace_id = labels.get("trace_id")
+            span_id = labels.get("span_id")
+            assert trace_id, "sample has no trace_id"
+            assert trace_id != "0" * 32, "sample has zero trace_id"
+            assert span_id, "sample has no span_id"
+            assert span_id != "0" * 16, "sample has zero span_id"
+            sampled_span_ids.add(span_id)
+            if sampling_interval is not None:
+                (period,) = [label.num for label in sample.label if strings[label.key] == "source.event.period"]
+                assert period == sampling_interval
+    if selected_span_ids is not None:
+        assert sampled_span_ids == selected_span_ids

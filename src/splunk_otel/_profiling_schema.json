@@ -13,6 +13,13 @@
     "SplunkProfiling": {
       "type": ["object", "null"],
       "properties": {
+        "callgraphs": {
+          "type": ["object", "null"],
+          "properties": {
+            "sampling_interval": {"type": "integer", "minimum": 1},
+            "selection_probability": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+          }
+        },
         "always_on": {
           "type": ["object", "null"],
           "properties": {
@@ -26,12 +33,17 @@
         }
       },
       "if": {
-        "$comment": "Exporter settings are used only when continuous CPU profiling is enabled.",
+        "$comment": "Exporter settings are used only when a supported profiling mode is enabled.",
         "type": "object",
-        "required": ["always_on"],
-        "properties": {
-          "always_on": {"type": "object", "required": ["cpu_profiler"]}
-        }
+        "anyOf": [
+          {"required": ["callgraphs"]},
+          {
+            "required": ["always_on"],
+            "properties": {
+              "always_on": {"type": "object", "required": ["cpu_profiler"]}
+            }
+          }
+        ]
       },
       "then": {
         "properties": {

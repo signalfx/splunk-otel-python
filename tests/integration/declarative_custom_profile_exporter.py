@@ -1,14 +1,14 @@
 import logging
 from pathlib import Path
 
-from lib import project_path, trace_loop, wait_for_server
+from lib import callgraph_trace_loop, project_path, wait_for_server
 
 
 if __name__ == "__main__":
     from opentelemetry._logs import LogRecord, get_logger
 
     get_logger("application").emit(LogRecord(body="application log"))
-    trace_loop(1)
+    callgraph_trace_loop()
 
 
 class DeclarativeCustomProfileExporterOtelTest:
@@ -33,6 +33,9 @@ distribution:
       always_on:
         cpu_profiler:
           sampling_interval: 100
+      callgraphs:
+        sampling_interval: 25
+        selection_probability: 0.5
 """
         )
 
@@ -40,6 +43,8 @@ distribution:
         return {
             "SPLUNK_PROFILER_LOGS_ENDPOINT": "http://localhost:1/unused",
             "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": "http://localhost:1/unused",
+            "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "false",
+            "SPLUNK_SNAPSHOT_SELECTION_PROBABILITY": "1",
             "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS": "system_metrics",
         }
 
@@ -60,7 +65,8 @@ distribution:
         wait_for_server("localhost", 14318)
 
     def on_stop(self, telemetry, stdout, stderr, returncode):
-        from oteltest.telemetry import extract_leaves, get_logs
+        from lib import assert_callgraph_spans, assert_snapshot_profile
+        from oteltest.telemetry import extract_leaves, get_attribute, get_logs
 
         self.profile_sink.stop()
         assert returncode == 0, stderr
@@ -72,6 +78,14 @@ distribution:
         profile_scope_logs = extract_leaves(profile_telemetry, "log_requests", "pbreq", "resource_logs", "scope_logs")
         assert profile_scope_logs
         assert all(scope.scope.name == "otel.profiling" and scope.log_records for scope in profile_scope_logs)
+        sources = {
+            get_attribute(record.attributes, "profiling.instrumentation.source").value.string_value
+            for scope in profile_scope_logs
+            for record in scope.log_records
+        }
+        assert sources == {"continuous", "snapshot"}
+        selected_span_ids = assert_callgraph_spans(telemetry, {"upstream-selected"})
+        assert_snapshot_profile(profile_telemetry, sampling_interval=25, selected_span_ids=selected_span_ids)
         for request in profile_telemetry.log_requests:
             headers = {key.lower(): value for key, value in request.headers.items()}
             assert headers["x-profile-test"] == "yaml-token"
