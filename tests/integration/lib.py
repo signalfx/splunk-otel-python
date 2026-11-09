@@ -17,13 +17,13 @@ def trace_loop(loops):
             time.sleep(0.5)
 
 
-def wait_for_server(host, port, path="/", retries=20, delay=0.5):
+def wait_for_server(host, port, path="/", retries=20, delay=0.5, *, headers=None):
     import http.client
 
     for _ in range(retries):
         try:
             conn = http.client.HTTPConnection(host, port, timeout=2)
-            conn.request("GET", path)
+            conn.request("GET", path, headers=headers or {})
             conn.getresponse()
         except OSError:
             time.sleep(delay)
@@ -63,7 +63,7 @@ def assert_callgraph_spans(telemetry, selected_names):
     return {span.span_id.hex() for span in spans if span.name in selected_names}
 
 
-def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=None):
+def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=None, selected_span_contexts=None):
     """
     Decode and validate snapshot profiling telemetry received by oteltest.
 
@@ -100,6 +100,7 @@ def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=No
     ]
     assert snapshot_records, "No snapshot profiles received"
     sampled_span_ids = set()
+    sampled_span_contexts = set()
     for log_record in snapshot_records:
         fmt_attr = get_attribute(log_record.attributes, "profiling.data.format")
         assert fmt_attr.value.string_value == "pprof-gzip-base64"
@@ -119,8 +120,19 @@ def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=No
             assert span_id, "sample has no span_id"
             assert span_id != "0" * 16, "sample has zero span_id"
             sampled_span_ids.add(span_id)
+            sampled_span_contexts.add((f"{int(trace_id, 16):032x}", f"{int(span_id, 16):016x}"))
             if sampling_interval is not None:
                 (period,) = [label.num for label in sample.label if strings[label.key] == "source.event.period"]
                 assert period == sampling_interval
     if selected_span_ids is not None:
         assert sampled_span_ids == selected_span_ids
+    if selected_span_contexts is not None:
+        assert selected_span_contexts <= sampled_span_contexts, (
+            f"Missing request profiles: {selected_span_contexts - sampled_span_contexts}"
+        )
+        # Framework entry/exit can also be sampled with the incoming remote parent current.
+        sampled_trace_ids = {trace_id for trace_id, _span_id in sampled_span_contexts}
+        selected_trace_ids = {trace_id for trace_id, _span_id in selected_span_contexts}
+        assert sampled_trace_ids == selected_trace_ids, (
+            f"Unexpected profiled traces: {sampled_trace_ids - selected_trace_ids}"
+        )
