@@ -19,7 +19,7 @@ from opentelemetry.configuration.models import LoggerProvider as LoggerProviderC
 from opentelemetry.exporter.otlp.proto.http import _log_exporter as otlp_http_logs
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
 
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS
 from splunk_otel.profile import (
@@ -74,11 +74,19 @@ def _configure_declarative_profiling(distribution_config: dict | None, resource:
         _configure_declarative_callgraph_profiling(callgraphs_config, resource=resource, logger=logger)
 
 
-def _configure_callgraphs_tracer_provider(resource: Resource) -> TracerProvider:
-    tracer_provider = trace.get_tracer_provider()
-    if not isinstance(tracer_provider, TracerProvider):
+def _configure_callgraphs_tracer_provider(resource: Resource) -> SDKTracerProvider:
+    tracer_provider: trace.TracerProvider = trace.get_tracer_provider()
+    if not isinstance(tracer_provider, SDKTracerProvider):
         tracer_provider = create_tracer_provider(config=None, resource=resource)
         trace.set_tracer_provider(tracer_provider)
+        # Registration can be refused without raising if a provider is already installed.
+        if trace.get_tracer_provider() is not tracer_provider:
+            tracer_provider.shutdown()
+            message = (
+                "distribution.splunk.profiling.callgraphs could not install a tracer provider "
+                "because a global tracer provider is already configured"
+            )
+            raise ConfigurationError(message)
     return tracer_provider
 
 

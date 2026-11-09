@@ -116,11 +116,13 @@ def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=No
             trace_id = labels.get("trace_id")
             span_id = labels.get("span_id")
             assert trace_id, "sample has no trace_id"
-            assert trace_id != "0" * 32, "sample has zero trace_id"
             assert span_id, "sample has no span_id"
+            trace_id = f"{int(trace_id, 16):032x}"
+            span_id = f"{int(span_id, 16):016x}"
+            assert trace_id != "0" * 32, "sample has zero trace_id"
             assert span_id != "0" * 16, "sample has zero span_id"
             sampled_span_ids.add(span_id)
-            sampled_span_contexts.add((f"{int(trace_id, 16):032x}", f"{int(span_id, 16):016x}"))
+            sampled_span_contexts.add((trace_id, span_id))
             if sampling_interval is not None:
                 (period,) = [label.num for label in sample.label if strings[label.key] == "source.event.period"]
                 assert period == sampling_interval
