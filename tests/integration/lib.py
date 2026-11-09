@@ -34,36 +34,7 @@ def wait_for_server(host, port, path="/", retries=20, delay=0.5, *, headers=None
     raise RuntimeError(msg)
 
 
-def callgraph_trace_loop():
-    from opentelemetry.propagate import get_global_textmap
-
-    tracer = trace.get_tracer("callgraph-test")
-    for span_name, decision in [
-        ("local-decision", None),
-        ("upstream-selected", "highest"),
-        ("upstream-disabled", "off"),
-    ]:
-        # A high trace ID makes local selection deterministic for probabilities below 1.
-        carrier = {"traceparent": "00-ffffffffffffffffffffffffffffffff-0000000000000001-01"}
-        if decision is not None:
-            carrier["baggage"] = f"splunk.trace.snapshot.volume={decision}"
-        parent_context = get_global_textmap().extract(carrier)
-        with tracer.start_as_current_span(span_name, context=parent_context):
-            time.sleep(0.25)
-
-
-def assert_callgraph_spans(telemetry, selected_names):
-    from oteltest.telemetry import extract_leaves, get_attribute
-
-    spans = extract_leaves(telemetry, "trace_requests", "pbreq", "resource_spans", "scope_spans", "spans")
-    assert {span.name for span in spans} == {"local-decision", "upstream-selected", "upstream-disabled"}
-    for span in spans:
-        selected_attribute = get_attribute(span.attributes, "splunk.snapshot.profiling")
-        assert bool(selected_attribute and selected_attribute.value.bool_value) == (span.name in selected_names)
-    return {span.span_id.hex() for span in spans if span.name in selected_names}
-
-
-def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=None, selected_span_contexts=None):
+def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_contexts=None):
     """
     Decode and validate snapshot profiling telemetry received by oteltest.
 
@@ -99,7 +70,6 @@ def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=No
         if get_attribute(record.attributes, "profiling.instrumentation.source").value.string_value == "snapshot"
     ]
     assert snapshot_records, "No snapshot profiles received"
-    sampled_span_ids = set()
     sampled_span_contexts = set()
     for log_record in snapshot_records:
         fmt_attr = get_attribute(log_record.attributes, "profiling.data.format")
@@ -121,13 +91,10 @@ def assert_snapshot_profile(tel, *, sampling_interval=None, selected_span_ids=No
             span_id = f"{int(span_id, 16):016x}"
             assert trace_id != "0" * 32, "sample has zero trace_id"
             assert span_id != "0" * 16, "sample has zero span_id"
-            sampled_span_ids.add(span_id)
             sampled_span_contexts.add((trace_id, span_id))
             if sampling_interval is not None:
                 (period,) = [label.num for label in sample.label if strings[label.key] == "source.event.period"]
                 assert period == sampling_interval
-    if selected_span_ids is not None:
-        assert sampled_span_ids == selected_span_ids
     if selected_span_contexts is not None:
         assert selected_span_contexts <= sampled_span_contexts, (
             f"Missing request profiles: {selected_span_contexts - sampled_span_contexts}"

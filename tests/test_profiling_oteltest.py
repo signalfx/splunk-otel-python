@@ -47,7 +47,6 @@ def test_profile_assertion_matches_span_ids_with_different_padding(profiling_int
     profiling_integration_helpers.assert_snapshot_profile(
         telemetry,
         sampling_interval=10,
-        selected_span_ids={f"{span_id:016x}"},
         selected_span_contexts={(f"{trace_id:032x}", f"{span_id:016x}")},
     )
 
@@ -56,7 +55,9 @@ def test_profile_assertion_rejects_a_different_span_id(profiling_integration_hel
     telemetry = _fake_received_profile(trace_id=1, span_id=1)
 
     with pytest.raises(AssertionError):
-        profiling_integration_helpers.assert_snapshot_profile(telemetry, selected_span_ids={f"{2:016x}"})
+        profiling_integration_helpers.assert_snapshot_profile(
+            telemetry, selected_span_contexts={(f"{1:032x}", f"{2:016x}")}
+        )
 
 
 @pytest.mark.parametrize(("trace_id", "span_id", "invalid_id"), [(0, 1, "trace_id"), (1, 0, "span_id")])

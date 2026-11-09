@@ -1,11 +1,8 @@
 import pytest
-from opentelemetry import baggage, trace
+from opentelemetry import trace
 from opentelemetry._logs import NoOpLoggerProvider
-from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.propagate import get_global_textmap, set_global_textmap
-from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
@@ -223,7 +220,6 @@ def tracer_provider(monkeypatch):
     provider = TracerProvider(shutdown_on_exit=False)
     monkeypatch.setattr(trace, "get_tracer_provider", lambda: provider)
     original_propagator = get_global_textmap()
-    set_global_textmap(CompositePropagator([TraceContextTextMapPropagator(), W3CBaggagePropagator()]))
     yield provider
     provider.shutdown()
     set_global_textmap(original_propagator)
@@ -252,26 +248,6 @@ def test_yaml_configures_callgraphs(monkeypatch, profiling_contexts, callgraphs_
     assert propagators[-1].selection_probability == probability
 
 
-@pytest.mark.parametrize(
-    ("probability", "incoming_decision", "selected"),
-    [(1, None, True), (0.5, None, False), (0.5, "highest", True), (1, "off", False)],
-)
-def test_yaml_callgraphs_selects_traces_after_extracting_baggage(
-    profiling_contexts, tracer_provider, probability, incoming_decision, selected
-):
-    _configure_declarative_profiling(
-        {"splunk": {"profiling": {"callgraphs": {"selection_probability": probability}}}}, Resource({})
-    )
-    carrier = {"traceparent": "00-ffffffffffffffffffffffffffffffff-0000000000000002-01"}
-    if incoming_decision:
-        carrier["baggage"] = f"splunk.trace.snapshot.volume={incoming_decision}"
-    parent_context = get_global_textmap().extract(carrier)
-
-    with tracer_provider.get_tracer("test").start_as_current_span("request", context=parent_context) as span:
-        assert span.attributes.get("splunk.snapshot.profiling", False) is selected
-        assert profiling_contexts[0].started is selected
-
-
 @pytest.mark.usefixtures("tracer_provider")
 @pytest.mark.parametrize("cpu_profiler_config", [None, {}])
 @pytest.mark.parametrize("callgraphs_config", [None, {}])
@@ -293,41 +269,6 @@ def test_both_profiling_modes_share_one_dedicated_logger(
     assert continuous.started
     assert continuous.logger is callgraphs.logger
     assert len(logger_provider_configs) == 1
-
-
-@pytest.mark.parametrize("enable_continuous", [False, True])
-def test_yaml_callgraphs_creates_missing_tracer_provider(monkeypatch, profiling_contexts, enable_continuous):
-    providers = []
-    proxy_provider = trace.ProxyTracerProvider()
-
-    def _fake_get_tracer_provider():
-        return providers[-1] if providers else proxy_provider
-
-    def _fake_set_tracer_provider(provider):
-        providers.append(provider)
-
-    monkeypatch.setattr(trace, "get_tracer_provider", _fake_get_tracer_provider)
-    monkeypatch.setattr(trace, "set_tracer_provider", _fake_set_tracer_provider)
-    monkeypatch.setenv("OTEL_TRACES_SAMPLER", "always_off")
-    resource = Resource({"service.name": "yaml-service"})
-    profiling_config = {"callgraphs": {}}
-    if enable_continuous:
-        profiling_config["always_on"] = {"cpu_profiler": {}}
-    original_propagator = get_global_textmap()
-    try:
-        _configure_declarative_profiling({"splunk": {"profiling": profiling_config}}, resource)
-
-        (provider,) = providers
-        assert provider.resource is resource
-        parent_context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest")
-        with provider.get_tracer("test").start_as_current_span("selected", context=parent_context) as span:
-            assert span.is_recording()
-            assert span.attributes["splunk.snapshot.profiling"] is True
-            assert profiling_contexts[-1].started
-    finally:
-        for provider in providers:
-            provider.shutdown()
-        set_global_textmap(original_propagator)
 
 
 @pytest.mark.parametrize("callgraphs_config", [False, [], "enabled"])

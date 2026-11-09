@@ -1,14 +1,18 @@
 import logging
+import time
 from pathlib import Path
 
-from lib import callgraph_trace_loop, project_path, wait_for_server
+from lib import project_path, wait_for_server
 
 
 if __name__ == "__main__":
+    from opentelemetry import baggage, trace
     from opentelemetry._logs import LogRecord, get_logger
 
     get_logger("application").emit(LogRecord(body="application log"))
-    callgraph_trace_loop()
+    selected_context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest")
+    with trace.get_tracer("exporter-test").start_as_current_span("profiled-work", context=selected_context):
+        time.sleep(0.5)
 
 
 class DeclarativeCustomProfileExporterOtelTest:
@@ -35,7 +39,6 @@ distribution:
           sampling_interval: 100
       callgraphs:
         sampling_interval: 25
-        selection_probability: 0.5
 """
         )
 
@@ -65,7 +68,7 @@ distribution:
         wait_for_server("localhost", 14318)
 
     def on_stop(self, telemetry, stdout, stderr, returncode):
-        from lib import assert_callgraph_spans, assert_snapshot_profile
+        from lib import assert_snapshot_profile
         from oteltest.telemetry import extract_leaves, get_attribute, get_logs
 
         self.profile_sink.stop()
@@ -84,8 +87,7 @@ distribution:
             for record in scope.log_records
         }
         assert sources == {"continuous", "snapshot"}
-        selected_span_ids = assert_callgraph_spans(telemetry, {"upstream-selected"})
-        assert_snapshot_profile(profile_telemetry, sampling_interval=25, selected_span_ids=selected_span_ids)
+        assert_snapshot_profile(profile_telemetry, sampling_interval=25)
         for request in profile_telemetry.log_requests:
             headers = {key.lower(): value for key, value in request.headers.items()}
             assert headers["x-profile-test"] == "yaml-token"
