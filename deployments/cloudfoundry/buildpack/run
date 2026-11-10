@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dependency_dir="$(cd "$(dirname "$0")/.." && pwd)"
+exec python "$dependency_dir/launch.py" "$@"
