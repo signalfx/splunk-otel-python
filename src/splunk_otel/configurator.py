@@ -64,7 +64,7 @@ class SplunkConfigurator(_OTelSDKConfigurator):
             set_global_response_propagator(ServerTimingResponsePropagator())
         configure_logging_instrumentation(env)
 
-        # Call graphs and PostgreSQL trace correlation do not support file configuration yet.
+        # Environment settings do not control profiling or PostgreSQL correlation in file mode.
         if not config_file:
             configure_postgresql_trace_context_propagation(env)
             _start_profiling_if_enabled()
@@ -78,7 +78,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     from opentelemetry.configuration._propagator import configure_propagator
     from opentelemetry.configuration._tracer_provider import configure_tracer_provider
     from opentelemetry.configuration.instrumentation import configure_instrumentation
-    from splunk_otel._declarative_profiling import _configure_declarative_continuous_profiling
+    from splunk_otel._declarative_profiling import _configure_declarative_profiling
 
     if kwargs:
         _logger.warning(
@@ -98,7 +98,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     configure_logger_provider(config.logger_provider, resource)
     configure_propagator(config.propagator)
     configure_instrumentation(config.instrumentation_development)
-    _configure_declarative_continuous_profiling(config.distribution, resource)
+    _configure_declarative_profiling(config.distribution, resource)
     return config
 
 

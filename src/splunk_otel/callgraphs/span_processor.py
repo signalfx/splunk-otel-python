@@ -26,6 +26,8 @@ from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 if TYPE_CHECKING:
     from opentelemetry.trace import SpanContext
 
+_DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS = 10
+
 
 def _should_process_context(context: Context | None) -> bool:
     parent_span = trace.get_current_span(context).get_span_context()
@@ -40,7 +42,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
         self,
         resource: Resource,
         logger: Logger,
-        sampling_interval: int = 10,
+        sampling_interval: int = _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS,
     ):
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()

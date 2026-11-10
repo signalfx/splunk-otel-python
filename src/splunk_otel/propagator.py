@@ -23,10 +23,25 @@ from opentelemetry.instrumentation.propagators import (
     default_setter,
 )
 from opentelemetry.propagators import textmap
+from opentelemetry.propagate import get_global_textmap, set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased, Decision
 from opentelemetry.trace import format_span_id, format_trace_id
 
 _SPLUNK_TRACE_SNAPSHOT_VOLUME = "splunk.trace.snapshot.volume"
+_DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY = 0.01
+
+
+def _configure_callgraphs_propagator(selection_probability: float | None) -> None:
+    current = get_global_textmap()
+    if isinstance(current, CompositePropagator):
+        propagators = [p for p in current._propagators if not isinstance(p, CallgraphsPropagator)]  # noqa SLF001
+    else:
+        propagators = [current]
+    if selection_probability is not None:
+        # Read the incoming trace and baggage before making a local selection.
+        propagators.append(CallgraphsPropagator(selection_probability))
+    set_global_textmap(CompositePropagator(propagators))
 
 
 class ServerTimingResponsePropagator(ResponsePropagator):
@@ -72,7 +87,7 @@ def _with_volume_baggage(is_selected: bool, context: typing.Optional[Context]) -
 class CallgraphsPropagator(textmap.TextMapPropagator):
     selection_probability: float
 
-    def __init__(self, selection_probability: float = 0.01):
+    def __init__(self, selection_probability: float = _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY):
         self.selection_probability = selection_probability
         self.sampler = TraceIdRatioBased(selection_probability)
 

@@ -5,8 +5,8 @@ profiling** (also called snapshot profiling). Both modes collect CPU stack trace
 export them as `pprof` data via the OTel logs exporter, with trace and span IDs
 embedded so profiles can be correlated with traces in Splunk APM.
 
-Continuous profiling supports environment variables and YAML configuration.
-Call graph profiling requires `OTEL_CONFIG_FILE` to be unset.
+Both modes support environment variables and YAML configuration. You can enable
+either mode or both together.
 
 ## Continuous profiling
 
@@ -112,6 +112,48 @@ opentelemetry-instrument python app.py
 | `SPLUNK_SNAPSHOT_SELECTION_PROBABILITY` | `0.01`                                      | Fraction of traces to profile, as a float between `0.0` and `1.0`. `0.01` means 1% of traces. |
 | `SPLUNK_SNAPSHOT_SAMPLING_INTERVAL`     | `10`                                        | How often (in milliseconds) to collect a stack sample during an active profiled trace.        |
 | `SPLUNK_PROFILER_LOGS_ENDPOINT`         | _(uses `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`)_ | Override the endpoint where profiling data is sent. Applies to both profiling modes.          |
+
+### YAML configuration
+
+When `OTEL_CONFIG_FILE` is set, add `callgraphs` to enable call graph profiling.
+An empty `callgraphs: {}` block uses a 10 millisecond sampling interval and a
+selection probability of `0.01` (1%). A `callgraphs:` block with no value also
+uses these defaults. Omit `callgraphs` to disable this mode.
+
+```yaml
+propagator:
+  composite:
+    - tracecontext: {}
+    - baggage: {}
+distribution:
+  splunk:
+    profiling:
+      callgraphs:
+        sampling_interval: 10
+        selection_probability: 0.01
+```
+
+Call graph profiling creates a tracer provider if none is configured. The provider
+supplies span start/end callbacks so the profiler can track selected traces and
+link stack samples to trace/span IDs. The default provider does not export traces.
+Add trace processors and exporters under `tracer_provider` to send the corresponding
+traces to Splunk APM and view their call graphs.
+
+Configure `tracecontext` and `baggage` propagators to read incoming trace IDs and
+profiling decisions from other services.
+An incoming `highest` or `off` decision takes priority over local selection.
+
+`sampling_interval` must be a positive integer in milliseconds.
+`selection_probability` must be greater than `0` and less than or equal to `1`.
+The `SPLUNK_SNAPSHOT_*` environment settings do not control this mode when
+`OTEL_CONFIG_FILE` is set. Reference environment values explicitly in the file
+if needed.
+
+Call graphs use the same [dedicated profiling exporter](#yaml-configuration)
+and file resource as continuous profiling. Profile export does not require a
+`logger_provider` section. If both `always_on.cpu_profiler` and `callgraphs` are
+present, both modes run and share one profiling exporter. Both samplers stop
+before that exporter flushes at process exit.
 
 ### How it works
 

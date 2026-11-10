@@ -1,11 +1,17 @@
+from unittest.mock import Mock
+
 import pytest
+from opentelemetry import trace
 from opentelemetry._logs import NoOpLoggerProvider
+from opentelemetry.propagate import get_global_textmap, set_global_textmap
+from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
 from splunk_otel.profile import start_profiling
-from splunk_otel._declarative_profiling import _configure_declarative_continuous_profiling
+from splunk_otel.propagator import CallgraphsPropagator
+from splunk_otel._declarative_profiling import _configure_declarative_profiling
 
 
 @pytest.fixture
@@ -18,10 +24,13 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
     contexts = []
 
     class FakeProfilingContext:
-        def __init__(self, resource, interval_millis, logger):
+        def __init__(
+            self, resource, interval_millis, logger, stacktrace_filter=None, instrumentation_source="continuous"
+        ):
             self.resource = resource
             self.interval_millis = interval_millis
             self.logger = logger
+            self.instrumentation_source = instrumentation_source
             self.started = False
             contexts.append(self)
 
@@ -31,7 +40,11 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
         def stop(self):
             self.started = False
 
+        def pause_after(self, _seconds):
+            pass
+
     monkeypatch.setattr("splunk_otel.profile.ProfilingContext", FakeProfilingContext)
+    monkeypatch.setattr("splunk_otel.callgraphs.span_processor.ProfilingContext", FakeProfilingContext)
 
     def _fake_create_logger_provider(logger_provider_config, _resource):
         logger_provider_configs.append(logger_provider_config)
@@ -49,7 +62,7 @@ def test_yaml_starts_continuous_profiling(monkeypatch, profiling_contexts, cpu_p
     monkeypatch.setenv("SPLUNK_PROFILER_CALL_STACK_INTERVAL", "9999")
     resource = Resource({"service.name": "yaml-service", "deployment.environment.name": "test"})
 
-    _configure_declarative_continuous_profiling(
+    _configure_declarative_profiling(
         {"splunk": {"profiling": {"always_on": {"cpu_profiler": cpu_profiler_config}}}}, resource
     )
 
@@ -96,9 +109,7 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
     if configuration_source == "environment":
         start_profiling(Env({"OTEL_SERVICE_NAME": "environment-service"}))
     else:
-        _configure_declarative_continuous_profiling(
-            {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}}}}, Resource({})
-        )
+        _configure_declarative_profiling({"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}}}}, Resource({}))
 
     (context,) = profiling_contexts
     assert context.started
@@ -117,16 +128,19 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
         {"splunk": {"profiling": {}}},
         {"splunk": {"profiling": {"always_on": None}}},
         {"splunk": {"profiling": {"always_on": {}}}},
-        {"splunk": {"profiling": {"callgraphs": {}}}},
         {"splunk": {"profiling": {"exporter": {"otlp_log_grpc": {}}}}},
     ],
 )
-def test_yaml_without_cpu_profiler_does_not_start_profiling(monkeypatch, profiling_contexts, distribution_config):
+def test_yaml_without_profiling_modes_does_not_start_profiling(
+    monkeypatch, profiling_contexts, logger_provider_configs, distribution_config
+):
     monkeypatch.setenv("SPLUNK_PROFILER_ENABLED", "true")
+    monkeypatch.setenv("SPLUNK_SNAPSHOT_PROFILER_ENABLED", "true")
 
-    _configure_declarative_continuous_profiling(distribution_config, Resource({}))
+    _configure_declarative_profiling(distribution_config, Resource({}))
 
     assert not profiling_contexts
+    assert not logger_provider_configs
 
 
 @pytest.mark.parametrize("http_exporter_config", [None, {}, {"endpoint": None}, {"endpoint": ""}])
@@ -136,7 +150,7 @@ def test_unset_profile_endpoint_uses_sdk_default(
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:1/base")
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", "http://localhost:1/logs")
 
-    _configure_declarative_continuous_profiling(
+    _configure_declarative_profiling(
         {
             "splunk": {
                 "profiling": {
@@ -159,7 +173,7 @@ def test_invalid_sampling_interval_fails_before_starting(profiling_contexts, int
         ConfigurationError,
         match=r"distribution\.splunk\.profiling\.always_on\.cpu_profiler\.sampling_interval",
     ):
-        _configure_declarative_continuous_profiling(
+        _configure_declarative_profiling(
             {"splunk": {"profiling": {"always_on": {"cpu_profiler": {"sampling_interval": interval_millis}}}}},
             Resource({}),
         )
@@ -175,7 +189,7 @@ def test_invalid_profiling_block_fails_before_starting(profiling_contexts, key):
         distribution_config = {parent: distribution_config}
 
     with pytest.raises(ConfigurationError, match=key):
-        _configure_declarative_continuous_profiling(distribution_config, Resource({}))
+        _configure_declarative_profiling(distribution_config, Resource({}))
 
     assert not profiling_contexts
 
@@ -192,11 +206,140 @@ def test_invalid_profiling_block_fails_before_starting(profiling_contexts, key):
         {"otlp_log_http": {"timeout": "invalid"}},
     ],
 )
-def test_invalid_profile_exporter_fails_before_starting(profiling_contexts, exporter_config):
+@pytest.mark.parametrize("profiling_mode", [{"always_on": {"cpu_profiler": {}}}, {"callgraphs": {}}])
+def test_invalid_profile_exporter_fails_before_starting(profiling_contexts, exporter_config, profiling_mode):
     with pytest.raises(ConfigurationError):
-        _configure_declarative_continuous_profiling(
-            {"splunk": {"profiling": {"exporter": exporter_config, "always_on": {"cpu_profiler": {}}}}},
+        _configure_declarative_profiling(
+            {"splunk": {"profiling": {"exporter": exporter_config, **profiling_mode}}},
             Resource({}),
+        )
+
+    assert not profiling_contexts
+
+
+@pytest.fixture
+def tracer_provider(monkeypatch):
+    provider = TracerProvider(shutdown_on_exit=False)
+    monkeypatch.setattr(trace, "get_tracer_provider", lambda: provider)
+    original_propagator = get_global_textmap()
+    yield provider
+    provider.shutdown()
+    set_global_textmap(original_propagator)
+
+
+@pytest.mark.parametrize(
+    ("callgraphs_config", "interval_millis", "probability"),
+    [(None, 10, 0.01), ({}, 10, 0.01), ({"sampling_interval": 25, "selection_probability": 0.5}, 25, 0.5)],
+)
+@pytest.mark.usefixtures("tracer_provider")
+def test_yaml_configures_callgraphs(monkeypatch, profiling_contexts, callgraphs_config, interval_millis, probability):
+    monkeypatch.setenv("SPLUNK_SNAPSHOT_PROFILER_ENABLED", "false")
+    monkeypatch.setenv("SPLUNK_SNAPSHOT_SAMPLING_INTERVAL", "9999")
+    monkeypatch.setenv("SPLUNK_SNAPSHOT_SELECTION_PROBABILITY", "0.9")
+    resource = Resource({"service.name": "yaml-service"})
+
+    _configure_declarative_profiling({"splunk": {"profiling": {"callgraphs": callgraphs_config}}}, resource)
+
+    (context,) = profiling_contexts
+    assert context.resource is resource
+    assert context.interval_millis == interval_millis
+    assert context.instrumentation_source == "snapshot"
+    assert not context.started
+    propagators = get_global_textmap()._propagators  # noqa SLF001
+    assert isinstance(propagators[-1], CallgraphsPropagator)
+    assert propagators[-1].selection_probability == probability
+
+
+@pytest.mark.usefixtures("tracer_provider")
+@pytest.mark.parametrize("cpu_profiler_config", [None, {}])
+@pytest.mark.parametrize("callgraphs_config", [None, {}])
+def test_both_profiling_modes_share_one_dedicated_logger(
+    profiling_contexts, logger_provider_configs, cpu_profiler_config, callgraphs_config
+):
+    _configure_declarative_profiling(
+        {
+            "splunk": {
+                "profiling": {"always_on": {"cpu_profiler": cpu_profiler_config}, "callgraphs": callgraphs_config}
+            }
+        },
+        Resource({}),
+    )
+
+    continuous, callgraphs = profiling_contexts
+    assert continuous.instrumentation_source == "continuous"
+    assert callgraphs.instrumentation_source == "snapshot"
+    assert continuous.started
+    assert continuous.logger is callgraphs.logger
+    assert len(logger_provider_configs) == 1
+
+
+@pytest.mark.parametrize("enable_continuous", [False, True])
+def test_incompatible_tracer_provider_fails_before_profiling_setup(
+    monkeypatch, profiling_contexts, logger_provider_configs, enable_continuous
+):
+    provider = trace.NoOpTracerProvider()
+    monkeypatch.setattr(trace, "get_tracer_provider", lambda: provider)
+    profiling_config = {"callgraphs": {}}
+    if enable_continuous:
+        profiling_config["always_on"] = {"cpu_profiler": {}}
+
+    with pytest.raises(ConfigurationError, match="incompatible global tracer provider"):
+        _configure_declarative_profiling({"splunk": {"profiling": profiling_config}}, Resource({}))
+
+    assert not profiling_contexts
+    assert not logger_provider_configs
+    assert trace.get_tracer_provider() is provider
+
+
+def test_callgraphs_cleans_up_when_another_provider_registers_first(
+    monkeypatch, profiling_contexts, logger_provider_configs
+):
+    candidate = TracerProvider(shutdown_on_exit=False)
+    competing_provider = trace.NoOpTracerProvider()
+    shutdown = Mock(wraps=candidate.shutdown)
+    monkeypatch.setattr(candidate, "shutdown", shutdown)
+    monkeypatch.setattr(trace, "get_tracer_provider", trace.ProxyTracerProvider)
+
+    def _fake_create_tracer_provider(**_kwargs):
+        return candidate
+
+    monkeypatch.setattr("splunk_otel._declarative_profiling.create_tracer_provider", _fake_create_tracer_provider)
+
+    def _fake_register_tracer_provider(_provider):
+        monkeypatch.setattr(trace, "get_tracer_provider", lambda: competing_provider)
+
+    monkeypatch.setattr(trace, "set_tracer_provider", _fake_register_tracer_provider)
+
+    with pytest.raises(ConfigurationError, match="could not install a tracer provider"):
+        _configure_declarative_profiling(
+            {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}, "callgraphs": {}}}}, Resource({})
+        )
+
+    assert trace.get_tracer_provider() is competing_provider
+    shutdown.assert_called_once_with()
+    assert not profiling_contexts
+    assert not logger_provider_configs
+
+
+@pytest.mark.parametrize("callgraphs_config", [False, [], "enabled"])
+def test_invalid_callgraphs_block_fails_before_starting(profiling_contexts, callgraphs_config):
+    with pytest.raises(ConfigurationError, match=r"distribution\.splunk\.profiling\.callgraphs"):
+        _configure_declarative_profiling({"splunk": {"profiling": {"callgraphs": callgraphs_config}}}, Resource({}))
+
+    assert not profiling_contexts
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("sampling_interval", value) for value in [0, -1, True, 1.0, "10", None]]
+    + [
+        ("selection_probability", value) for value in [0, 0.0, -0.1, 1.1, True, "0.5", None, float("nan"), float("inf")]
+    ],
+)
+def test_invalid_callgraphs_setting_fails_before_either_mode_starts(profiling_contexts, key, value):
+    with pytest.raises(ConfigurationError, match=rf"distribution\.splunk\.profiling\.callgraphs\.{key}"):
+        _configure_declarative_profiling(
+            {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}, "callgraphs": {key: value}}}}, Resource({})
         )
 
     assert not profiling_contexts

@@ -1,7 +1,7 @@
 from opentelemetry import trace
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 
-from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor
+from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS
 from splunk_otel.env import (
     Env,
     SPLUNK_SNAPSHOT_PROFILER_ENABLED,
@@ -17,6 +17,6 @@ def _configure_callgraphs_if_enabled(env=None):
             CallgraphsSpanProcessor(
                 _mk_resource(env.getval(OTEL_SERVICE_NAME)),
                 _get_profiling_logger(),
-                env.getint(SPLUNK_SNAPSHOT_SAMPLING_INTERVAL, 10),
+                env.getint(SPLUNK_SNAPSHOT_SAMPLING_INTERVAL, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS),
             )
         )
