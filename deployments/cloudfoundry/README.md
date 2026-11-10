@@ -1,8 +1,8 @@
 # Splunk OpenTelemetry Python buildpack for Cloud Foundry
 
 This experimental classic Cloud Foundry buildpack supplies Splunk OpenTelemetry
-Python and instrumentation packages before the Cloud Foundry Python buildpack
-sets up the application. It follows the [Splunk Java add-on buildpack][java]
+Python, the Cisco SecureApp Python agent, and instrumentation packages before
+the Cloud Foundry Python buildpack sets up the application. It follows the [Splunk Java add-on buildpack][java]
 for explicit selection, ZIP packaging, and separation from the language runtime.
 
 The draft targets **CPython 3.12, Linux AMD64, and cflinuxfs4**. Cloud Foundry
@@ -11,7 +11,9 @@ does not establish PCF compatibility.
 
 ## How it works
 
-1. `build.sh` installs the versions in [docker/requirements.txt][requirements]
+1. `build.sh` installs the distribution's `secureapp` extra with the versions in
+   [docker/requirements-secureapp.txt][secureapp-requirements] and
+   [docker/requirements.txt][requirements]
    into a Linux package bundle and includes that bundle in a buildpack ZIP.
    Binary dependencies use manylinux2014 AMD64 wheels.
 2. Cloud Foundry runs `bin/supply`, which copies the bundled agent and launch
@@ -53,7 +55,9 @@ python3 -m pip wheel --no-deps --wheel-dir dist .
 
 The GitHub Actions buildpack job uses this wheel option, runs the Linux smoke
 test, and uploads the tested ZIP as a workflow artifact. It does not publish a
-release. Other dependencies still come from `docker/requirements.txt`.
+release. Other dependencies still come from `docker/requirements.txt` and
+`docker/requirements-secureapp.txt`. SecureApp is included in every buildpack;
+the wheel option also requests the `secureapp` extra.
 
 For stable release tags in the GitLab mirror, `build-job` packages the release
 wheel into a buildpack and runs the same smoke test. The following jobs sign the
@@ -104,11 +108,22 @@ Collector. The manifest sets `OTEL_SERVICE_NAME`; standard `OTEL_*` and
 Send an HTTP request to the application's assigned route and verify a server
 span for `splunk-otel-python-example` at the destination.
 
+## SecureApp dependency reports
+
+The bundle includes `secureapp-python-agent` with the same version pin used by
+the SecureApp init image. The application does not need to install the extra.
+SecureApp reports runtime package dependencies through OpenTelemetry logs.
+Use a Collector that routes the `secureapp` instrumentation scope to the
+SecureApp event endpoint. See [SecureApp configuration](../../docs/secureapp.md)
+for the required endpoint and headers. Setting `SPLUNK_REALM` alone configures
+direct traces and metrics; it does not configure SecureApp report routing.
+
 ## Agent version
 
 By default, the ZIP bundles the distribution and instrumentation versions pinned
-in `docker/requirements.txt`. To change them, update that requirements file and
-rebuild; that file also controls the Python init image. When an agent wheel is
+in `docker/requirements.txt` and the SecureApp version pinned in
+`docker/requirements-secureapp.txt`. Update those pins and rebuild to change
+versions; those files also control the Python init images. When an agent wheel is
 supplied, its distribution version replaces the agent pin for that build.
 
 `SPLUNK_OTEL_PYTHON_VERSION` can assert the bundled version during staging. A
@@ -126,8 +141,10 @@ payload contains native wheels and matching instrumentation packages.
 
 The smoke test runs Linux AMD64 in Docker, installs the example application,
 runs `supply`, moves the dependency directory, starts the example through the
-launcher, and checks an exported Flask server span. It downloads application
-requirements during setup. It does not run the Cloud Foundry lifecycle.
+launcher, verifies the bundled SecureApp agent imports, and checks an exported
+Flask server span. It does not validate SecureApp backend library ingestion.
+It downloads application requirements during setup. It does not run the
+Cloud Foundry lifecycle.
 
 Before using the buildpack beyond a draft, test on PCF: record the platform,
 stack, and Python buildpack versions; verify `PATH` setup, request traces,
@@ -149,4 +166,5 @@ restaging, restarts, and Gunicorn worker behavior, including worker forks.
 
 [java]: https://github.com/signalfx/splunk-otel-java/tree/main/deployments/cloudfoundry/buildpack
 [requirements]: ../../docker/requirements.txt
+[secureapp-requirements]: ../../docker/requirements-secureapp.txt
 [setup]: ../../README.md#get-started

@@ -27,12 +27,13 @@ container="$(docker create --platform linux/amd64 \
         export PATH="/runtime-deps/0/bin:$PATH"
         export PYTHONPATH=/example
         cd /example
-        splunk-otel-python python -c '\''from app import app; response = app.test_client().get("/"); assert response.status_code == 200; assert response.json == {"message": "Hello from Cloud Foundry"}'\''
+        splunk-otel-python python /test_payload.py
     ')"
 
 # Copy through Docker so the test also works with a remote CI daemon.
 docker cp "$workspace/buildpack" "$container:/buildpack"
 docker cp "$repository_dir/deployments/cloudfoundry/example" "$container:/example"
+docker cp "$repository_dir/tests/smoke/cloudfoundry_payload.py" "$container:/test_payload.py"
 docker start --attach "$container" > "$workspace/spans.json"
 exit_code="$(docker inspect --format '{{.State.ExitCode}}' "$container")"
 if [[ "$exit_code" != 0 ]]; then
@@ -57,5 +58,5 @@ assert any(
     and span["resource"]["attributes"]["service.name"] == "cloudfoundry-smoke"
     for span in spans
 ), spans
-print("Cloud Foundry buildpack smoke test passed: Flask server span exported after relocation.")
+print("Cloud Foundry buildpack smoke test passed: SecureApp imported and Flask server span exported after relocation.")
 PY

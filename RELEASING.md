@@ -106,7 +106,8 @@ Use this process for stable releases such as `v3.4.5`:
       and PyPI publish is manual
 13) Monitor the release pipeline in GitLab
     - wait for `build-job` to build the Python wheel and source distribution, package the Cloud Foundry buildpack
-      using that wheel, and pass the buildpack smoke test
+      using that wheel with its `secureapp` extra, and pass the buildpack smoke test
+    - the buildpack includes the SecureApp version pinned in `docker/requirements-secureapp.txt`
     - wait for `buildpack-signing-job`, `release-checksums-job`, and `checksum-signing-job` to complete successfully
     - the checksum file covers the wheel, source distribution, buildpack ZIP, and ZIP signature
     - run the manual deploy job to publish the package to PyPI
