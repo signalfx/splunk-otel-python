@@ -5,7 +5,7 @@ Python, the Cisco SecureApp Python agent, and instrumentation packages before
 the Cloud Foundry Python buildpack sets up the application. It follows the [Splunk Java add-on buildpack][java]
 for explicit selection, ZIP packaging, and separation from the language runtime.
 
-The draft targets **CPython 3.12, Linux AMD64, and cflinuxfs4**. Cloud Foundry
+The draft targets **CPython 3.10–3.14, Linux AMD64, and cflinuxfs4**. Cloud Foundry
 staging and deployment validation are pending. A successful local smoke test
 does not establish PCF compatibility.
 
@@ -14,7 +14,8 @@ does not establish PCF compatibility.
 1. `build.sh` installs the distribution's `secureapp` extra with the versions in
    [docker/requirements-secureapp.txt][secureapp-requirements] and
    [docker/requirements.txt][requirements]
-   into a Linux package bundle and includes that bundle in a buildpack ZIP.
+   into a separate Linux package bundle for each Python minor version and
+   includes all five bundles in one buildpack ZIP.
    Binary dependencies use manylinux2014 AMD64 wheels.
 2. Cloud Foundry runs `bin/supply`, which copies the bundled agent and launch
    command into this buildpack's `deps/<index>` directory. It does not need
@@ -22,13 +23,31 @@ does not establish PCF compatibility.
 3. The final Python buildpack supplies the interpreter, installs the application
    requirements, and adds buildpack dependency `bin` directories to `PATH`.
 4. The application starts with `splunk-otel-python <command>`. The launcher
-   selects the bundled packages and calls the standard
+   selects the bundle matching the application interpreter and calls the standard
    `opentelemetry-instrument` entry point before executing the application.
 
 The launch command derives paths from its installed location, so it can run
 when Cloud Foundry moves the dependency directory. It sets `PYTHONPATH` at
 launch, after the Python buildpack has set its environment. Restarts do not run
 pip or download agent packages.
+
+Each bundle is installed under its corresponding interpreter so native wheels
+and dependency markers are resolved separately, following the init image's
+packaging approach:
+
+```text
+agent/
+  VERSION
+  python3.10/
+  python3.11/
+  python3.12/
+  python3.13/
+  python3.14/
+```
+
+Only the matching directory is added to the package search path. The launcher
+reports an error for an unsupported interpreter or a missing bundle. This ZIP
+contains agent dependencies; the standard Python buildpack supplies Python.
 
 The `detect` script returns 1, as Java's does, so select the buildpack explicitly.
 The `finalize` script reports an error if this buildpack is placed last.
@@ -54,7 +73,7 @@ python3 -m pip wheel --no-deps --wheel-dir dist .
 ```
 
 The GitHub Actions buildpack job uses this wheel option, runs the Linux smoke
-test, and uploads the tested ZIP as a workflow artifact. It does not publish a
+test on CPython 3.10–3.14, and uploads the tested ZIP as a workflow artifact. It does not publish a
 release. Other dependencies still come from `docker/requirements.txt` and
 `docker/requirements-secureapp.txt`. SecureApp is included in every buildpack;
 the wheel option also requests the `secureapp` extra.
@@ -86,8 +105,10 @@ buildpacks:
 command: splunk-otel-python gunicorn --bind 0.0.0.0:$PORT app:app
 ```
 
-Your platform must provide a Python buildpack with CPython 3.12 support. Adjust
-its installed buildpack name if it differs from `python_buildpack`.
+The example's `runtime.txt` requests CPython 3.12. Your platform must provide a
+Python buildpack with support for the requested version. You can change
+`runtime.txt` to another supported minor version, 3.10–3.14. Adjust the installed
+buildpack name if it differs from `python_buildpack`.
 
 Configure an export destination before starting the application. For a reachable
 Collector, run:
@@ -139,10 +160,11 @@ payload contains native wheels and matching instrumentation packages.
   deployments/cloudfoundry/buildpack/splunk_otel_python_buildpack-linux.zip
 ```
 
-The smoke test runs Linux AMD64 in Docker, installs the example application,
-runs `supply`, moves the dependency directory, starts the example through the
-launcher, verifies the bundled SecureApp agent imports, and checks an exported
-Flask server span. It does not validate SecureApp backend library ingestion.
+The smoke test repeats the following on CPython 3.10–3.14 in Linux AMD64 Docker
+containers: install the example, run `supply`, move the dependency directory,
+and start the example through the launcher. It imports native modules and
+SecureApp from the selected bundle and checks an exported Flask server span.
+It does not validate SecureApp backend library ingestion.
 It downloads application requirements during setup. It does not run the
 Cloud Foundry lifecycle.
 
@@ -152,7 +174,8 @@ restaging, restarts, and Gunicorn worker behavior, including worker forks.
 
 ## Draft limitations
 
-- Other Python versions, architectures, and stacks are rejected.
+- Support is limited to CPython 3.10–3.14 with the GIL enabled, Linux AMD64, and
+  `cflinuxfs4`. PyPy, free-threaded CPython, and Alpine/musl are unsupported.
 - Applications must use the explicit `splunk-otel-python` start command.
 - The agent bundle takes priority over application packages with the same names.
   Applications that install OpenTelemetry themselves need separate compatibility

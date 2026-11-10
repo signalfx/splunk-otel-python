@@ -107,6 +107,8 @@ Use this process for stable releases such as `v3.4.5`:
 13) Monitor the release pipeline in GitLab
     - wait for `build-job` to build the Python wheel and source distribution, package the Cloud Foundry buildpack
       using that wheel with its `secureapp` extra, and pass the buildpack smoke test
+    - the buildpack contains separate dependency bundles for CPython 3.10–3.14; the smoke test checks native module
+      imports, SecureApp imports, and Flask trace export on each minor version
     - the buildpack includes the SecureApp version pinned in `docker/requirements-secureapp.txt`
     - wait for `buildpack-signing-job`, `release-checksums-job`, and `checksum-signing-job` to complete successfully
     - the checksum file covers the wheel, source distribution, buildpack ZIP, and ZIP signature

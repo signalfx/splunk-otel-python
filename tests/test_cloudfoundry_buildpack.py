@@ -1,9 +1,11 @@
 import json
 import os
 from pathlib import Path
+import platform
 import shutil
 import subprocess
 import sys
+import sysconfig
 
 import pytest
 
@@ -19,7 +21,7 @@ def buildpack(tmp_path):
     directory = tmp_path / "buildpack"
     shutil.copytree(BUILDPACK, directory, ignore=shutil.ignore_patterns("*.zip"))
     agent = directory / "agent"
-    (agent / "packages").mkdir(parents=True)
+    (agent / "python3.12").mkdir(parents=True)
     (agent / "VERSION").write_text("2.13.3\n")
     return directory
 
@@ -115,7 +117,12 @@ def test_buildpack_rejects_automatic_detection_final_position_and_missing_argume
 
 
 def test_launcher_rejects_unsupported_interpreter():
-    if sys.platform == "linux" and sys.version_info[:2] == (3, 12):
+    if (
+        sys.implementation.name == "cpython"
+        and (3, 10) <= sys.version_info[:2] <= (3, 14)
+        and platform.machine() == "x86_64"
+        and not sysconfig.get_config_var("Py_GIL_DISABLED")
+    ):
         pytest.skip("This interpreter can run the buildpack")
     result = subprocess.run(
         [sys.executable, str(BUILDPACK / "launch.py"), "python", "-V"],
@@ -124,4 +131,25 @@ def test_launcher_rejects_unsupported_interpreter():
         check=False,
     )
     assert result.returncode == 1
-    assert "requires CPython 3.12 on Linux AMD64" in result.stderr
+    assert "requires CPython 3.10-3.14 on Linux AMD64" in result.stderr
+
+
+@pytest.mark.skipif(
+    platform.machine() != "x86_64"
+    or sys.implementation.name != "cpython"
+    or not (3, 10) <= sys.version_info[:2] <= (3, 14)
+    or sysconfig.get_config_var("Py_GIL_DISABLED"),
+    reason="The missing-bundle check requires a supported interpreter",
+)
+def test_launcher_reports_missing_interpreter_bundle(tmp_path):
+    launcher = tmp_path / "launch.py"
+    shutil.copy(BUILDPACK / "launch.py", launcher)
+    result = subprocess.run(
+        [sys.executable, str(launcher), "python", "-V"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    assert result.returncode == 1
+    assert f"Agent packages are missing for Python {python_version}" in result.stderr

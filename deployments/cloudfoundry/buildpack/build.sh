@@ -14,6 +14,7 @@ trap 'rm -rf "$workspace"' EXIT
 
 # Keep the init image's instrumentation pins when CI supplies a checkout wheel.
 mkdir -p "$workspace/context"
+cp "$buildpack_dir/install.sh" "$workspace/context/"
 cp "$repository_dir/docker/requirements-secureapp.txt" "$workspace/context/"
 if [[ $# -eq 2 ]]; then
     cp "$2" "$workspace/context/"
