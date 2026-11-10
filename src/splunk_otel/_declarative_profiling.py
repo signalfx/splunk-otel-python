@@ -65,13 +65,18 @@ def _configure_declarative_profiling(distribution_config: dict | None, resource:
     if cpu_profiler_config is None and callgraphs_config is None:
         return
 
+    if callgraphs_config is not None:
+        tracer_provider = _configure_callgraphs_tracer_provider(resource)
+
     logger_provider = _create_profiling_logger_provider(profiling_config, resource)
     logger = _get_profiling_logger(logger_provider)
     if cpu_profiler_config is not None:
         _configure_declarative_continuous_profiling(cpu_profiler_config, resource=resource, logger=logger)
 
     if callgraphs_config is not None:
-        _configure_declarative_callgraph_profiling(callgraphs_config, resource=resource, logger=logger)
+        _configure_declarative_callgraph_profiling(
+            callgraphs_config, tracer_provider=tracer_provider, resource=resource, logger=logger
+        )
 
 
 def _configure_callgraphs_tracer_provider(resource: Resource) -> SDKTracerProvider:
@@ -105,8 +110,9 @@ def _configure_declarative_continuous_profiling(
     _start_continuous_profiling(resource=resource, interval_millis=interval_millis, logger=logger)
 
 
-def _configure_declarative_callgraph_profiling(callgraphs_config: dict, *, resource: Resource, logger: Logger) -> None:
-    tracer_provider = _configure_callgraphs_tracer_provider(resource)
+def _configure_declarative_callgraph_profiling(
+    callgraphs_config: dict, *, tracer_provider: SDKTracerProvider, resource: Resource, logger: Logger
+) -> None:
     processor = CallgraphsSpanProcessor(
         resource=resource,
         logger=logger,
