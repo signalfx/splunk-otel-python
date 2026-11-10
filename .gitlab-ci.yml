@@ -20,13 +20,48 @@ stages:
 
 build-job:
   stage: build
+  before_script:
+    - ./docker/install-docker-deps.sh
+    - apt-get install -y zip unzip
   script:
     - pip install hatch
     - hatch build
-    - sha256sum dist/* > dist/checksums.txt
+    - mkdir -p buildpack-dist
+    - ./deployments/cloudfoundry/buildpack/build.sh buildpack-dist/splunk_otel_python_buildpack-linux.zip dist/splunk_opentelemetry-*.whl
+    - ./tests/smoke/test-cloudfoundry-buildpack.sh buildpack-dist/splunk_otel_python_buildpack-linux.zip
   artifacts:
       paths:
         - dist/
+        - buildpack-dist/
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
+
+buildpack-signing-job:
+  stage: sign
+  extends: .submit-signing-request
+  needs:
+    - build-job
+  variables:
+    ARTIFACT: buildpack-dist/splunk_otel_python_buildpack-linux.zip
+    SIGN_TYPE: GPG
+    DOWNLOAD_DIR: buildpack-dist
+  artifacts:
+    paths:
+      - buildpack-dist/
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
+
+release-checksums-job:
+  stage: sign
+  needs:
+    - build-job
+    - buildpack-signing-job
+  script:
+    - sha256sum dist/*.whl dist/*.tar.gz buildpack-dist/*.zip buildpack-dist/*.zip.asc > dist/checksums.txt
+  artifacts:
+    paths:
+      - dist/
+      - buildpack-dist/
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/ && $CI_COMMIT_REF_PROTECTED == "true"'
 
@@ -34,7 +69,7 @@ checksum-signing-job:
   stage: sign
   extends: .submit-signing-request
   needs:
-    - build-job
+    - release-checksums-job
   variables:
     ARTIFACT: dist/checksums.txt
     SIGN_TYPE: GPG
@@ -45,6 +80,7 @@ checksum-signing-job:
   artifacts:
     paths:
       - dist/
+      - buildpack-dist/
 
 deploy-job:
   stage: deploy

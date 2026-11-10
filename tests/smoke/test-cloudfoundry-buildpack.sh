@@ -4,12 +4,17 @@ set -euo pipefail
 repository_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 archive="${1:?Usage: test-cloudfoundry-buildpack.sh BUILDPACK_ZIP}"
 workspace="$(mktemp -d)"
-trap 'rm -rf "$workspace"' EXIT
+container=""
+cleanup() {
+    if [[ -n "$container" ]]; then
+        docker rm -f "$container" >/dev/null
+    fi
+    rm -rf "$workspace"
+}
+trap cleanup EXIT
 unzip -q "$archive" -d "$workspace/buildpack"
 
-docker run --rm --platform linux/amd64 \
-    -v "$workspace/buildpack:/buildpack:ro" \
-    -v "$repository_dir/deployments/cloudfoundry/example:/example:ro" \
+container="$(docker create --platform linux/amd64 \
     -e OTEL_SERVICE_NAME=cloudfoundry-smoke \
     -e OTEL_TRACES_EXPORTER=console \
     -e OTEL_METRICS_EXPORTER=none \
@@ -23,7 +28,17 @@ docker run --rm --platform linux/amd64 \
         export PYTHONPATH=/example
         cd /example
         splunk-otel-python python -c '\''from app import app; response = app.test_client().get("/"); assert response.status_code == 200; assert response.json == {"message": "Hello from Cloud Foundry"}'\''
-    ' > "$workspace/spans.json"
+    ')"
+
+# Copy through Docker so the test also works with a remote CI daemon.
+docker cp "$workspace/buildpack" "$container:/buildpack"
+docker cp "$repository_dir/deployments/cloudfoundry/example" "$container:/example"
+docker start --attach "$container" > "$workspace/spans.json"
+exit_code="$(docker inspect --format '{{.State.ExitCode}}' "$container")"
+if [[ "$exit_code" != 0 ]]; then
+    cat "$workspace/spans.json" >&2
+    exit "$exit_code"
+fi
 
 python3 - "$workspace/spans.json" <<'PY'
 import json

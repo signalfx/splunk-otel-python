@@ -55,6 +55,14 @@ The GitHub Actions buildpack job uses this wheel option, runs the Linux smoke
 test, and uploads the tested ZIP as a workflow artifact. It does not publish a
 release. Other dependencies still come from `docker/requirements.txt`.
 
+For stable release tags in the GitLab mirror, `build-job` packages the release
+wheel into a buildpack and runs the same smoke test. The following jobs sign the
+ZIP, calculate checksums, and sign the checksum file. The final
+`checksum-signing-job` artifact includes the ZIP and its signature under
+`buildpack-dist/`, alongside the Python package artifacts under `dist/`.
+See [the release instructions](../../RELEASING.md#stable-release-process) for
+uploading those files as GitHub Release assets.
+
 Use the packaged ZIP rather than pointing `cf push` at this source directory:
 source files do not include the agent bundle. A platform administrator may need
 to install the ZIP.
