@@ -9,6 +9,9 @@ import pytest
 
 
 BUILDPACK = Path(__file__).resolve().parents[1] / "deployments/cloudfoundry/buildpack"
+pytestmark = pytest.mark.skipif(
+    sys.platform != "linux", reason="Cloud Foundry scripts require Linux"
+)
 
 
 @pytest.fixture

@@ -42,7 +42,19 @@ cf create-buildpack splunk_otel_python_buildpack \
   deployments/cloudfoundry/buildpack/splunk_otel_python_buildpack-linux.zip 99
 ```
 
-The build script also accepts an output ZIP path as its first argument.
+The build script also accepts an output ZIP path as its first argument and an
+agent wheel as its second argument. To package the current checkout:
+
+```sh
+python3 -m pip wheel --no-deps --wheel-dir dist .
+./deployments/cloudfoundry/buildpack/build.sh \
+  /tmp/splunk_otel_python_buildpack-linux.zip dist/splunk_opentelemetry-*.whl
+```
+
+The GitHub Actions buildpack job uses this wheel option, runs the Linux smoke
+test, and uploads the tested ZIP as a workflow artifact. It does not publish a
+release. Other dependencies still come from `docker/requirements.txt`.
+
 Use the packaged ZIP rather than pointing `cf push` at this source directory:
 source files do not include the agent bundle. A platform administrator may need
 to install the ZIP.
@@ -86,9 +98,10 @@ span for `splunk-otel-python-example` at the destination.
 
 ## Agent version
 
-The ZIP bundles the distribution and instrumentation versions pinned in
-`docker/requirements.txt`. To change them, update that requirements file and
-rebuild; that file also controls the Python init image.
+By default, the ZIP bundles the distribution and instrumentation versions pinned
+in `docker/requirements.txt`. To change them, update that requirements file and
+rebuild; that file also controls the Python init image. When an agent wheel is
+supplied, its distribution version replaces the agent pin for that build.
 
 `SPLUNK_OTEL_PYTHON_VERSION` can assert the bundled version during staging. A
 mismatch fails staging with an error. It does not download a replacement agent.
