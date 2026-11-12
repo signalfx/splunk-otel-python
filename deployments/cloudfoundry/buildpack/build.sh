@@ -33,6 +33,8 @@ docker build --platform linux/amd64 \
     --output "type=local,dest=$workspace/buildpack/agent" \
     "$workspace/context"
 
+# CF unpacks the buildpack as root, then runs supply as vcap.
+chmod a+rx "$workspace/buildpack/agent"
 cp -R "$buildpack_dir/bin" "$workspace/buildpack/bin"
 cp "$buildpack_dir/launch.py" "$buildpack_dir/run" "$buildpack_dir/manifest.yml" "$workspace/buildpack/"
 chmod +x "$workspace/buildpack/bin/"* "$workspace/buildpack/run"

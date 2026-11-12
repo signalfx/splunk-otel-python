@@ -16,18 +16,18 @@ unzip -q "$archive" -d "$workspace/buildpack"
 
 for python_version in 3.10 3.11 3.12 3.13 3.14; do
     echo "Testing CPython $python_version on Linux AMD64..."
-    container="$(docker create --platform linux/amd64 \
+    container="$(docker create --platform linux/amd64 --user 65534:65534 \
         -e OTEL_SERVICE_NAME=cloudfoundry-smoke \
         -e OTEL_TRACES_EXPORTER=console \
         -e OTEL_METRICS_EXPORTER=none \
         -e OTEL_LOGS_EXPORTER=none \
         "python:$python_version-slim-bookworm" bash -euc '
-            python -m pip install -q -r /example/requirements.txt
-            mkdir -p /staging/app /staging/cache /staging/deps
-            CF_STACK=cflinuxfs4 /buildpack/bin/supply /staging/app /staging/cache /staging/deps 0 >&2
-            mv /staging/deps /runtime-deps
-            export PATH="/runtime-deps/0/bin:$PATH"
-            export PYTHONPATH=/example
+            python -m pip install -q --target /tmp/appdeps -r /example/requirements.txt
+            mkdir -p /tmp/staging/app /tmp/staging/cache /tmp/staging/deps
+            CF_STACK=cflinuxfs4 /buildpack/bin/supply /tmp/staging/app /tmp/staging/cache /tmp/staging/deps 0 >&2
+            mv /tmp/staging/deps /tmp/runtime-deps
+            export PATH="/tmp/runtime-deps/0/bin:$PATH"
+            export PYTHONPATH=/example:/tmp/appdeps
             cd /example
             splunk-otel-python python /test_payload.py
         ')"

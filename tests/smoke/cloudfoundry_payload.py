@@ -9,7 +9,7 @@ import splunk_secureapp_opentelemetry_extension
 
 
 packages = Path(
-    f"/runtime-deps/0/agent/python{sys.version_info.major}.{sys.version_info.minor}"
+    f"/tmp/runtime-deps/0/agent/python{sys.version_info.major}.{sys.version_info.minor}"
 )
 assert Path(splunk_secureapp_opentelemetry_extension.__file__).is_relative_to(packages)
 assert version("secureapp-python-agent")
