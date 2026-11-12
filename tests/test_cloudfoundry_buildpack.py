@@ -11,9 +11,7 @@ import pytest
 
 
 BUILDPACK = Path(__file__).resolve().parents[1] / "deployments/cloudfoundry/buildpack"
-pytestmark = pytest.mark.skipif(
-    sys.platform != "linux", reason="Cloud Foundry scripts require Linux"
-)
+pytestmark = pytest.mark.skipif(sys.platform != "linux", reason="Cloud Foundry scripts require Linux")
 
 
 @pytest.fixture
@@ -27,9 +25,7 @@ def buildpack(tmp_path):
 
 
 def _supply(buildpack, tmp_path, **environment):
-    directories = [
-        tmp_path / name for name in ("application", "cache", "staged dependencies")
-    ]
+    directories = [tmp_path / name for name in ("application", "cache", "staged dependencies")]
     for directory in directories:
         directory.mkdir(exist_ok=True)
     return subprocess.run(
@@ -63,9 +59,7 @@ def test_supply_and_launch_after_dependencies_move(buildpack, tmp_path):
     runtime = tmp_path / "runtime dependencies"
     shutil.move(staged, runtime)
     fake_python = tmp_path / "python"
-    fake_python.write_text(
-        f"#!{sys.executable}\nimport json, sys\nprint(json.dumps(sys.argv[1:]))\n"
-    )
+    fake_python.write_text(f"#!{sys.executable}\nimport json, sys\nprint(json.dumps(sys.argv[1:]))\n")
     fake_python.chmod(0o755)
     result = subprocess.run(
         [str(runtime / "0/bin/splunk-otel-python"), "gunicorn", "argument with spaces"],
@@ -91,9 +85,7 @@ def test_supply_and_launch_after_dependencies_move(buildpack, tmp_path):
         ),
     ],
 )
-def test_supply_rejects_incompatible_configuration(
-    buildpack, tmp_path, environment, message
-):
+def test_supply_rejects_incompatible_configuration(buildpack, tmp_path, environment, message):
     result = _supply(buildpack, tmp_path, **environment)
     assert result.returncode == 1
     assert message in result.stderr
@@ -110,9 +102,7 @@ def test_supply_rejects_unbuilt_source(tmp_path):
 def test_buildpack_rejects_automatic_detection_final_position_and_missing_arguments(
     script,
 ):
-    result = subprocess.run(
-        ["bash", str(BUILDPACK / "bin" / script)], capture_output=True, check=False
-    )
+    result = subprocess.run(["bash", str(BUILDPACK / "bin" / script)], capture_output=True, check=False)
     assert result.returncode == 1
 
 

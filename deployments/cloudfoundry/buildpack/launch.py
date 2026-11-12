@@ -13,9 +13,7 @@ def main():
         or platform.machine() != "x86_64"
         or sysconfig.get_config_var("Py_GIL_DISABLED")
     ):
-        sys.exit(
-            "The Splunk Python buildpack requires CPython 3.10-3.14 on Linux AMD64 with the GIL enabled."
-        )
+        sys.exit("The Splunk Python buildpack requires CPython 3.10-3.14 on Linux AMD64 with the GIL enabled.")
 
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
     packages = Path(__file__).resolve().parent / "agent" / f"python{python_version}"
@@ -24,9 +22,7 @@ def main():
 
     # The instrument command replaces this process; the child needs the bundle too.
     python_path = os.environ.get("PYTHONPATH")
-    os.environ["PYTHONPATH"] = str(packages) + (
-        os.pathsep + python_path if python_path else ""
-    )
+    os.environ["PYTHONPATH"] = str(packages) + (os.pathsep + python_path if python_path else "")
     sys.path.insert(0, str(packages))
 
     from opentelemetry.instrumentation.auto_instrumentation import run
