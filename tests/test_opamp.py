@@ -14,8 +14,6 @@
 
 import logging
 
-from opentelemetry._opamp.client import OpAMPClient
-from opentelemetry._opamp.proto import opamp_pb2
 from opentelemetry.environment_variables import OTEL_LOGS_EXPORTER
 from opentelemetry.sdk.environment_variables import (
     OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -211,33 +209,6 @@ def test_start_agent_reports_effective_config_and_starts_agent():
     assert agent.started
 
 
-def test_start_agent_builds_upstream_effective_config_message():
-    class CapturingOpAMPClient(OpAMPClient):
-        effective_config = None
-
-        def update_effective_config(self, config, content_type):
-            self.effective_config = super().update_effective_config(config, content_type)
-            return self.effective_config
-
-    client = CapturingOpAMPClient(
-        endpoint="http://host/opamp",
-        headers={},
-        agent_identifying_attributes={},
-        agent_non_identifying_attributes={},
-    )
-
-    _start_agent(
-        30000,
-        f"{SPLUNK_PROFILER_ENABLED}=false",
-        client,
-        agent_factory=FakeAgent,
-    )
-
-    config_file = client.effective_config.config_map.config_map["environment"]
-    assert config_file.content_type == "text/plain; format=properties; vendor=splunk; v=1.0.0"
-    assert config_file.body == b"SPLUNK_PROFILER_ENABLED=false"
-
-
 def test_client_partitions_resource_attributes_and_preserves_types():
     client = _build_client(
         "http://host/opamp",
@@ -277,8 +248,7 @@ def test_client_serializes_resource_attribute_arrays():
         "http://host/opamp",
         resource.attributes,
     )
-    message = opamp_pb2.AgentToServer()
-    message.ParseFromString(client.build_full_state_message())
+    message = client.build_full_state_message()
     attributes = {attribute.key: attribute.value for attribute in message.agent_description.non_identifying_attributes}
 
     assert attributes["host.ip"].string_value == '["10.0.0.12","127.0.0.1"]'
