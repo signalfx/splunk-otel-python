@@ -45,20 +45,13 @@ class _OpAMPServer:
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
                 body = self.rfile.read(int(self.headers["Content-Length"]))
-                server._requests.put(
+                status, response = server.handle_request(
                     _ReceivedRequest(
                         opamp_pb2.AgentToServer.FromString(body),
                         self.headers.get("OpAMP-Instance-UID"),
                         body,
                     )
                 )
-                status, response = 200, opamp_pb2.ServerToAgent()
-                while not server._finishing.is_set():
-                    try:
-                        status, response = server._responses.get(timeout=0.05)
-                        break
-                    except Empty:
-                        continue
                 response_body = response.SerializeToString()
                 self.send_response(status)
                 self.send_header("Content-Type", "application/x-protobuf")
@@ -75,6 +68,15 @@ class _OpAMPServer:
 
     def start(self):
         self._thread.start()
+
+    def handle_request(self, request):
+        self._requests.put(request)
+        while not self._finishing.is_set():
+            try:
+                return self._responses.get(timeout=0.05)
+            except Empty:
+                continue
+        return 200, opamp_pb2.ServerToAgent()
 
     def next_request(self):
         try:
