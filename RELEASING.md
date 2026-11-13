@@ -102,9 +102,16 @@ Use this process for stable releases such as `v3.4.5`:
 11) Navigate to the GitLab mirror and verify that the mirror has pulled the version you just merged by checking the
     version number in the `__about__.py` file
 12) When ready to release, create a new `vX.Y.Z` tag like `v3.4.5` on main in GitLab
-    - this starts the release pipeline; build and checksum signing run automatically, and PyPI publish is manual
+    - this starts the release pipeline; package and buildpack generation, smoke testing, and signing run automatically,
+      and PyPI publish is manual
 13) Monitor the release pipeline in GitLab
-    - wait for the build and checksum signing jobs to complete successfully
+    - wait for `build-job` to build the Python wheel and source distribution, package the Cloud Foundry buildpack
+      using that wheel with its `secureapp` extra, and pass the buildpack smoke test
+    - the buildpack contains separate dependency bundles for CPython 3.10–3.14; the smoke test checks native module
+      imports, SecureApp imports, and Flask trace export on each minor version
+    - the buildpack includes the SecureApp version pinned in `docker/requirements-secureapp.txt`
+    - wait for `buildpack-signing-job`, `release-checksums-job`, and `checksum-signing-job` to complete successfully
+    - the checksum file covers the wheel, source distribution, buildpack ZIP, and ZIP signature
     - run the manual deploy job to publish the package to PyPI
     - confirm the Docker image publish job completes successfully
 14) Smoke test the published PyPI package and Docker images:
@@ -117,7 +124,11 @@ Use this process for stable releases such as `v3.4.5`:
     ```
 15) Navigate to Pipelines in the GitLab repo, click the download button for the signing job that just ran,
     and select the 'checksum-signing-job' artifact
-    - this will download a tarball containing the package files, `checksums.txt`, and `checksums.txt.asc`
+    - this will download an artifact archive containing:
+      - `dist/`: Python package files, `checksums.txt`, and `checksums.txt.asc`
+      - `buildpack-dist/`: `splunk_otel_python_buildpack-linux.zip` and its `.asc` signature
+    - keep these directories together when running `sha256sum -c dist/checksums.txt` from the archive root
+    - the buildpack stays outside `dist/` so `hatch publish` receives only the Python distributions
 16) Generate the release metadata file from the repository root with the release commit checked out
     - with your local virtualenv active and the local package installed, run
       `python tools/generate_metadata.py`
@@ -126,8 +137,10 @@ Use this process for stable releases such as `v3.4.5`:
 17) Navigate to the Splunk OTel Python repo and create a New Release
     - create a new tag on publish with the tag name you created in step 12
     - set the title to that tag name (e.g. `v2.7.0`)
-    - unpack the tarball from step 15 and drag its contents and `splunk-otel-python-metadata.yaml` onto the attachments
-      section of the New Release page
+    - unpack the artifact archive from step 15 and attach the files from both `dist/` and `buildpack-dist/`, plus
+      `splunk-otel-python-metadata.yaml`, to the New Release page
+    - the checksum file uses artifact directory paths; after downloading the GitHub Release assets, put the Python
+      packages under `dist/` and the buildpack ZIP and its signature under `buildpack-dist/` to check them
     - Leave the defaults selected and click Publish
 
 ## Prerelease Docker image process

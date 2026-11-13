@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Require explicit selection, as the Java add-on does.
+exit 1

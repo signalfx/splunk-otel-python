@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 4 || ! $4 =~ ^[0-9]+$ ]]; then
+    echo "Usage: supply BUILD_DIR CACHE_DIR DEPS_DIR INDEX" >&2
+    exit 1
+fi
+
+if [[ ${CF_STACK:-cflinuxfs4} != cflinuxfs4 ]]; then
+    echo "The Splunk Python buildpack requires cflinuxfs4." >&2
+    exit 1
+fi
+
+buildpack_dir="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ ! -f "$buildpack_dir/agent/VERSION" ]]; then
+    echo "Agent payload missing. Package the buildpack with build.sh first." >&2
+    exit 1
+fi
+
+version="$(cat "$buildpack_dir/agent/VERSION")"
+if [[ ${SPLUNK_OTEL_PYTHON_VERSION:-$version} != "$version" ]]; then
+    echo "This buildpack bundles splunk-opentelemetry $version. Use a ZIP with the requested version." >&2
+    exit 1
+fi
+
+dependency_dir="$3/$4"
+mkdir -p "$dependency_dir/bin"
+cp -R "$buildpack_dir/agent" "$dependency_dir/"
+cp "$buildpack_dir/launch.py" "$dependency_dir/launch.py"
+cp "$buildpack_dir/run" "$dependency_dir/bin/splunk-otel-python"
+chmod +x "$dependency_dir/bin/splunk-otel-python"
+echo "Supplied splunk-opentelemetry $version (CPython 3.10-3.14, Linux AMD64)."
