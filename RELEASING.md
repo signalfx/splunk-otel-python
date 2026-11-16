@@ -72,20 +72,17 @@ Use this process for stable releases such as `v3.4.5`:
         ```
         oteltest tests/integration/opamp_effective_config.py
         ```
-    - leave the `splunk-opentelemetry` pin in `docker/requirements.txt` at the currently published version until the
-      Docker image preflight in the next step passes
     - remove instrumentations that upstream no longer publishes
-3) Build both operator Docker images without cached dependency layers to verify that every pinned package exists and
-   resolves together:
+3) Bump our version in `src/splunk_otel/__about__.py`
+4) Update additional version string locations
+    - `tests/integration/lib.py` # upstream instrumentation version used by integration tests
+    - `docker/requirements.txt` # package version used by the operator init image
+    - `docker/example-instrumentation.yaml` # example operator image tag
+5) Build both operator images to check that the release dependencies install successfully on all supported Python
+   versions, on AMD64 and ARM64:
     ```
-    docker buildx build --pull --no-cache --platform linux/amd64,linux/arm64 --output type=cacheonly --build-arg REQUIREMENTS_FILE=requirements.txt ./docker
-    docker buildx build --pull --no-cache --platform linux/amd64,linux/arm64 --output type=cacheonly --build-arg REQUIREMENTS_FILE=requirements-secureapp.txt --build-arg VERIFY_SECUREAPP=true ./docker
+    ./docker/check-release-images.sh
     ```
-4) Bump our version in __about__.py
-5) Update additional version string locations
-    - `tests/integration/lib.py` # this file is used as a library for integration tests
-    - `docker/requirements.txt` # this file is used to build the docker init image for the operator
-    - `docker/example-instrumentation.yaml`  # this file is just an example but would be nice to show the latest version
 6) Add a new entry in CHANGELOG.md
 7) Commit the changes with a message like "Bump version to 3.4.5"
     - you may want to use multiple commits for clarity, e.g.:
