@@ -126,6 +126,21 @@ Use this process for stable releases such as `v3.4.5`:
     - unpack the tarball from step 15 and drag its contents and `splunk-otel-python-metadata.yaml` onto the attachments
       section of the New Release page
     - Leave the defaults selected and click Publish
+18) Update the metadata used by the Python requirements documentation
+    - after publishing the GitHub release with `splunk-otel-python-metadata.yaml` attached, run the
+      [Update metadata files for APM workflow](https://github.com/splunk/o11y-gdi-metadata/actions/workflows/update-metadata.yaml)
+      on `main`, using **Run workflow** or:
+        ```
+        gh workflow run update-metadata.yaml --repo splunk/o11y-gdi-metadata --ref main
+        ```
+    - the workflow copies the release metadata into [o11y-gdi-metadata](https://github.com/splunk/o11y-gdi-metadata)
+      and opens a PR; it checks all four language agents
+    - find the PR titled `Update splunk-otel-python version to vX.Y.Z`; if a PR for that version already exists,
+      the workflow skips creating another
+    - check that `apm/splunk-otel-python/version` contains the release tag and
+      `apm/splunk-otel-python/metadata.yaml` matches the metadata asset uploaded to the release
+    - have the PR reviewed and merged so the new metadata reaches the metadata repo's `main` branch
+    - after merging, close older Python metadata update PRs so they cannot replace the new metadata with old data
 
 ## Prerelease Docker image process
 
