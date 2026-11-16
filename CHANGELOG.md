@@ -1,7 +1,12 @@
 # Changelog
 
 ## Unreleased
+
+## 2.14.0 - 2026-11-16
+- Upgrade OpenTelemetry dependencies to [1.45.2](https://github.com/open-telemetry/opentelemetry-python/releases/tag/v1.45.2) / [0.66b2](https://github.com/open-telemetry/opentelemetry-python-contrib/releases/tag/v0.66b2)
 - Upgrade the OpAMP client to 0.6b0
+- Support continuous profiling and call graph profiling with declarative configuration
+- Require jsonschema 4.26.0 or later and wrapt 2.5.2 or later
 
 ## 2.13.3 - 2026-10-29
 - Require Requests 2.33.0 or later to prevent installing vulnerable versions

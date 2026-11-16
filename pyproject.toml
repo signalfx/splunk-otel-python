@@ -24,16 +24,16 @@ classifiers = [
 ]
 dependencies = [
   "jsonschema>=4.26.0",
-  "opentelemetry-api==1.45.1",
-  "opentelemetry-sdk==1.45.1",
-  "opentelemetry-propagator-b3==1.45.1",
-  "opentelemetry-exporter-otlp-proto-grpc==1.45.1",
-  "opentelemetry-exporter-otlp-proto-http==1.45.1",
-  "opentelemetry-configuration==0.66b1",
-  "opentelemetry-instrumentation==0.66b1",
-  "opentelemetry-instrumentation-logging==0.66b1",
-  "opentelemetry-instrumentation-system-metrics==0.66b1",
-  "opentelemetry-semantic-conventions==0.66b1",
+  "opentelemetry-api==1.45.2",
+  "opentelemetry-sdk==1.45.2",
+  "opentelemetry-propagator-b3==1.45.2",
+  "opentelemetry-exporter-otlp-proto-grpc==1.45.2",
+  "opentelemetry-exporter-otlp-proto-http==1.45.2",
+  "opentelemetry-configuration==0.66b2",
+  "opentelemetry-instrumentation==0.66b2",
+  "opentelemetry-instrumentation-logging==0.66b2",
+  "opentelemetry-instrumentation-system-metrics==0.66b2",
+  "opentelemetry-semantic-conventions==0.66b2",
   "opentelemetry-opamp-client==0.6b0",
   "protobuf>=6.33.5", # not our direct dep, prevents installing vulnerable proto versions (CVE‑2025‑4565, CVE-2026-0994)
   "requests>=2.33.0", # Upstream dependencies allow vulnerable Requests versions.
