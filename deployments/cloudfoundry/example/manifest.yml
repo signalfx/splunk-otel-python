@@ -1,0 +1,11 @@
+---
+applications:
+  - name: splunk-otel-python-example
+    memory: 512M
+    stack: cflinuxfs4
+    buildpacks:
+      - splunk_otel_python_buildpack
+      - python_buildpack
+    command: splunk-otel-python gunicorn --bind 0.0.0.0:$PORT app:app
+    env:
+      OTEL_SERVICE_NAME: splunk-otel-python-example
