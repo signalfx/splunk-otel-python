@@ -14,10 +14,12 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from opentelemetry import baggage, trace
+from opentelemetry._logs import NoOpLoggerProvider
 from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import Span
+from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.trace import SpanContext
 
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _should_process_context
@@ -197,3 +199,99 @@ class TestCallgraphsSpanProcessor:
         result = processor._filter_stacktraces(stacktraces, active_trace_contexts)  # noqa SLF001
 
         assert len(result) == 0
+
+
+@patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
+def test_shutdown_prevents_sampling_for_later_spans(mock_profiling_context):
+    processor = _processor()
+    span = MagicMock(spec=Span)
+    context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+
+    processor.shutdown()
+    processor.on_start(span, context)
+
+    mock_profiling_context.return_value.stop.assert_called_once_with()
+    mock_profiling_context.return_value.start.assert_not_called()
+    span.set_attribute.assert_not_called()
+
+
+@pytest.mark.parametrize("failure", ["start", "pause"])
+def test_snapshot_sampling_failure_does_not_escape_span_callbacks(profiling_timer_type, failure):
+    logger = NoOpLoggerProvider().get_logger("test")
+    processor = CallgraphsSpanProcessor(Resource({}), logger)
+    provider = TracerProvider(shutdown_on_exit=False)
+    provider.add_span_processor(processor)
+    tracer = provider.get_tracer("test")
+    context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+    (timer,) = profiling_timer_type.instances
+    timer.fail_start = failure == "start"
+    timer.fail_pause = failure == "pause"
+
+    try:
+        span = tracer.start_span("first request", context=context)
+        span.end()
+        assert timer.pause_count == (1 if failure == "pause" else 0)
+
+        timer.fail_start = False
+        timer.fail_pause = False
+        span = tracer.start_span("next request", context=context)
+        span.end()
+        assert timer.pause_count == (2 if failure == "pause" else 1)
+    finally:
+        timer.fail_start = False
+        timer.fail_pause = False
+        provider.shutdown()
+
+
+def test_failed_snapshot_stop_does_not_notify_shutdown(profiling_timer_type):
+    stopped = []
+    processor = CallgraphsSpanProcessor(
+        Resource({}), NoOpLoggerProvider().get_logger("test"), on_shutdown=stopped.append
+    )
+    (timer,) = profiling_timer_type.instances
+    timer.fail_stop = True
+
+    processor.shutdown()
+    assert stopped == []
+
+    timer.fail_stop = False
+    processor.shutdown()
+    assert stopped == [processor]
+
+
+@pytest.mark.usefixtures("profiling_timer_type")
+def test_snapshot_shutdown_callback_failure_does_not_escape(caplog):
+    def _fake_shutdown_callback(_processor):
+        message = "shutdown callback failed"
+        raise RuntimeError(message)
+
+    processor = CallgraphsSpanProcessor(
+        Resource({}), NoOpLoggerProvider().get_logger("test"), on_shutdown=_fake_shutdown_callback
+    )
+
+    processor.shutdown()
+
+    assert "Snapshot profiler shutdown callback failed" in caplog.text
+
+
+@pytest.mark.parametrize("callback", ["on_start", "on_end"])
+@pytest.mark.usefixtures("profiling_timer_type")
+def test_snapshot_callback_contains_span_failures(callback, caplog):
+    class FakeSpan:
+        def set_attribute(self, _name, _value):
+            message = "span failed"
+            raise RuntimeError(message)
+
+        def get_span_context(self):
+            message = "span failed"
+            raise RuntimeError(message)
+
+    processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
+
+    if callback == "on_start":
+        context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+        processor.on_start(FakeSpan(), context)
+    else:
+        processor.on_end(FakeSpan())
+
+    assert "span failed" in caplog.text

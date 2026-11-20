@@ -24,14 +24,14 @@ from opentelemetry.trace import (
     get_current_span,
     set_span_in_context,
 )
-from splunk_otel import profile_pb2
+from splunk_otel import _profiling, profile_pb2
 from splunk_otel.profile import (
     _get_line,
     _IntervalTimer,
     _pb_profile_to_str,
     _ProfileScraper,
+    ProfilingContext,
     _stacktraces_to_cpu_profile,
-    _start_continuous_profiling,
     _StringTable,
 )
 
@@ -163,6 +163,57 @@ def test_interval_timer_stop_before_start():
     # thread raises RuntimeError.
     timer = _IntervalTimer(100, lambda: None)
     timer.stop()
+
+
+@pytest.mark.parametrize("operation", ["start", "stop", "pause_after"])
+def test_profiling_context_contains_timer_failures(monkeypatch, operation, caplog):
+    stopped = []
+
+    def _fake_timer_operation(_timer, *_args):
+        message = "timer failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(_IntervalTimer, operation, _fake_timer_operation)
+    context = ProfilingContext(Resource({}), 1000, _FakeLogger(), on_stop=stopped.append)
+
+    if operation == "pause_after":
+        context.pause_after(60)
+    else:
+        assert getattr(context, operation)() is False
+
+    assert stopped == ([context] if operation == "start" else [])
+    assert "timer failed" in caplog.text
+
+
+def test_profiling_context_contains_stop_callback_failure(caplog):
+    def _fake_stop_callback(_context):
+        message = "stop callback failed"
+        raise RuntimeError(message)
+
+    context = ProfilingContext(Resource({}), 1000, _FakeLogger(), on_stop=_fake_stop_callback)
+
+    assert context.stop() is True
+    assert "Profiler stop callback failed" in caplog.text
+
+
+def test_interval_timer_continues_after_sample_failure(caplog):
+    sampled = Event()
+    attempts = []
+
+    def _fake_profile_sample():
+        attempts.append(True)
+        if len(attempts) == 1:
+            message = "sample failed"
+            raise RuntimeError(message)
+        sampled.set()
+
+    timer = _IntervalTimer(1, _fake_profile_sample)
+    timer.start()
+    try:
+        assert sampled.wait(timeout=2)
+        assert "Failed to collect profiling sample" in caplog.text
+    finally:
+        timer.stop()
 
 
 def test_interval_timer_stop_interrupts_long_sampling_interval():
@@ -311,7 +362,7 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_
         def shutdown(self):
             lifecycle.append("exporter shut down")
 
-    monkeypatch.setattr("splunk_otel.profile._atexit.register", _fake_register_shutdown)
+    monkeypatch.setattr("splunk_otel._profiling.atexit.register", _fake_register_shutdown)
     monkeypatch.setattr("splunk_otel.profile._IntervalTimer", _fake_interval_timer)
     resource = Resource({"service.name": "final-profile-test"})
     tracer_provider = (
@@ -330,7 +381,9 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_
 
     active_spans = ExitStack()
     if profiling_mode == "continuous":
-        _start_continuous_profiling(resource=resource, interval_millis=60000, logger=FakeProfilingLogger())
+        _profiling.profiling_controller.start_continuous(
+            resource=resource, sampling_interval=60000, logger=FakeProfilingLogger()
+        )
     else:
         from splunk_otel._declarative_profiling import _configure_declarative_profiling
 
@@ -347,9 +400,7 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_
         monkeypatch.setattr(
             "splunk_otel._declarative_profiling._get_profiling_logger", lambda _provider: FakeProfilingLogger()
         )
-        monkeypatch.setattr(
-            "splunk_otel._declarative_profiling._configure_callgraphs_propagator", lambda _probability: None
-        )
+        monkeypatch.setattr("splunk_otel._profiling._configure_callgraphs_propagator", lambda _probability: None)
         _configure_declarative_profiling({"splunk": {"profiling": {"callgraphs": {"sampling_interval": 1}}}}, resource)
         assert tracer_provider is not None
         active_spans.enter_context(

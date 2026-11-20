@@ -1,6 +1,6 @@
-import atexit as _atexit
 import base64
 import gzip
+import logging
 import sys
 import threading
 import time
@@ -15,9 +15,7 @@ import wrapt
 from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
 from opentelemetry._logs import LoggerProvider as _LoggerProvider
 from opentelemetry.context import Context
-from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import ReadWriteLogRecord
-from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import (
     NonRecordingSpan,
@@ -28,20 +26,15 @@ from opentelemetry.trace import (
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel.env import (
-    SPLUNK_PROFILER_CALL_STACK_INTERVAL,
-    SPLUNK_PROFILER_ENABLED,
-    Env,
-)
+from splunk_otel.env import Env
 
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
-_SERVICE_NAME_ATTR = "service.name"
-_SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
 
 _thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
+_logger = logging.getLogger(__name__)
 
 
 class ProfilingContext:
@@ -52,7 +45,8 @@ class ProfilingContext:
         logger: Logger,
         stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
         instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
-    ):
+        on_stop: Callable[["ProfilingContext"], None] | None = None,
+    ) -> None:
         start_thread_context_tracking()
         scraper = _ProfileScraper(
             resource,
@@ -63,54 +57,46 @@ class ProfilingContext:
             instrumentation_source=instrumentation_source,
         )
         self._timer: _IntervalTimer = _IntervalTimer(interval_millis, scraper.tick)
+        self._on_stop = on_stop
 
-    def start(self):
-        self._timer.start()
+    def start(self) -> bool:
+        try:
+            self._timer.start()
+        except Exception:
+            _logger.exception("Failed to start profiling timer")
+            self.stop()
+            return False
+        return True
 
-    def stop(self):
-        self._timer.stop()
+    def stop(self) -> bool:
+        """Return whether sampling stopped, so callers can report its actual state."""
+        stopped = False
+        try:
+            self._timer.stop()
+            stopped = True
+            if self._on_stop is not None:
+                self._on_stop(self)
+        except Exception:
+            message = "Profiler stop callback failed" if stopped else "Failed to stop profiling timer"
+            _logger.exception(message)
+        return stopped
 
-    def pause_after(self, seconds: float):
-        self._timer.pause_after(seconds)
-
-
-def _start_profiling_if_enabled(env=None):
-    env = env or Env()
-    if env.is_true(SPLUNK_PROFILER_ENABLED):
-        start_profiling(env)
-
-
-def start_profiling(env=None):
-    """Start continuous profiling using environment settings."""
-    env = env or Env()
-    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    service_name = env.getval(OTEL_SERVICE_NAME)
-    return _start_continuous_profiling(
-        resource=_mk_resource(service_name),
-        interval_millis=interval_millis,
-        logger=_get_profiling_logger(),
-    )
+    def pause_after(self, seconds: float) -> None:
+        try:
+            self._timer.pause_after(seconds)
+        except Exception:
+            _logger.exception("Failed to pause profiling timer")
 
 
-def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
-    context = ProfilingContext(resource, interval_millis, logger)
-    context.start()
-    # Providers register shutdown first; stop sampling before they flush at exit.
-    _atexit.register(context.stop)
-    return context
+def start_profiling(env: Env | None = None) -> ProfilingContext | None:
+    """Start continuous profiling using environment settings; return None on failure."""
+    from splunk_otel._environment_profiling import _start_continuous_profiling_from_env
+
+    return _start_continuous_profiling_from_env(env)
 
 
 def _get_profiling_logger(logger_provider: _LoggerProvider | None = None) -> Logger:
     return get_logger(_SCOPE_NAME, _SCOPE_VERSION, logger_provider=logger_provider)
-
-
-def _mk_resource(service_name) -> Resource:
-    return Resource.create(
-        {
-            _SPLUNK_DISTRO_VERSION_ATTR: version,
-            _SERVICE_NAME_ATTR: service_name,
-        }
-    )
 
 
 def start_thread_context_tracking():
@@ -302,7 +288,10 @@ class _IntervalTimer:
                 self.wakeup_event.wait()
                 continue
 
-            self.target()
+            try:
+                self.target()
+            except Exception:
+                _logger.exception("Failed to collect profiling sample")
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             self._stop_event.wait(sleep_seconds)
