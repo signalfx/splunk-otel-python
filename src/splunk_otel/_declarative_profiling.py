@@ -1,10 +1,11 @@
 # Copyright Splunk Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-import atexit
 import json
+import logging
 import math
 from importlib.resources import files
+from typing import Any
 from urllib.parse import urljoin
 
 from jsonschema import Draft202012Validator, ValidationError, validators
@@ -21,13 +22,15 @@ from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
 
-from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS
+from splunk_otel import _profiling
+from splunk_otel.callgraphs.span_processor import _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS
 from splunk_otel.profile import (
     _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS,
     _get_profiling_logger,
-    _start_continuous_profiling,
 )
-from splunk_otel.propagator import _configure_callgraphs_propagator, _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
+from splunk_otel.propagator import _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
+
+_logger = logging.getLogger(__name__)
 
 
 def _create_profiling_validator():
@@ -104,26 +107,34 @@ def _configure_callgraphs_tracer_provider(resource: Resource) -> SDKTracerProvid
 
 
 def _configure_declarative_continuous_profiling(
-    cpu_profiler_config: dict, *, resource: Resource, logger: Logger
+    cpu_profiler_config: dict[str, Any], *, resource: Resource, logger: Logger
 ) -> None:
-    interval_millis = cpu_profiler_config.get("sampling_interval", _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    _start_continuous_profiling(resource=resource, interval_millis=interval_millis, logger=logger)
+    try:
+        interval_millis = cpu_profiler_config.get("sampling_interval", _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
+        _profiling.profiling_controller.start_continuous(
+            resource=resource, sampling_interval=interval_millis, logger=logger
+        )
+    except Exception:
+        _logger.exception("Failed to configure continuous profiling from declarative settings")
 
 
 def _configure_declarative_callgraph_profiling(
-    callgraphs_config: dict, *, tracer_provider: SDKTracerProvider, resource: Resource, logger: Logger
+    callgraphs_config: dict[str, Any], *, tracer_provider: SDKTracerProvider, resource: Resource, logger: Logger
 ) -> None:
-    processor = CallgraphsSpanProcessor(
-        resource=resource,
-        logger=logger,
-        sampling_interval=callgraphs_config.get("sampling_interval", _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS),
-    )
-    tracer_provider.add_span_processor(processor)
-    # Stop sampling before the profiling exporter flushes at exit.
-    atexit.register(processor.shutdown)
-    _configure_callgraphs_propagator(
-        callgraphs_config.get("selection_probability", _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY)
-    )
+    try:
+        sampling_interval = callgraphs_config.get("sampling_interval", _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS)
+        selection_probability = callgraphs_config.get(
+            "selection_probability", _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
+        )
+        _profiling.profiling_controller.start_snapshot(
+            tracer_provider=tracer_provider,
+            resource=resource,
+            logger=logger,
+            sampling_interval=sampling_interval,
+            selection_probability=selection_probability,
+        )
+    except Exception:
+        _logger.exception("Failed to configure snapshot profiling from declarative settings")
 
 
 def _create_profiling_logger_provider(profiling_config: dict, resource: Resource) -> LoggerProvider:

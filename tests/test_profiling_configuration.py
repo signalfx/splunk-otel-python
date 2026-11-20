@@ -9,7 +9,9 @@ from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
+from splunk_otel import _profiling
 from splunk_otel.profile import start_profiling
+from splunk_otel._environment_profiling import _configure_environment_profiling
 from splunk_otel.propagator import CallgraphsPropagator
 from splunk_otel._declarative_profiling import _configure_declarative_profiling
 
@@ -25,25 +27,36 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
 
     class FakeProfilingContext:
         def __init__(
-            self, resource, interval_millis, logger, stacktrace_filter=None, instrumentation_source="continuous"
+            self,
+            resource,
+            interval_millis,
+            logger,
+            stacktrace_filter=None,
+            instrumentation_source="continuous",
+            on_stop=None,
         ):
             self.resource = resource
             self.interval_millis = interval_millis
             self.logger = logger
             self.instrumentation_source = instrumentation_source
             self.started = False
+            self.on_stop = on_stop
             contexts.append(self)
 
         def start(self):
             self.started = True
+            return True
 
         def stop(self):
             self.started = False
+            if self.on_stop is not None:
+                self.on_stop(self)
+            return True
 
         def pause_after(self, _seconds):
             pass
 
-    monkeypatch.setattr("splunk_otel.profile.ProfilingContext", FakeProfilingContext)
+    monkeypatch.setattr("splunk_otel._profiling.ProfilingContext", FakeProfilingContext)
     monkeypatch.setattr("splunk_otel.callgraphs.span_processor.ProfilingContext", FakeProfilingContext)
 
     def _fake_create_logger_provider(logger_provider_config, _resource):
@@ -72,6 +85,19 @@ def test_yaml_starts_continuous_profiling(monkeypatch, profiling_contexts, cpu_p
     assert context.resource is resource
 
 
+@pytest.mark.parametrize("enabled", [False, True])
+def test_environment_startup_only_starts_continuous_profiling_when_enabled(profiling_contexts, enabled):
+    environment = Env({"SPLUNK_PROFILER_ENABLED": str(enabled).lower(), "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "250"})
+
+    _configure_environment_profiling(environment)
+
+    assert len(profiling_contexts) == int(enabled)
+    if enabled:
+        (context,) = profiling_contexts
+        assert context.started
+        assert context.interval_millis == 250
+
+
 def test_start_profiling_uses_supplied_environment(monkeypatch, profiling_contexts):
     monkeypatch.setenv("OTEL_SERVICE_NAME", "process-service")
     monkeypatch.setenv("SPLUNK_PROFILER_CALL_STACK_INTERVAL", "9999")
@@ -83,6 +109,96 @@ def test_start_profiling_uses_supplied_environment(monkeypatch, profiling_contex
     assert context.started
     assert context.interval_millis == 250
     assert context.resource.attributes["service.name"] == "environment-service"
+
+
+def test_repeated_public_start_returns_running_context(profiling_contexts):
+    context = start_profiling(Env({"SPLUNK_PROFILER_CALL_STACK_INTERVAL": "250"}))
+
+    repeated_context = start_profiling(Env({"SPLUNK_PROFILER_CALL_STACK_INTERVAL": "500"}))
+
+    assert repeated_context is context
+    assert profiling_contexts == [context]
+    assert context.started
+    assert context.interval_millis == 250
+
+
+def test_public_start_returns_none_when_resource_setup_fails(monkeypatch, profiling_controller, caplog):
+    received = []
+    profiling_controller.subscribe(received.append)
+
+    def _fake_profiling_resource(_service_name):
+        message = "resource setup failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("splunk_otel._environment_profiling._mk_resource", _fake_profiling_resource)
+
+    assert start_profiling() is None
+    assert len(received) == 1
+    assert received[0].cpu_interval is None
+    assert "resource setup failed" in caplog.text
+
+
+@pytest.mark.parametrize("configuration_source", ["environment", "declarative"])
+@pytest.mark.parametrize("profiling_mode", ["continuous", "snapshot"])
+@pytest.mark.usefixtures("tracer_provider")
+def test_startup_contains_registration_failure(
+    monkeypatch, profiling_contexts, profiling_controller, configuration_source, profiling_mode, caplog
+):
+    received = []
+    profiling_controller.subscribe(received.append)
+
+    def _fake_register_shutdown(_callback):
+        message = "registration failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("splunk_otel._profiling.atexit.register", _fake_register_shutdown)
+
+    if configuration_source == "environment":
+        if profiling_mode == "continuous":
+            assert start_profiling(Env({})) is None
+        else:
+            _configure_environment_profiling(Env({"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}))
+    else:
+        profiling_config = {"always_on": {"cpu_profiler": {}}} if profiling_mode == "continuous" else {"callgraphs": {}}
+        _configure_declarative_profiling({"splunk": {"profiling": profiling_config}}, Resource({}))
+
+    assert not profiling_contexts
+    assert len(received) == 1
+    assert received[0].cpu_interval is None
+    assert received[0].snapshot_interval is None
+    assert "registration failed" in caplog.text
+
+
+@pytest.mark.parametrize("configuration_source", ["environment", "declarative"])
+@pytest.mark.usefixtures("tracer_provider")
+def test_continuous_start_failure_does_not_prevent_snapshot_setup(
+    monkeypatch, profiling_contexts, profiling_controller, configuration_source
+):
+    received = []
+    profiling_controller.subscribe(received.append)
+    profiling_context_type = _profiling.ProfilingContext
+
+    def _fake_profiling_context(*args, **kwargs):
+        if kwargs.get("instrumentation_source", "continuous") == "continuous":
+            message = "continuous profiling failed"
+            raise RuntimeError(message)
+        return profiling_context_type(*args, **kwargs)
+
+    monkeypatch.setattr("splunk_otel._profiling.ProfilingContext", _fake_profiling_context)
+    monkeypatch.setattr("splunk_otel.callgraphs.span_processor.ProfilingContext", _fake_profiling_context)
+
+    if configuration_source == "environment":
+        _configure_environment_profiling(
+            Env({"SPLUNK_PROFILER_ENABLED": "true", "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"})
+        )
+    else:
+        _configure_declarative_profiling(
+            {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}, "callgraphs": {}}}}, Resource({})
+        )
+
+    assert received[-1].cpu_interval is None
+    assert received[-1].snapshot_interval == 10
+    assert len(profiling_contexts) == 1
 
 
 def test_start_profiling_without_arguments_uses_process_environment(monkeypatch, profiling_contexts):
@@ -105,7 +221,7 @@ def test_continuous_profiling_stops_at_exit(monkeypatch, profiling_contexts, con
     def _fake_register_shutdown(callback):
         shutdown_callbacks.append(callback)
 
-    monkeypatch.setattr("splunk_otel.profile._atexit.register", _fake_register_shutdown)
+    monkeypatch.setattr("splunk_otel._profiling.atexit.register", _fake_register_shutdown)
     if configuration_source == "environment":
         start_profiling(Env({"OTEL_SERVICE_NAME": "environment-service"}))
     else:

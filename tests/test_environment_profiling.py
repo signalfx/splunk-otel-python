@@ -12,26 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
-from splunk_otel.callgraphs import _configure_callgraphs_if_enabled
+from splunk_otel._environment_profiling import _configure_environment_profiling
 from splunk_otel.env import Env
 
 
-class TestStartCallgraphsIfEnabled:
-    @patch("splunk_otel.callgraphs.trace")
+class TestEnvironmentSnapshotProfiling:
+    @patch("splunk_otel._environment_profiling.trace")
     def test_does_not_add_processor_when_disabled(self, mock_trace):
         env_store = {}
         env = Env(env_store)
 
-        _configure_callgraphs_if_enabled(env)
+        _configure_environment_profiling(env)
 
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_not_called()
 
-    @patch("splunk_otel.callgraphs._get_profiling_logger")
-    @patch("splunk_otel.callgraphs._mk_resource")
-    @patch("splunk_otel.callgraphs.trace")
-    @patch("splunk_otel.callgraphs.CallgraphsSpanProcessor")
+    @patch("splunk_otel._environment_profiling._get_profiling_logger")
+    @patch("splunk_otel._environment_profiling._mk_resource")
+    @patch("splunk_otel._environment_profiling.trace")
+    @patch("splunk_otel._profiling.CallgraphsSpanProcessor")
     def test_adds_processor_when_enabled(self, mock_processor, mock_trace, mk_resource, get_profiling_logger):
         env_store = {
             "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
@@ -39,19 +39,24 @@ class TestStartCallgraphsIfEnabled:
         }
         env = Env(env_store)
 
-        _configure_callgraphs_if_enabled(env)
+        _configure_environment_profiling(env)
 
         mk_resource.assert_called_once_with("test-service")
         get_profiling_logger.assert_called_once_with()
-        mock_processor.assert_called_once_with(mk_resource.return_value, get_profiling_logger.return_value, 10)
+        mock_processor.assert_called_once_with(
+            resource=mk_resource.return_value,
+            logger=get_profiling_logger.return_value,
+            sampling_interval=10,
+            on_shutdown=ANY,
+        )
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once_with(
             mock_processor.return_value
         )
 
-    @patch("splunk_otel.callgraphs._get_profiling_logger")
-    @patch("splunk_otel.callgraphs._mk_resource")
-    @patch("splunk_otel.callgraphs.trace")
-    @patch("splunk_otel.callgraphs.CallgraphsSpanProcessor")
+    @patch("splunk_otel._environment_profiling._get_profiling_logger")
+    @patch("splunk_otel._environment_profiling._mk_resource")
+    @patch("splunk_otel._environment_profiling.trace")
+    @patch("splunk_otel._profiling.CallgraphsSpanProcessor")
     def test_uses_custom_sampling_interval(self, mock_processor, mock_trace, mk_resource, get_profiling_logger):
         env_store = {
             "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
@@ -60,9 +65,14 @@ class TestStartCallgraphsIfEnabled:
         }
         env = Env(env_store)
 
-        _configure_callgraphs_if_enabled(env)
+        _configure_environment_profiling(env)
 
-        mock_processor.assert_called_once_with(mk_resource.return_value, get_profiling_logger.return_value, 50)
+        mock_processor.assert_called_once_with(
+            resource=mk_resource.return_value,
+            logger=get_profiling_logger.return_value,
+            sampling_interval=50,
+            on_shutdown=ANY,
+        )
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once_with(
             mock_processor.return_value
         )

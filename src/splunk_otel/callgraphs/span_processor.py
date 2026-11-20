@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import threading
+from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
 from opentelemetry import baggage, trace
@@ -27,6 +29,7 @@ if TYPE_CHECKING:
     from opentelemetry.trace import SpanContext
 
 _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS = 10
+_logger = logging.getLogger(__name__)
 
 
 def _should_process_context(context: Context | None) -> bool:
@@ -43,9 +46,13 @@ class CallgraphsSpanProcessor(SpanProcessor):
         resource: Resource,
         logger: Logger,
         sampling_interval: int = _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS,
-    ):
+        *,
+        on_shutdown: Callable[["CallgraphsSpanProcessor"], None] | None = None,
+    ) -> None:
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()
+        self._shutdown = False
+        self._on_shutdown = on_shutdown
         self._profiler = ProfilingContext(
             resource,
             sampling_interval,
@@ -55,6 +62,14 @@ class CallgraphsSpanProcessor(SpanProcessor):
         )
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
+        try:
+            self._start_snapshot_for_span(span, parent_context)
+        except Exception:
+            _logger.exception("Failed to handle snapshot span start")
+
+    def _start_snapshot_for_span(self, span: Span, parent_context: Context | None) -> None:
+        if self._shutdown:
+            return
         if not _should_process_context(parent_context):
             return
 
@@ -72,10 +87,19 @@ class CallgraphsSpanProcessor(SpanProcessor):
                 return
 
             with self._lock:
+                if self._shutdown:
+                    return
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            self._profiler.start()
+                if not self._profiler.start():
+                    self._span_id_to_trace_id.pop(span_ctx.span_id, None)
 
     def on_end(self, span: ReadableSpan) -> None:
+        try:
+            self._pause_snapshot_after_span(span)
+        except Exception:
+            _logger.exception("Failed to handle snapshot span end")
+
+    def _pause_snapshot_after_span(self, span: ReadableSpan) -> None:
         span_id = cast("SpanContext", span.get_span_context()).span_id
         trace_id = self._span_id_to_trace_id.get(span_id)
 
@@ -89,7 +113,15 @@ class CallgraphsSpanProcessor(SpanProcessor):
                 self._profiler.pause_after(60.0)
 
     def shutdown(self) -> None:
-        self._profiler.stop()
+        with self._lock:
+            self._shutdown = True
+        if not self._profiler.stop():
+            return
+        if self._on_shutdown is not None:
+            try:
+                self._on_shutdown(self)
+            except Exception:
+                _logger.exception("Snapshot profiler shutdown callback failed")
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
         return True
