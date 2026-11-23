@@ -62,4 +62,5 @@ def profiling_controller(monkeypatch):
     try:
         controller.shutdown()
     finally:
-        atexit.unregister(controller.shutdown)
+        atexit.unregister(controller.stop_continuous)
+        atexit.unregister(controller.stop_snapshot)

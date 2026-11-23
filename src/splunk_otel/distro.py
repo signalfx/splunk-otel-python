@@ -35,10 +35,8 @@ from splunk_otel.env import (
     SPLUNK_PROFILER_LOGS_ENDPOINT,
     SPLUNK_REALM,
     SPLUNK_SNAPSHOT_PROFILER_ENABLED,
-    SPLUNK_SNAPSHOT_SELECTION_PROBABILITY,
     Env,
 )
-from splunk_otel.propagator import _configure_callgraphs_propagator, _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
 
 _DISTRO_NAME = "splunk-opentelemetry"
 
@@ -63,7 +61,6 @@ class EnvironmentConfiguration:
         self._set_resource_attributes()
         self._handle_realm()
         self._configure_token_headers()
-        self._set_callgraphs_propagator()
 
     def _set_env_defaults(self) -> None:
         for key, value in DEFAULTS.items():
@@ -110,14 +107,6 @@ class EnvironmentConfiguration:
         tok = self.env.getval(SPLUNK_ACCESS_TOKEN).strip()
         if tok:
             self.env.list_append(OTEL_EXPORTER_OTLP_HEADERS, f"{_X_SF_TOKEN}={tok}")
-
-    def _set_callgraphs_propagator(self) -> None:
-        selection_probability = None
-        if self.env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED, "false"):
-            selection_probability = self.env.getfloat(
-                SPLUNK_SNAPSHOT_SELECTION_PROBABILITY, _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
-            )
-        _configure_callgraphs_propagator(selection_probability)
 
 
 class SplunkDistro(BaseDistro):

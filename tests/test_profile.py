@@ -10,7 +10,7 @@ from os.path import abspath, dirname
 
 import pytest
 from google.protobuf.json_format import MessageToDict
-from opentelemetry._logs import Logger
+from opentelemetry._logs import Logger, NoOpLoggerProvider
 from opentelemetry import baggage, trace
 from opentelemetry.context import attach, detach
 from opentelemetry.sdk.resources import Resource
@@ -334,7 +334,9 @@ def test_interval_timer_stop_waits_for_current_sample(monkeypatch):
         timer.stop()
 
 
-@pytest.mark.parametrize("profiling_mode", ["continuous", "callgraphs", "callgraphs_without_tracer_provider"])
+@pytest.mark.parametrize(
+    "profiling_mode", ["continuous", "callgraphs", "callgraphs_without_tracer_provider", "continuous_then_callgraphs"]
+)
 def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_mode):
     shutdown_callbacks = []
     sample_started = Event()
@@ -365,6 +367,10 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_
     monkeypatch.setattr("splunk_otel._profiling.atexit.register", _fake_register_shutdown)
     monkeypatch.setattr("splunk_otel.profile._IntervalTimer", _fake_interval_timer)
     resource = Resource({"service.name": "final-profile-test"})
+    if profiling_mode == "continuous_then_callgraphs":
+        _profiling.profiling_controller.start_continuous(
+            resource=resource, sampling_interval=60000, logger=NoOpLoggerProvider().get_logger("earlier")
+        )
     tracer_provider = (
         None if profiling_mode == "callgraphs_without_tracer_provider" else TracerProvider(resource=resource)
     )
@@ -408,7 +414,7 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_
                 "selected", context=baggage.set_baggage("splunk.trace.snapshot.volume", "highest")
             )
         )
-    (timer,) = timers
+    timer = timers[-1]
     sampler_join = timer.thread.join
 
     def _fake_sampler_join(timeout=None):
@@ -437,7 +443,8 @@ def test_exit_flushes_final_profile_after_sampling_stops(monkeypatch, profiling_
     finally:
         release_sample.set()
         active_spans.close()
-        timer.stop()
+        for profiling_timer in timers:
+            profiling_timer.stop()
         if tracer_provider is not None:
             tracer_provider.shutdown()
         provider.shutdown()

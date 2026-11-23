@@ -230,12 +230,14 @@ def test_snapshot_sampling_failure_does_not_escape_span_callbacks(profiling_time
     try:
         span = tracer.start_span("first request", context=context)
         span.end()
+        assert span.attributes.get("splunk.snapshot.profiling") == (None if failure == "start" else True)
         assert timer.pause_count == (1 if failure == "pause" else 0)
 
         timer.fail_start = False
         timer.fail_pause = False
         span = tracer.start_span("next request", context=context)
         span.end()
+        assert span.attributes["splunk.snapshot.profiling"] is True
         assert timer.pause_count == (2 if failure == "pause" else 1)
     finally:
         timer.fail_start = False

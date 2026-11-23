@@ -14,7 +14,7 @@
 import logging
 
 import pytest
-from opentelemetry.propagate import get_global_textmap
+from opentelemetry.propagate import get_global_textmap, set_global_textmap
 from opentelemetry.propagators.composite import CompositePropagator
 
 from splunk_otel.__about__ import __version__ as version
@@ -136,65 +136,23 @@ def test_invalid_realm_is_ignored(caplog, realm):
     assert "Ignoring invalid SPLUNK_REALM value" in caplog.text
 
 
-def test_callgraphs_propagator_disabled_by_default():
-    env_store = {}
-    configure_environment(env_store)
-
-    textmap = get_global_textmap()
-    if isinstance(textmap, CompositePropagator):
-        propagators = textmap._propagators  # noqa SLF001
-        callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
-        assert len(callgraphs_propagators) == 0
-    else:
-        assert not isinstance(textmap, CallgraphsPropagator)
-
-
-def test_callgraphs_propagator_enabled():
-    env_store = {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}
-    configure_environment(env_store)
-
-    textmap = get_global_textmap()
-    assert isinstance(textmap, CompositePropagator)
-
-    propagators = textmap._propagators  # noqa SLF001
-    callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
-    assert len(callgraphs_propagators) == 1
-
-
-def test_callgraphs_propagator_selection_probability():
-    env_store = {
-        "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
-        "SPLUNK_SNAPSHOT_SELECTION_PROBABILITY": "0.5",
-    }
-    configure_environment(env_store)
-
-    textmap = get_global_textmap()
-    propagators = textmap._propagators  # noqa SLF001
-    callgraphs_propagator = next(p for p in propagators if isinstance(p, CallgraphsPropagator))
-    assert callgraphs_propagator.selection_probability == 0.5
-
-
-def test_callgraphs_propagator_idempotent():
-    # Configuring twice with snapshot enabled should not accumulate propagators.
-    env_store = {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"}
-    configure_environment(env_store)
-    configure_environment(env_store)
-
-    textmap = get_global_textmap()
-    propagators = textmap._propagators  # noqa SLF001
-    callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
-    assert len(callgraphs_propagators) == 1
-
-
-def test_callgraphs_propagator_removed_when_disabled():
-    # Enabling then disabling snapshot profiling should leave no CallgraphsPropagator.
-    configure_environment({"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"})
-    configure_environment({})
-
-    textmap = get_global_textmap()
-    propagators = textmap._propagators  # noqa SLF001
-    callgraphs_propagators = [p for p in propagators if isinstance(p, CallgraphsPropagator)]
-    assert len(callgraphs_propagators) == 0
+@pytest.mark.parametrize(
+    "env_store",
+    [
+        {},
+        {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"},
+        {"SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true", "SPLUNK_SNAPSHOT_SELECTION_PROBABILITY": "0.5"},
+    ],
+)
+def test_environment_setup_leaves_snapshot_selection_to_controller(env_store):
+    previous = get_global_textmap()
+    propagator = CompositePropagator([CallgraphsPropagator(1.0)])
+    set_global_textmap(propagator)
+    try:
+        configure_environment(env_store)
+        assert get_global_textmap() is propagator
+    finally:
+        set_global_textmap(previous)
 
 
 def configure_environment(env_store):

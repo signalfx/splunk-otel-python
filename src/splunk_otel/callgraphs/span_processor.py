@@ -51,15 +51,35 @@ class CallgraphsSpanProcessor(SpanProcessor):
     ) -> None:
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()
-        self._shutdown = False
+        self._shutdown = True
         self._on_shutdown = on_shutdown
-        self._profiler = ProfilingContext(
+        self._profiler: ProfilingContext | None = None
+        self.configure(resource=resource, logger=logger, sampling_interval=sampling_interval)
+
+    def configure(self, *, resource: Resource, logger: Logger, sampling_interval: int) -> None:
+        profiler = ProfilingContext(
             resource,
             sampling_interval,
             logger,
             self._filter_stacktraces,
             instrumentation_source="snapshot",
         )
+        with self._lock:
+            self._configuration = (resource, logger, sampling_interval)
+            self._profiler = profiler
+            self._span_id_to_trace_id.clear()
+            self._shutdown = False
+
+    def after_fork(self) -> bool:
+        enabled = not self._shutdown
+        self._lock = threading.Lock()
+        self._span_id_to_trace_id = {}
+        self._profiler = None
+        self._shutdown = True
+        if enabled:
+            resource, logger, sampling_interval = self._configuration
+            self.configure(resource=resource, logger=logger, sampling_interval=sampling_interval)
+        return enabled
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
         try:
@@ -79,19 +99,19 @@ class CallgraphsSpanProcessor(SpanProcessor):
             return
 
         if ctx_baggage == "highest":
-            span.set_attribute("splunk.snapshot.profiling", True)
-
             span_ctx = span.get_span_context()
 
             if span_ctx is None:
                 return
 
             with self._lock:
-                if self._shutdown:
+                if self._shutdown or self._profiler is None:
                     return
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
                 if not self._profiler.start():
                     self._span_id_to_trace_id.pop(span_ctx.span_id, None)
+                    return
+                span.set_attribute("splunk.snapshot.profiling", True)
 
     def on_end(self, span: ReadableSpan) -> None:
         try:
@@ -109,13 +129,18 @@ class CallgraphsSpanProcessor(SpanProcessor):
         with self._lock:
             self._span_id_to_trace_id.pop(span_id, None)
 
-            if len(self._span_id_to_trace_id) == 0:
+            if len(self._span_id_to_trace_id) == 0 and self._profiler is not None:
                 self._profiler.pause_after(60.0)
 
     def shutdown(self) -> None:
         with self._lock:
             self._shutdown = True
-        if not self._profiler.stop():
+            profiler = self._profiler
+        if profiler is None:
+            return
+        if not profiler.stop():
+            with self._lock:
+                self._shutdown = False
             return
         if self._on_shutdown is not None:
             try:
