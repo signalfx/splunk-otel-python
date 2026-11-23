@@ -66,7 +66,7 @@ class ProfilingContext:
         self._timer.pause_after(seconds)
 
 
-def start_profiling(env: Env | None = None) -> ProfilingContext | None:
+def start_profiling(env: Env | None = None) -> ProfilingContext:
     """Start continuous profiling using environment settings; return its context."""
     from splunk_otel._environment_profiling import _start_continuous_profiling_from_env
 

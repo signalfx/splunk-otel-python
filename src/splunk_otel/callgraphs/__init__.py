@@ -1,0 +1,1 @@
+from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor as CallgraphsSpanProcessor
