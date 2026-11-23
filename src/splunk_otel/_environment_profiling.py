@@ -25,12 +25,12 @@ from splunk_otel.profile import (
 def configure_environment_profiling(env: Env | None = None) -> None:
     env = env or Env()
     if env.is_true(SPLUNK_PROFILER_ENABLED):
-        _start_continuous_profiling_from_env(env)
+        start_continuous_profiling_from_env(env)
     if env.is_true(SPLUNK_SNAPSHOT_PROFILER_ENABLED):
-        _start_snapshot_profiling_from_env(env)
+        start_snapshot_profiling_from_env(env)
 
 
-def _start_continuous_profiling_from_env(env: Env | None = None) -> ProfilingContext:
+def start_continuous_profiling_from_env(env: Env | None = None) -> ProfilingContext:
     env = env or Env()
     interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
     return _start_continuous_profiling(
@@ -40,7 +40,7 @@ def _start_continuous_profiling_from_env(env: Env | None = None) -> ProfilingCon
     )
 
 
-def _start_snapshot_profiling_from_env(env: Env) -> None:
+def start_snapshot_profiling_from_env(env: Env) -> None:
     trace.get_tracer_provider().add_span_processor(
         CallgraphsSpanProcessor(
             _mk_resource(env.getval(OTEL_SERVICE_NAME)),

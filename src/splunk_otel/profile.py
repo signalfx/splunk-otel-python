@@ -68,9 +68,9 @@ class ProfilingContext:
 
 def start_profiling(env: Env | None = None) -> ProfilingContext:
     """Start continuous profiling using environment settings; return its context."""
-    from splunk_otel._environment_profiling import _start_continuous_profiling_from_env
+    from splunk_otel._environment_profiling import start_continuous_profiling_from_env
 
-    return _start_continuous_profiling_from_env(env)
+    return start_continuous_profiling_from_env(env)
 
 
 def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
