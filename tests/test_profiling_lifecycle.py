@@ -4,7 +4,9 @@
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from textwrap import dedent
+from threading import Event
 
 import pytest
 from opentelemetry import baggage, trace
@@ -13,6 +15,7 @@ from opentelemetry.propagate import get_global_textmap, set_global_textmap
 from opentelemetry.sdk.trace import TracerProvider
 
 from splunk_otel._environment_profiling import _configure_environment_profiling
+from splunk_otel.configurator import SplunkConfigurator
 from splunk_otel.distro import EnvironmentConfiguration
 from splunk_otel.env import Env
 
@@ -63,6 +66,83 @@ def test_stopping_snapshots_disables_local_selection(profiling_controller):
 
     profiling_controller.stop_snapshot()
 
+    assert _local_snapshot_selection() is None
+
+
+@pytest.mark.parametrize("repeated_callgraphs", ["selection_probability: 1.0", "selection_probability: 0.5", None])
+@pytest.mark.usefixtures("profiling_timer_type", "snapshot_provider")
+def test_repeated_yaml_setup_keeps_active_snapshot_selection(
+    tmp_path, monkeypatch, profiling_controller, repeated_callgraphs
+):
+    config_file = tmp_path / "profiling.yaml"
+    monkeypatch.setenv("OTEL_CONFIG_FILE", str(config_file))
+    monkeypatch.setenv("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "logging")
+    base_config = 'file_format: "1.0"\npropagator:\n  composite_list: tracecontext,baggage\n'
+    profiling_config = "distribution:\n  splunk:\n    profiling:\n      callgraphs:\n        "
+    config_file.write_text(base_config + profiling_config + "selection_probability: 1.0\n")
+    reported = []
+    profiling_controller.subscribe(reported.append)
+    configurator = SplunkConfigurator()
+    configurator.configure()
+    assert _local_snapshot_selection() == "highest"
+
+    config_file.write_text(base_config + (profiling_config + repeated_callgraphs + "\n" if repeated_callgraphs else ""))
+    configurator.configure()
+
+    assert reported[-1].selection_probability == 1.0
+    assert _local_snapshot_selection() == "highest"
+    context = get_global_textmap().extract(
+        {
+            "traceparent": "00-12345678901234567890123456789012-1234567890123456-01",
+            "baggage": "splunk.trace.snapshot.volume=off",
+        },
+        context=Context(),
+    )
+    assert trace.get_current_span(context).get_span_context().is_remote
+    assert baggage.get_baggage("splunk.trace.snapshot.volume", context) == "off"
+
+
+def test_delayed_provider_shutdown_does_not_clear_restarted_snapshot(
+    snapshot_provider, profiling_controller, profiling_timer_type, monkeypatch
+):
+    reported = []
+    profiling_controller.subscribe(reported.append)
+    _configure_snapshots(1.0)
+    (old_timer,) = profiling_timer_type.instances
+    stop_timer = old_timer.stop
+    sampler_stopped = Event()
+    finish_shutdown = Event()
+
+    def _delayed_timer_stop():
+        stop_timer()
+        if not sampler_stopped.is_set():
+            sampler_stopped.set()
+            assert finish_shutdown.wait(5), "provider shutdown was not released"
+
+    monkeypatch.setattr(old_timer, "stop", _delayed_timer_stop)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        shutdown = executor.submit(snapshot_provider.shutdown)
+        try:
+            assert sampler_stopped.wait(5), "provider did not stop the sampler"
+            profiling_controller.stop_snapshot()
+            _configure_snapshots(0.0, sampling_interval=20)
+            span = snapshot_provider.get_tracer("test").start_span(
+                "selected request", context=baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+            )
+            span.end()
+            new_timer = profiling_timer_type.instances[-1]
+            assert new_timer is not old_timer
+            assert new_timer.started
+        finally:
+            finish_shutdown.set()
+        shutdown.result(timeout=5)
+
+    assert reported[-1].snapshot_interval == 20
+    assert reported[-1].selection_probability == 0.0
+    assert _local_snapshot_selection() == "off"
+    profiling_controller.stop_snapshot()
+    assert new_timer.stopped
+    assert reported[-1].snapshot_interval is None
     assert _local_snapshot_selection() is None
 
 

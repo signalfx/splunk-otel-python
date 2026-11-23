@@ -13,6 +13,8 @@ from threading import RLock
 from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
+from opentelemetry.propagate import set_global_textmap
+
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor
 from splunk_otel.profile import ProfilingContext
 from splunk_otel.propagator import _configure_callgraphs_propagator
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from opentelemetry._logs import Logger
+    from opentelemetry.propagators.textmap import TextMapPropagator
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
 
@@ -109,6 +112,12 @@ class ProfilingController:
                 )
             )
 
+    def set_base_propagator(self, propagator: TextMapPropagator) -> None:
+        with self._lock:
+            set_global_textmap(propagator)
+            if self._snapshot is not None:
+                _configure_callgraphs_propagator(self._settings.selection_probability)
+
     def stop_continuous(self) -> None:
         with self._lock:
             context = self._continuous
@@ -131,9 +140,10 @@ class ProfilingController:
                 self._continuous = None
                 self._publish(replace(self._settings, cpu_interval=None))
 
-    def _snapshot_stopped(self, processor: CallgraphsSpanProcessor) -> None:
+    def _snapshot_stopped(self, profiler: ProfilingContext) -> None:
         with self._lock:
-            if self._snapshot is processor:
+            # The SDK retains the processor across sampler restarts.
+            if self._snapshot is not None and self._snapshot.uses_profiler(profiler):
                 _configure_callgraphs_propagator(None)
                 self._snapshot = None
                 self._publish(replace(self._settings, snapshot_interval=None))

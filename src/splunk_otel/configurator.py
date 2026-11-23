@@ -23,6 +23,7 @@ from opentelemetry.sdk.environment_variables import OTEL_CONFIG_FILE
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.__about__ import __version__ as version
+from splunk_otel import _profiling
 from splunk_otel._environment_profiling import _configure_environment_profiling
 from splunk_otel.distro import _DEFAULT_SERVICE_NAME, _DISTRO_NAME
 from splunk_otel.env import SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, Env
@@ -73,7 +74,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     from opentelemetry.configuration import load_config_file
     from opentelemetry.configuration._logger_provider import configure_logger_provider
     from opentelemetry.configuration._meter_provider import configure_meter_provider
-    from opentelemetry.configuration._propagator import configure_propagator
+    from opentelemetry.configuration._propagator import create_propagator
     from opentelemetry.configuration._tracer_provider import configure_tracer_provider
     from opentelemetry.configuration.instrumentation import configure_instrumentation
     from splunk_otel._declarative_profiling import _configure_declarative_profiling
@@ -94,7 +95,7 @@ def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfi
     configure_tracer_provider(config.tracer_provider, resource)
     configure_meter_provider(config.meter_provider, resource)
     configure_logger_provider(config.logger_provider, resource)
-    configure_propagator(config.propagator)
+    _profiling.profiling_controller.set_base_propagator(create_propagator(config.propagator))
     configure_instrumentation(config.instrumentation_development)
     _configure_declarative_profiling(config.distribution, resource)
     return config

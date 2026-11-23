@@ -23,6 +23,7 @@ from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.trace import SpanContext
 
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _should_process_context
+from splunk_otel.profile import ProfilingContext
 
 
 def _processor():
@@ -258,12 +259,13 @@ def test_failed_snapshot_stop_does_not_notify_shutdown(profiling_timer_type):
 
     timer.fail_stop = False
     processor.shutdown()
-    assert stopped == [processor]
+    assert len(stopped) == 1
+    assert isinstance(stopped[0], ProfilingContext)
 
 
 @pytest.mark.usefixtures("profiling_timer_type")
 def test_snapshot_shutdown_callback_failure_does_not_escape(caplog):
-    def _fake_shutdown_callback(_processor):
+    def _fake_shutdown_callback(_profiler):
         message = "shutdown callback failed"
         raise RuntimeError(message)
 

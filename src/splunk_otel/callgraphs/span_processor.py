@@ -47,7 +47,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
         logger: Logger,
         sampling_interval: int = _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS,
         *,
-        on_shutdown: Callable[["CallgraphsSpanProcessor"], None] | None = None,
+        on_shutdown: Callable[[ProfilingContext], None] | None = None,
     ) -> None:
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()
@@ -140,13 +140,18 @@ class CallgraphsSpanProcessor(SpanProcessor):
             return
         if not profiler.stop():
             with self._lock:
-                self._shutdown = False
+                if self._profiler is profiler:
+                    self._shutdown = False
             return
         if self._on_shutdown is not None:
             try:
-                self._on_shutdown(self)
+                self._on_shutdown(profiler)
             except Exception:
                 _logger.exception("Snapshot profiler shutdown callback failed")
+
+    def uses_profiler(self, profiler: ProfilingContext) -> bool:
+        with self._lock:
+            return self._profiler is profiler
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
         return True
