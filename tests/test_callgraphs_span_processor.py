@@ -14,10 +14,12 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from opentelemetry import baggage, trace
+from opentelemetry._logs import NoOpLoggerProvider
 from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import Span
+from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.trace import SpanContext
 
 from splunk_otel.callgraphs import CallgraphsSpanProcessor
@@ -198,3 +200,56 @@ class TestCallgraphsSpanProcessor:
         result = processor._filter_stacktraces(stacktraces, active_trace_contexts)  # noqa SLF001
 
         assert len(result) == 0
+
+
+@pytest.mark.parametrize("failure", ["start", "pause"])
+def test_snapshot_sampling_failure_does_not_escape_span_callbacks(profiling_timer_type, failure):
+    logger = NoOpLoggerProvider().get_logger("test")
+    processor = CallgraphsSpanProcessor(Resource({}), logger)
+    provider = TracerProvider(shutdown_on_exit=False)
+    provider.add_span_processor(processor)
+    tracer = provider.get_tracer("test")
+    context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+    (timer,) = profiling_timer_type.instances
+    timer.fail_start = failure == "start"
+    timer.fail_pause = failure == "pause"
+
+    try:
+        span = tracer.start_span("first request", context=context)
+        span.end()
+        assert span.attributes.get("splunk.snapshot.profiling") == (None if failure == "start" else True)
+        assert timer.pause_count == (1 if failure == "pause" else 0)
+
+        timer.fail_start = False
+        timer.fail_pause = False
+        span = tracer.start_span("next request", context=context)
+        span.end()
+        assert span.attributes["splunk.snapshot.profiling"] is True
+        assert timer.pause_count == (2 if failure == "pause" else 1)
+    finally:
+        timer.fail_start = False
+        timer.fail_pause = False
+        provider.shutdown()
+
+
+@pytest.mark.parametrize("callback", ["on_start", "on_end"])
+@pytest.mark.usefixtures("profiling_timer_type")
+def test_snapshot_callback_contains_span_failures(callback, caplog):
+    class FakeSpan:
+        def set_attribute(self, _name, _value):
+            message = "span failed"
+            raise RuntimeError(message)
+
+        def get_span_context(self):
+            message = "span failed"
+            raise RuntimeError(message)
+
+    processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
+
+    if callback == "on_start":
+        context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+        processor.on_start(FakeSpan(), context)
+    else:
+        processor.on_end(FakeSpan())
+
+    assert "span failed" in caplog.text

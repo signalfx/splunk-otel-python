@@ -9,6 +9,7 @@ from opentelemetry.configuration import ConfigurationError
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
+from splunk_otel import profile
 from splunk_otel.profile import start_profiling
 from splunk_otel._environment_profiling import configure_environment_profiling
 from splunk_otel.propagator import CallgraphsPropagator
@@ -37,9 +38,11 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
 
         def start(self):
             self.started = True
+            return True
 
         def stop(self):
             self.started = False
+            return True
 
         def pause_after(self, _seconds):
             pass
@@ -357,3 +360,42 @@ def test_environment_startup_only_starts_continuous_profiling_when_enabled(profi
         (context,) = profiling_contexts
         assert context.started
         assert context.interval_millis == 250
+
+
+def test_public_start_returns_none_when_resource_setup_fails(monkeypatch, caplog):
+    def _fake_profiling_resource(_service_name):
+        message = "resource setup failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("splunk_otel._environment_profiling._mk_resource", _fake_profiling_resource)
+
+    assert start_profiling() is None
+    assert "resource setup failed" in caplog.text
+
+
+@pytest.mark.parametrize("configuration_source", ["environment", "declarative"])
+@pytest.mark.usefixtures("tracer_provider")
+def test_continuous_start_failure_does_not_prevent_snapshot_setup(
+    monkeypatch, profiling_contexts, configuration_source
+):
+    profiling_context_type = profile.ProfilingContext
+
+    def _fake_profiling_context(*args, **kwargs):
+        if kwargs.get("instrumentation_source", "continuous") == "continuous":
+            message = "continuous profiling failed"
+            raise RuntimeError(message)
+        return profiling_context_type(*args, **kwargs)
+
+    monkeypatch.setattr("splunk_otel.profile.ProfilingContext", _fake_profiling_context)
+    monkeypatch.setattr("splunk_otel.callgraphs.span_processor.ProfilingContext", _fake_profiling_context)
+
+    if configuration_source == "environment":
+        configure_environment_profiling(
+            Env({"SPLUNK_PROFILER_ENABLED": "true", "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true"})
+        )
+    else:
+        _configure_declarative_profiling(
+            {"splunk": {"profiling": {"always_on": {"cpu_profiler": {}}, "callgraphs": {}}}}, Resource({})
+        )
+
+    assert len(profiling_contexts) == 1

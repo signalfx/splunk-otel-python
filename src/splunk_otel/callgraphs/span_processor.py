@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import threading
 from typing import TYPE_CHECKING, cast
 
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from opentelemetry.trace import SpanContext
 
 _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS = 10
+_logger = logging.getLogger(__name__)
 
 
 def _should_process_context(context: Context | None) -> bool:
@@ -55,6 +57,12 @@ class CallgraphsSpanProcessor(SpanProcessor):
         )
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
+        try:
+            self._start_snapshot_for_span(span, parent_context)
+        except Exception:
+            _logger.exception("Failed to handle snapshot span start")
+
+    def _start_snapshot_for_span(self, span: Span, parent_context: Context | None = None) -> None:
         if not _should_process_context(parent_context):
             return
 
@@ -64,8 +72,6 @@ class CallgraphsSpanProcessor(SpanProcessor):
             return
 
         if ctx_baggage == "highest":
-            span.set_attribute("splunk.snapshot.profiling", True)
-
             span_ctx = span.get_span_context()
 
             if span_ctx is None:
@@ -73,9 +79,18 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             with self._lock:
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            self._profiler.start()
+                if not self._profiler.start():
+                    self._span_id_to_trace_id.pop(span_ctx.span_id, None)
+                    return
+                span.set_attribute("splunk.snapshot.profiling", True)
 
     def on_end(self, span: ReadableSpan) -> None:
+        try:
+            self._pause_snapshot_after_span(span)
+        except Exception:
+            _logger.exception("Failed to handle snapshot span end")
+
+    def _pause_snapshot_after_span(self, span: ReadableSpan) -> None:
         span_id = cast("SpanContext", span.get_span_context()).span_id
         trace_id = self._span_id_to_trace_id.get(span_id)
 

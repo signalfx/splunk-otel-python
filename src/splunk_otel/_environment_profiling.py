@@ -1,6 +1,8 @@
 # Copyright Splunk Inc.
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
+
 from opentelemetry import trace
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
@@ -22,6 +24,9 @@ from splunk_otel.profile import (
 )
 
 
+_logger = logging.getLogger(__name__)
+
+
 def configure_environment_profiling(env: Env | None = None) -> None:
     env = env or Env()
     if env.is_true(SPLUNK_PROFILER_ENABLED):
@@ -30,24 +35,31 @@ def configure_environment_profiling(env: Env | None = None) -> None:
         start_snapshot_profiling_from_env(env)
 
 
-def start_continuous_profiling_from_env(env: Env | None = None) -> ProfilingContext:
-    env = env or Env()
-    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    return _start_continuous_profiling(
-        resource=_mk_resource(env.getval(OTEL_SERVICE_NAME)),
-        interval_millis=interval_millis,
-        logger=_get_profiling_logger(),
-    )
+def start_continuous_profiling_from_env(env: Env | None = None) -> ProfilingContext | None:
+    try:
+        env = env or Env()
+        interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
+        return _start_continuous_profiling(
+            resource=_mk_resource(env.getval(OTEL_SERVICE_NAME)),
+            interval_millis=interval_millis,
+            logger=_get_profiling_logger(),
+        )
+    except Exception:
+        _logger.exception("Failed to configure continuous profiling from environment settings")
+        return None
 
 
 def start_snapshot_profiling_from_env(env: Env) -> None:
-    trace.get_tracer_provider().add_span_processor(
-        CallgraphsSpanProcessor(
-            _mk_resource(env.getval(OTEL_SERVICE_NAME)),
-            _get_profiling_logger(),
-            env.getint(SPLUNK_SNAPSHOT_SAMPLING_INTERVAL, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS),
+    try:
+        trace.get_tracer_provider().add_span_processor(
+            CallgraphsSpanProcessor(
+                _mk_resource(env.getval(OTEL_SERVICE_NAME)),
+                _get_profiling_logger(),
+                env.getint(SPLUNK_SNAPSHOT_SAMPLING_INTERVAL, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS),
+            )
         )
-    )
+    except Exception:
+        _logger.exception("Failed to configure snapshot profiling from environment settings")
 
 
 def _mk_resource(service_name: str) -> Resource:

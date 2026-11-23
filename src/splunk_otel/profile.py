@@ -1,6 +1,7 @@
 import atexit as _atexit
 import base64
 import gzip
+import logging
 import sys
 import threading
 import time
@@ -34,6 +35,7 @@ _SCOPE_NAME = "otel.profiling"
 
 _thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
+_logger = logging.getLogger(__name__)
 
 
 class ProfilingContext:
@@ -44,7 +46,7 @@ class ProfilingContext:
         logger: Logger,
         stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
         instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
-    ):
+    ) -> None:
         start_thread_context_tracking()
         scraper = _ProfileScraper(
             resource,
@@ -56,26 +58,41 @@ class ProfilingContext:
         )
         self._timer: _IntervalTimer = _IntervalTimer(interval_millis, scraper.tick)
 
-    def start(self):
-        self._timer.start()
+    def start(self) -> bool:
+        try:
+            self._timer.start()
+        except Exception:
+            _logger.exception("Failed to start profiling timer")
+            self.stop()
+            return False
+        return True
 
-    def stop(self):
-        self._timer.stop()
+    def stop(self) -> bool:
+        try:
+            self._timer.stop()
+        except Exception:
+            _logger.exception("Failed to stop profiling timer")
+            return False
+        return True
 
-    def pause_after(self, seconds: float):
-        self._timer.pause_after(seconds)
+    def pause_after(self, seconds: float) -> None:
+        try:
+            self._timer.pause_after(seconds)
+        except Exception:
+            _logger.exception("Failed to pause profiling timer")
 
 
-def start_profiling(env: Env | None = None) -> ProfilingContext:
-    """Start continuous profiling using environment settings; return its context."""
+def start_profiling(env: Env | None = None) -> ProfilingContext | None:
+    """Start continuous profiling using environment settings; return None on failure."""
     from splunk_otel._environment_profiling import start_continuous_profiling_from_env
 
     return start_continuous_profiling_from_env(env)
 
 
-def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
+def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext | None:
     context = ProfilingContext(resource, interval_millis, logger)
-    context.start()
+    if not context.start():
+        return None
     # Providers register shutdown first; stop sampling before they flush at exit.
     _atexit.register(context.stop)
     return context
@@ -274,7 +291,10 @@ class _IntervalTimer:
                 self.wakeup_event.wait()
                 continue
 
-            self.target()
+            try:
+                self.target()
+            except Exception:
+                _logger.exception("Failed to collect profiling sample")
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             self._stop_event.wait(sleep_seconds)

@@ -26,6 +26,7 @@ from opentelemetry.trace import (
 )
 from splunk_otel import profile_pb2
 from splunk_otel.profile import (
+    ProfilingContext,
     _get_line,
     _IntervalTimer,
     _pb_profile_to_str,
@@ -404,3 +405,40 @@ class _FakeLogger(Logger):
 
     def emit(self, record) -> None:
         self.log_records.append(record)
+
+
+@pytest.mark.parametrize("operation", ["start", "stop", "pause_after"])
+def test_profiling_context_contains_timer_failures(monkeypatch, operation, caplog):
+    def _fake_timer_operation(_timer, *_args):
+        message = "timer failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(_IntervalTimer, operation, _fake_timer_operation)
+    context = ProfilingContext(Resource({}), 1000, _FakeLogger())
+
+    if operation == "pause_after":
+        context.pause_after(60)
+    else:
+        assert getattr(context, operation)() is False
+
+    assert "timer failed" in caplog.text
+
+
+def test_interval_timer_continues_after_sample_failure(caplog):
+    sampled = Event()
+    attempts = []
+
+    def _fake_profile_sample():
+        attempts.append(True)
+        if len(attempts) == 1:
+            message = "sample failed"
+            raise RuntimeError(message)
+        sampled.set()
+
+    timer = _IntervalTimer(1, _fake_profile_sample)
+    timer.start()
+    try:
+        assert sampled.wait(timeout=2)
+        assert "Failed to collect profiling sample" in caplog.text
+    finally:
+        timer.stop()
