@@ -14,7 +14,7 @@
 
 from unittest.mock import patch
 
-from splunk_otel._environment_profiling import _configure_environment_profiling
+from splunk_otel._environment_profiling import configure_environment_profiling
 from splunk_otel.env import Env
 
 
@@ -24,7 +24,7 @@ class TestEnvironmentSnapshotProfiling:
         env_store = {}
         env = Env(env_store)
 
-        _configure_environment_profiling(env)
+        configure_environment_profiling(env)
 
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_not_called()
 
@@ -39,7 +39,7 @@ class TestEnvironmentSnapshotProfiling:
         }
         env = Env(env_store)
 
-        _configure_environment_profiling(env)
+        configure_environment_profiling(env)
 
         mk_resource.assert_called_once_with("test-service")
         get_profiling_logger.assert_called_once_with()
@@ -60,7 +60,7 @@ class TestEnvironmentSnapshotProfiling:
         }
         env = Env(env_store)
 
-        _configure_environment_profiling(env)
+        configure_environment_profiling(env)
 
         mock_processor.assert_called_once_with(mk_resource.return_value, get_profiling_logger.return_value, 50)
         mock_trace.get_tracer_provider.return_value.add_span_processor.assert_called_once_with(

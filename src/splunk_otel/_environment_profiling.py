@@ -22,7 +22,7 @@ from splunk_otel.profile import (
 )
 
 
-def _configure_environment_profiling(env: Env | None = None) -> None:
+def configure_environment_profiling(env: Env | None = None) -> None:
     env = env or Env()
     if env.is_true(SPLUNK_PROFILER_ENABLED):
         _start_continuous_profiling_from_env(env)

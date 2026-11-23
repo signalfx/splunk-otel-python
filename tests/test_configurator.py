@@ -227,7 +227,7 @@ def test_configurator_activates_environment_features_only_without_config_file(mo
     )
     monkeypatch.setattr("splunk_otel.configurator.configure_logging_instrumentation", lambda _env: None)
     monkeypatch.setattr(
-        "splunk_otel.configurator._configure_environment_profiling", lambda _env: profiling_calls.append(True)
+        "splunk_otel.configurator.configure_environment_profiling", lambda _env: profiling_calls.append(True)
     )
     monkeypatch.setattr(
         "splunk_otel.runtime.enable_postgresql_trace_context_propagation",
