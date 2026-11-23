@@ -15,9 +15,7 @@ import wrapt
 from opentelemetry._logs import Logger, LogRecord, SeverityNumber, get_logger
 from opentelemetry._logs import LoggerProvider as _LoggerProvider
 from opentelemetry.context import Context
-from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk._logs import ReadWriteLogRecord
-from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import (
     NonRecordingSpan,
@@ -28,15 +26,9 @@ from opentelemetry.trace import (
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel.env import (
-    SPLUNK_PROFILER_CALL_STACK_INTERVAL,
-    SPLUNK_PROFILER_ENABLED,
-    Env,
-)
+from splunk_otel.env import Env
 
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
-_SERVICE_NAME_ATTR = "service.name"
-_SPLUNK_DISTRO_VERSION_ATTR = "splunk.distro.version"
 _SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
 
@@ -74,22 +66,11 @@ class ProfilingContext:
         self._timer.pause_after(seconds)
 
 
-def _start_profiling_if_enabled(env=None):
-    env = env or Env()
-    if env.is_true(SPLUNK_PROFILER_ENABLED):
-        start_profiling(env)
+def start_profiling(env: Env | None = None) -> ProfilingContext | None:
+    """Start continuous profiling using environment settings; return its context."""
+    from splunk_otel._environment_profiling import _start_continuous_profiling_from_env
 
-
-def start_profiling(env=None):
-    """Start continuous profiling using environment settings."""
-    env = env or Env()
-    interval_millis = env.getint(SPLUNK_PROFILER_CALL_STACK_INTERVAL, _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS)
-    service_name = env.getval(OTEL_SERVICE_NAME)
-    return _start_continuous_profiling(
-        resource=_mk_resource(service_name),
-        interval_millis=interval_millis,
-        logger=_get_profiling_logger(),
-    )
+    return _start_continuous_profiling_from_env(env)
 
 
 def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
@@ -102,15 +83,6 @@ def _start_continuous_profiling(resource: Resource, interval_millis: int, logger
 
 def _get_profiling_logger(logger_provider: _LoggerProvider | None = None) -> Logger:
     return get_logger(_SCOPE_NAME, _SCOPE_VERSION, logger_provider=logger_provider)
-
-
-def _mk_resource(service_name) -> Resource:
-    return Resource.create(
-        {
-            _SPLUNK_DISTRO_VERSION_ATTR: version,
-            _SERVICE_NAME_ATTR: service_name,
-        }
-    )
 
 
 def start_thread_context_tracking():

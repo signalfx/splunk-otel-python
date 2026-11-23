@@ -10,6 +10,7 @@ from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.env import Env
 from splunk_otel.profile import start_profiling
+from splunk_otel._environment_profiling import _configure_environment_profiling
 from splunk_otel.propagator import CallgraphsPropagator
 from splunk_otel._declarative_profiling import _configure_declarative_profiling
 
@@ -343,3 +344,16 @@ def test_invalid_callgraphs_setting_fails_before_either_mode_starts(profiling_co
         )
 
     assert not profiling_contexts
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_environment_startup_only_starts_continuous_profiling_when_enabled(profiling_contexts, enabled):
+    environment = Env({"SPLUNK_PROFILER_ENABLED": str(enabled).lower(), "SPLUNK_PROFILER_CALL_STACK_INTERVAL": "250"})
+
+    _configure_environment_profiling(environment)
+
+    assert len(profiling_contexts) == int(enabled)
+    if enabled:
+        (context,) = profiling_contexts
+        assert context.started
+        assert context.interval_millis == 250
