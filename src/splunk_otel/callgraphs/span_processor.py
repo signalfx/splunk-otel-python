@@ -131,7 +131,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
             self._span_id_to_trace_id.pop(span_id, None)
 
             if len(self._span_id_to_trace_id) == 0:
-                self._profiler.pause_after(60.0)
+                self._profiler._pause_after(60.0)  # noqa: SLF001
 
     def shutdown(self) -> None:
         self._shutdown = True

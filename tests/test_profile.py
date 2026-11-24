@@ -4,7 +4,7 @@ import json
 import random
 import time
 from contextlib import ExitStack
-from threading import Event, Thread
+from threading import TIMEOUT_MAX, Event, Thread
 from collections import OrderedDict
 from os.path import abspath, dirname
 
@@ -453,3 +453,45 @@ def test_stopped_timer_rejects_start_without_launching():
         assert not timer.thread.is_alive()
     finally:
         timer.stop()
+
+
+@pytest.mark.parametrize("failure_pattern", ["persistent", "intermittent"])
+def test_sampling_errors_are_rate_limited(monkeypatch, caplog, failure_pattern):
+    from types import SimpleNamespace
+
+    sample_times = iter([100.0] * 25 + [159.99] + [160.0] * 25 + [220.0] * 2)
+    now = next(sample_times)
+    attempts = []
+
+    def profile_sample():
+        attempts.append(now)
+        if failure_pattern == "persistent" or len(attempts) % 2:
+            message = "profiling exporter failed"
+            raise RuntimeError(message)
+
+    timer = _IntervalTimer(10, profile_sample)
+
+    def sampling_wait(_seconds):
+        nonlocal now
+        now = next(sample_times, None)
+        if now is None:
+            timer._stop_event.set()  # noqa: SLF001
+
+    monkeypatch.setattr("splunk_otel.profile.time", SimpleNamespace(monotonic=lambda: now))
+    monkeypatch.setattr(timer._stop_event, "wait", sampling_wait)  # noqa: SLF001
+    try:
+        assert timer.start()
+        timer.thread.join(2)
+        assert not timer.thread.is_alive()
+        assert len(attempts) == 53
+        errors = [record for record in caplog.records if record.message == "Failed to collect profiling sample"]
+        assert len(errors) == 3
+        assert all(record.exc_info for record in errors)
+    finally:
+        timer.stop()
+
+
+@pytest.mark.parametrize("interval", [-1, float("nan"), float("inf"), (TIMEOUT_MAX + 1) * 1000])
+def test_unsupported_sampling_interval_is_rejected_before_launch(interval):
+    with pytest.raises(ValueError, match="sampling interval"):
+        ProfilingContext(Resource({}), interval, _FakeLogger())

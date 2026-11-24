@@ -143,7 +143,7 @@ class TestCallgraphsSpanProcessor:
 
         processor.on_end(span)
 
-        mock_profiling_context.return_value.pause_after.assert_called_once_with(60.0)
+        mock_profiling_context.return_value._pause_after.assert_called_once_with(60.0)  # noqa: SLF001
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_does_not_pause_profiler_when_other_spans_active(self, mock_profiling_context):
@@ -157,7 +157,7 @@ class TestCallgraphsSpanProcessor:
 
         processor.on_end(span)
 
-        mock_profiling_context.return_value.pause_after.assert_not_called()
+        mock_profiling_context.return_value._pause_after.assert_not_called()  # noqa: SLF001
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_end_ignores_untracked_spans(self, mock_profiling_context):
@@ -169,7 +169,7 @@ class TestCallgraphsSpanProcessor:
 
         processor.on_end(span)
 
-        mock_profiling_context.return_value.pause_after.assert_not_called()
+        mock_profiling_context.return_value._pause_after.assert_not_called()  # noqa: SLF001
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_filter_stacktraces_keeps_active_traces(self, mock_profiling_context):
@@ -529,3 +529,84 @@ def test_forked_child_snapshot_profiling(parent_state):
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_pause_error_logging_can_start_a_selected_span():
+    script = dedent("""
+        import logging
+        from opentelemetry import baggage
+        from opentelemetry._logs import NoOpLoggerProvider
+        from opentelemetry.context import Context
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from splunk_otel.callgraphs import CallgraphsSpanProcessor
+        from splunk_otel.profile import _IntervalTimer
+
+        provider = TracerProvider(shutdown_on_exit=False)
+        provider.add_span_processor(CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test")))
+        tracer = provider.get_tracer("test")
+        selected = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+        pause_timer = _IntervalTimer.pause_after
+        attempts = []
+        nested_spans = []
+
+        def fail_first_pause(timer, seconds):
+            attempts.append(True)
+            if len(attempts) == 1:
+                raise RuntimeError("timer pause failed")
+            pause_timer(timer, seconds)
+
+        class TracingLogHandler(logging.Handler):
+            def emit(self, record):
+                if not nested_spans:
+                    nested_spans.append(None)
+                    with tracer.start_as_current_span("log handler", context=selected) as span:
+                        nested_spans[0] = span
+
+        _IntervalTimer.pause_after = fail_first_pause
+        logging.getLogger().addHandler(TracingLogHandler())
+        try:
+            with tracer.start_as_current_span("request", context=selected):
+                pass
+            assert len(nested_spans) == 1
+            assert nested_spans[0].attributes["splunk.snapshot.profiling"] is True
+        finally:
+            provider.shutdown()
+    """)
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        env={
+            **os.environ,
+            "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src"),
+        },
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_snapshot_spans_skip_profiling_after_sampler_exit(monkeypatch, caplog):
+    processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
+    timer = processor._profiler._timer  # noqa: SLF001
+    provider = TracerProvider(shutdown_on_exit=False)
+    provider.add_span_processor(processor)
+    tracer = provider.get_tracer("test")
+    selected = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+
+    def failed_sampling_wait(_seconds):
+        message = "sampling wait failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(timer._stop_event, "wait", failed_sampling_wait)  # noqa: SLF001
+    try:
+        with tracer.start_as_current_span("first request", context=selected):
+            timer.thread.join(2)
+            assert not timer.thread.is_alive()
+        with tracer.start_as_current_span("next request", context=selected) as span:
+            assert span.attributes.get("splunk.snapshot.profiling") is None
+        assert not timer.running
+        assert "sampling wait failed" in caplog.text
+    finally:
+        provider.shutdown()

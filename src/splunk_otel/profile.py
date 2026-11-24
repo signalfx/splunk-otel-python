@@ -34,6 +34,7 @@ from splunk_otel.env import Env
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
 _SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
+_SAMPLING_ERROR_LOG_INTERVAL_SECONDS = 60
 
 _thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
@@ -78,9 +79,13 @@ class ProfilingContext:
 
     def pause_after(self, seconds: float) -> None:
         try:
-            self._timer.pause_after(seconds)
+            self._pause_after(seconds)
         except Exception:  # noqa: BLE001
             log_exception(_logger, "Failed to pause profiling timer")
+
+    def _pause_after(self, seconds: float) -> None:
+        # Snapshot callbacks handle this error after releasing their bookkeeping lock.
+        self._timer.pause_after(seconds)
 
 
 def start_profiling(env: Env | None = None) -> ProfilingContext | None:
@@ -262,6 +267,9 @@ class _IntervalTimer:
     def __init__(self, interval_millis, target):
         self._pid = os.getpid()
         self.interval_seconds = interval_millis / 1e3
+        if not 0 <= self.interval_seconds <= threading.TIMEOUT_MAX:
+            message = f"Profiling sampling interval must be between 0 and {threading.TIMEOUT_MAX * 1000:g} milliseconds"
+            raise ValueError(message)
         self.target = target
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.running = False
@@ -293,6 +301,18 @@ class _IntervalTimer:
         with self._lock:
             if not self.running:
                 return
+        try:
+            self._sample_until_stopped()
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Profiling timer stopped unexpectedly")
+        finally:
+            if self.is_current_process():
+                self._stop_event.set()
+                with self._lock:
+                    self.running = False
+
+    def _sample_until_stopped(self) -> None:
+        last_error_log_at = None
         while self.is_current_process() and not self._stop_event.is_set():
             start_time_seconds = time.monotonic()
 
@@ -308,7 +328,10 @@ class _IntervalTimer:
             try:
                 self.target()
             except Exception:  # noqa: BLE001
-                log_exception(_logger, "Failed to collect profiling sample")
+                now = time.monotonic()
+                if last_error_log_at is None or now - last_error_log_at >= _SAMPLING_ERROR_LOG_INTERVAL_SECONDS:
+                    last_error_log_at = now
+                    log_exception(_logger, "Failed to collect profiling sample")
             if not self.is_current_process():
                 return
             elapsed_seconds = time.monotonic() - start_time_seconds

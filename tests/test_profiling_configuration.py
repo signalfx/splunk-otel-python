@@ -46,7 +46,7 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
         def stop(self):
             self.started = False
 
-        def pause_after(self, _seconds):
+        def _pause_after(self, _seconds):
             pass
 
     monkeypatch.setattr("splunk_otel.profile.ProfilingContext", FakeProfilingContext)
@@ -401,3 +401,44 @@ def test_continuous_start_failure_does_not_prevent_snapshot_setup(
         )
 
     assert len(profiling_contexts) == 1
+
+
+@pytest.mark.parametrize("configuration_source", ["environment", "declarative"])
+@pytest.mark.parametrize("mode", ["continuous", "snapshot"])
+def test_unsupported_interval_does_not_interrupt_configuration(monkeypatch, caplog, configuration_source, mode):
+    from threading import TIMEOUT_MAX
+
+    interval = int(TIMEOUT_MAX * 1000) + 1000
+    provider = TracerProvider(shutdown_on_exit=False)
+    monkeypatch.setattr(trace, "get_tracer_provider", lambda: provider)
+    logger_provider = NoOpLoggerProvider()
+    monkeypatch.setattr(
+        "splunk_otel._environment_profiling._get_profiling_logger",
+        lambda: logger_provider.get_logger("test"),
+    )
+    monkeypatch.setattr(
+        "splunk_otel._declarative_profiling.create_logger_provider",
+        lambda *_args: logger_provider,
+    )
+    try:
+        if configuration_source == "environment":
+            if mode == "continuous":
+                assert start_profiling(Env({"SPLUNK_PROFILER_CALL_STACK_INTERVAL": str(interval)})) is None
+            else:
+                configure_environment_profiling(
+                    Env(
+                        {
+                            "SPLUNK_SNAPSHOT_PROFILER_ENABLED": "true",
+                            "SPLUNK_SNAPSHOT_SAMPLING_INTERVAL": str(interval),
+                        }
+                    )
+                )
+        else:
+            mode_config = {"sampling_interval": interval}
+            profiling = (
+                {"always_on": {"cpu_profiler": mode_config}} if mode == "continuous" else {"callgraphs": mode_config}
+            )
+            _configure_declarative_profiling({"splunk": {"profiling": profiling}}, Resource({}))
+        assert "sampling interval" in caplog.text
+    finally:
+        provider.shutdown()
