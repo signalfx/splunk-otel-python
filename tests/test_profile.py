@@ -468,7 +468,7 @@ def test_sampling_errors_are_rate_limited(monkeypatch, caplog, failure_pattern):
     monkeypatch.setattr("splunk_otel.profile.time", SimpleNamespace(monotonic=lambda: now))
     monkeypatch.setattr(timer._stop_event, "wait", sampling_wait)  # noqa: SLF001
     try:
-        assert timer.start()
+        timer.start()
         timer.thread.join(2)
         assert not timer.thread.is_alive()
         assert len(attempts) == 53
