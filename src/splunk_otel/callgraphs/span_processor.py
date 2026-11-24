@@ -58,7 +58,8 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
         try:
-            self._start_snapshot_for_span(span, parent_context)
+            if self._profiler.is_current_process():
+                self._start_snapshot_for_span(span, parent_context)
         except Exception:
             _logger.exception("Failed to handle snapshot span start")
 
@@ -87,7 +88,8 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
     def on_end(self, span: ReadableSpan) -> None:
         try:
-            self._pause_snapshot_after_span(span)
+            if self._profiler.is_current_process():
+                self._pause_snapshot_after_span(span)
         except Exception:
             _logger.exception("Failed to handle snapshot span end")
 
@@ -111,6 +113,8 @@ class CallgraphsSpanProcessor(SpanProcessor):
         return True
 
     def _filter_stacktraces(self, stacktraces, active_trace_contexts):
+        if not self._profiler.is_current_process():
+            return []
         filtered = []
         with self._lock:
             trace_ids = set(self._span_id_to_trace_id.values())

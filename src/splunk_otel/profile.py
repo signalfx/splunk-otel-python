@@ -1,6 +1,7 @@
 import atexit as _atexit
 import base64
 import gzip
+import os
 import sys
 import threading
 import time
@@ -57,6 +58,9 @@ class ProfilingContext:
             instrumentation_source=instrumentation_source,
         )
         self._timer: _IntervalTimer = _IntervalTimer(interval_millis, scraper.tick)
+
+    def is_current_process(self) -> bool:
+        return self._timer.is_current_process()
 
     def start(self) -> bool:
         try:
@@ -257,6 +261,7 @@ def _pb_profile_to_str(pb_profile) -> str:
 
 class _IntervalTimer:
     def __init__(self, interval_millis, target):
+        self._pid = os.getpid()
         self.interval_seconds = interval_millis / 1e3
         self.target = target
         self.thread = threading.Thread(target=self._loop, daemon=True)
@@ -266,8 +271,11 @@ class _IntervalTimer:
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
 
+    def is_current_process(self) -> bool:
+        return self._pid == os.getpid()
+
     def start(self) -> bool:
-        if self._stop_event.is_set():
+        if not self.is_current_process() or self._stop_event.is_set():
             return False
         with self._lock:
             if self._stop_event.is_set():
@@ -280,11 +288,13 @@ class _IntervalTimer:
             return not self._stop_event.is_set()
 
     def _loop(self):
+        if not self.is_current_process():
+            return
         # Thread.start() returns before start() publishes the successful launch.
         with self._lock:
             if not self.running:
                 return
-        while not self._stop_event.is_set():
+        while self.is_current_process() and not self._stop_event.is_set():
             start_time_seconds = time.monotonic()
 
             pause_at = self.pause_at
@@ -300,11 +310,15 @@ class _IntervalTimer:
                 self.target()
             except Exception:
                 _logger.exception("Failed to collect profiling sample")
+            if not self.is_current_process():
+                return
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             self._stop_event.wait(sleep_seconds)
 
     def stop(self):
+        if not self.is_current_process():
+            return
         self._stop_event.set()
         with self._lock:
             self.running = False
@@ -314,6 +328,8 @@ class _IntervalTimer:
             self.thread.join()
 
     def pause_after(self, seconds: float):
+        if not self.is_current_process():
+            return
         with self._lock:
             if not self._stop_event.is_set():
                 self.pause_at = time.monotonic() + seconds

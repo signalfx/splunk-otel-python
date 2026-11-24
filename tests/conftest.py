@@ -35,6 +35,9 @@ def profiling_timer_type(monkeypatch):
             self.started = True
             return True
 
+        def is_current_process(self):
+            return True
+
         def stop(self):
             if self.fail_stop:
                 message = "timer stop failed"

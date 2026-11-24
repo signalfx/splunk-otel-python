@@ -438,3 +438,121 @@ def test_snapshot_diagnostic_failure_does_not_escape(callback):
         processor.on_start(FailedSpan(), baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context()))
     else:
         processor.on_end(FailedSpan())
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="Requires fork")
+@pytest.mark.parametrize("held_lock", ["timer_startup", "span_bookkeeping"])
+def test_forked_child_skips_inherited_profiler_locks(held_lock):
+    script = dedent("""
+        import os
+        import select
+        import signal
+        import sys
+        from threading import Event, Thread
+        from opentelemetry import baggage
+        from opentelemetry._logs import NoOpLoggerProvider
+        from opentelemetry.context import Context
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from splunk_otel.callgraphs import CallgraphsSpanProcessor
+        from splunk_otel.profile import ProfilingContext
+
+        provider = TracerProvider(shutdown_on_exit=False)
+        processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("parent"))
+        provider.add_span_processor(processor)
+        tracer = provider.get_tracer("test")
+        context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+        lock_held = Event()
+        release_lock = Event()
+        parent_spans = []
+        on_start = processor.on_start
+
+        def record_span(span, parent_context=None):
+            parent_spans.append(span)
+            on_start(span, parent_context)
+
+        processor.on_start = record_span
+        if sys.argv[1] == "timer_startup":
+            timer = processor._profiler._timer
+            launch_sampler = timer.thread.start
+            def sampler_launch():
+                lock_held.set()
+                assert release_lock.wait(10), "parent launch was not released"
+                launch_sampler()
+            timer.thread.start = sampler_launch
+            def parent_request():
+                tracer.start_span("parent request", context=context)
+            holder = Thread(target=parent_request, daemon=True)
+        else:
+            tracer.start_span("parent request", context=context)
+            def hold_bookkeeping_lock():
+                with processor._lock:
+                    lock_held.set()
+                    assert release_lock.wait(10), "parent bookkeeping lock was not released"
+            holder = Thread(target=hold_bookkeeping_lock, daemon=True)
+
+        holder.start()
+        reader, writer = os.pipe()
+        child = None
+        try:
+            assert lock_held.wait(2), "parent did not acquire the profiler lock"
+            child = os.fork()
+            if child == 0:
+                os.close(reader)
+                exit_code = 1
+                try:
+                    with tracer.start_as_current_span("child request", context=context) as span:
+                        assert span.attributes.get("splunk.snapshot.profiling") is None
+                    processor.on_end(parent_spans[0])
+                    processor._profiler.pause_after(0)
+                    provider.shutdown()
+
+                    class ProfilingLogger:
+                        def __init__(self):
+                            self.sampled = Event()
+                        def emit(self, _record):
+                            self.sampled.set()
+
+                    logger = ProfilingLogger()
+                    fresh = ProfilingContext(Resource({}), 1, logger)
+                    try:
+                        assert fresh.start(), "fresh child profiler did not start"
+                        assert logger.sampled.wait(2), "fresh child profiler did not sample"
+                    finally:
+                        fresh.stop()
+                    os.write(writer, b"ok")
+                    exit_code = 0
+                except Exception as error:
+                    os.write(writer, repr(error).encode())
+                finally:
+                    os._exit(exit_code)
+
+            os.close(writer)
+            release_lock.set()
+            ready, _, _ = select.select([reader], [], [], 5)
+            if not ready:
+                os.kill(child, signal.SIGKILL)
+            _, status = os.waitpid(child, 0)
+            child = None
+            assert ready, "forked child blocked on an inherited profiler lock"
+            message = os.read(reader, 4096)
+            assert status == 0 and message == b"ok", message
+        finally:
+            release_lock.set()
+            if child is not None:
+                os.kill(child, signal.SIGKILL)
+                os.waitpid(child, 0)
+            os.close(reader)
+            holder.join(2)
+            assert not holder.is_alive(), "parent profiler remained blocked"
+            provider.shutdown()
+    """)
+    result = subprocess.run(
+        [sys.executable, "-c", script, held_lock],
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")},
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
