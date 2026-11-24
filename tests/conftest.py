@@ -1,6 +1,7 @@
 # Copyright Splunk Inc.
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 from typing import ClassVar
 
 import pytest
@@ -32,6 +33,7 @@ def profiling_timer_type(monkeypatch):
                 message = "timer start failed"
                 raise RuntimeError(message)
             self.started = True
+            return True
 
         def stop(self):
             if self.fail_stop:
@@ -49,3 +51,19 @@ def profiling_timer_type(monkeypatch):
 
     monkeypatch.setattr("splunk_otel.profile._IntervalTimer", FakeProfilingTimer)
     return FakeProfilingTimer
+
+
+@pytest.fixture
+def failed_profiler_diagnostics(monkeypatch, tmp_path):
+    handler = logging.FileHandler(tmp_path / "missing" / "profiler.log", delay=True)
+    for name in (
+        "splunk_otel.profile",
+        "splunk_otel.callgraphs.span_processor",
+        "splunk_otel._environment_profiling",
+        "splunk_otel._declarative_profiling",
+    ):
+        logger = logging.getLogger(name)
+        monkeypatch.setattr(logger, "handlers", [handler])
+        monkeypatch.setattr(logger, "propagate", False)
+    yield
+    handler.close()

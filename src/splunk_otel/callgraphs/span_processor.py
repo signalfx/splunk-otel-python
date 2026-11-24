@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import threading
 from typing import TYPE_CHECKING, cast
 
@@ -21,6 +20,7 @@ from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
 
+from splunk_otel._logging import DiagnosticLogger
 from splunk_otel.profile import ProfilingContext
 from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from opentelemetry.trace import SpanContext
 
 _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS = 10
-_logger = logging.getLogger(__name__)
+_logger = DiagnosticLogger(__name__)
 
 
 def _should_process_context(context: Context | None) -> bool:
@@ -79,7 +79,6 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             with self._lock:
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            # Startup failure cleanup can join the sampler, which also uses this lock.
             if not self._profiler.start():
                 with self._lock:
                     self._span_id_to_trace_id.pop(span_ctx.span_id, None)

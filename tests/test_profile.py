@@ -442,3 +442,50 @@ def test_interval_timer_continues_after_sample_failure(caplog):
         assert "Failed to collect profiling sample" in caplog.text
     finally:
         timer.stop()
+
+
+@pytest.mark.parametrize("operation", ["start", "stop", "pause_after"])
+@pytest.mark.usefixtures("failed_profiler_diagnostics")
+def test_profiling_context_diagnostic_failure_does_not_escape(monkeypatch, operation):
+    def timer_operation(_timer, *_args):
+        message = "timer failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(_IntervalTimer, operation, timer_operation)
+    context = ProfilingContext(Resource({}), 1000, _FakeLogger())
+    if operation == "pause_after":
+        context.pause_after(60)
+    else:
+        assert getattr(context, operation)() is False
+
+
+@pytest.mark.usefixtures("failed_profiler_diagnostics")
+def test_sampling_continues_when_error_logging_fails():
+    sampled = Event()
+    attempts = []
+
+    def profile_sample():
+        attempts.append(True)
+        if len(attempts) == 1:
+            message = "sample failed"
+            raise RuntimeError(message)
+        sampled.set()
+
+    timer = _IntervalTimer(1, profile_sample)
+    timer.start()
+    try:
+        assert sampled.wait(2), "diagnostic failure stopped the sampler"
+    finally:
+        timer.stop()
+
+
+def test_stopped_timer_rejects_start_without_launching():
+    timer = _IntervalTimer(1, lambda: None)
+    timer.stop()
+
+    try:
+        assert timer.start() is False
+        assert not timer.running
+        assert not timer.thread.is_alive()
+    finally:
+        timer.stop()

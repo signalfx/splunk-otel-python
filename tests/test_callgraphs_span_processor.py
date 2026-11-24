@@ -17,6 +17,7 @@ from pathlib import Path
 import subprocess
 import sys
 from textwrap import dedent
+from threading import Event, Thread
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -29,6 +30,7 @@ from opentelemetry.trace import SpanContext
 
 from splunk_otel.callgraphs import CallgraphsSpanProcessor
 from splunk_otel.callgraphs.span_processor import _should_process_context
+from splunk_otel.profile import _IntervalTimer
 
 
 def _processor():
@@ -276,9 +278,10 @@ def test_snapshot_start_during_shutdown_does_not_block():
         sample_started = Event()
         release_sample = Event()
         shutdown_waiting = Event()
-        request_progress = Event()
+        request_finished = Event()
         timers = []
         request_spans = []
+        join_callers = []
 
         def profiling_timer(interval_millis, target):
             def paused_profile_sample():
@@ -301,10 +304,9 @@ def test_snapshot_start_during_shutdown_does_not_block():
         shutdown_thread = Thread(target=provider.shutdown, daemon=True)
 
         def join_sampler(timeout=None):
+            join_callers.append(current_thread())
             if current_thread() is shutdown_thread:
                 shutdown_waiting.set()
-            else:
-                request_progress.set()
             sampler_join(timeout)
 
         timer.thread.join = join_sampler
@@ -314,7 +316,7 @@ def test_snapshot_start_during_shutdown_does_not_block():
                 with tracer.start_as_current_span("request during shutdown", context=context) as span:
                     request_spans.append(span)
             finally:
-                request_progress.set()
+                request_finished.set()
 
         request_thread = Thread(target=start_request, daemon=True)
         try:
@@ -322,7 +324,9 @@ def test_snapshot_start_during_shutdown_does_not_block():
             shutdown_thread.start()
             assert shutdown_waiting.wait(2), "shutdown did not wait for the sample"
             request_thread.start()
-            assert request_progress.wait(2), "request did not finish or reach sampler cleanup"
+            assert request_finished.wait(2), "request waited for the in-flight sample"
+            assert shutdown_thread.is_alive(), "shutdown should still be waiting for the sample"
+            assert join_callers == [shutdown_thread], "request attempted to join the sampler"
             release_sample.set()
             request_thread.join(2)
             shutdown_thread.join(2)
@@ -344,3 +348,93 @@ def test_snapshot_start_during_shutdown_does_not_block():
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("retry_succeeds", [False, True])
+def test_concurrent_spans_only_report_successful_sampler_launch(monkeypatch, retry_succeeds):
+    timers = []
+
+    def profiling_timer(interval_millis, target):
+        timer = _IntervalTimer(interval_millis, target)
+        timers.append(timer)
+        return timer
+
+    monkeypatch.setattr("splunk_otel.profile._IntervalTimer", profiling_timer)
+    provider = TracerProvider(shutdown_on_exit=False)
+    provider.add_span_processor(CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test")))
+    tracer = provider.get_tracer("test")
+    context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+    (timer,) = timers
+    launch_sampler = timer.thread.start
+    launch_started = Event()
+    release_launch = Event()
+    second_request_started = Event()
+    sampled = Event()
+    attempts = []
+    spans = {}
+    sample = timer.target
+
+    def profile_sample():
+        sampled.set()
+        sample()
+
+    def sampler_launch():
+        attempts.append(True)
+        if len(attempts) == 1:
+            launch_started.set()
+            assert release_launch.wait(5), "launch was not released"
+        elif retry_succeeds:
+            launch_sampler()
+            return
+        message = "sampler launch failed"
+        raise RuntimeError(message)
+
+    def start_request(name):
+        if name == "second":
+            second_request_started.set()
+        with tracer.start_as_current_span(name, context=context) as span:
+            spans[name] = span
+
+    monkeypatch.setattr(timer.thread, "start", sampler_launch)
+    monkeypatch.setattr(timer, "target", profile_sample)
+    first = Thread(target=start_request, args=("first",), daemon=True)
+    second = Thread(target=start_request, args=("second",), daemon=True)
+    try:
+        first.start()
+        assert launch_started.wait(2)
+        second.start()
+        assert second_request_started.wait(2)
+        assert not timer.running, "timer reported running before thread launch succeeded"
+        release_launch.set()
+        first.join(2)
+        second.join(2)
+        assert not first.is_alive()
+        assert not second.is_alive()
+        assert spans["first"].attributes.get("splunk.snapshot.profiling") is None
+        assert spans["second"].attributes.get("splunk.snapshot.profiling") == (True if retry_succeeds else None)
+        assert len(attempts) == 2
+        if retry_succeeds:
+            assert sampled.wait(2), "successful launch did not produce a live sampler"
+        else:
+            assert not sampled.is_set()
+    finally:
+        release_launch.set()
+        first.join(2)
+        if second.ident is not None:
+            second.join(2)
+        provider.shutdown()
+
+
+@pytest.mark.parametrize("callback", ["on_start", "on_end"])
+@pytest.mark.usefixtures("profiling_timer_type", "failed_profiler_diagnostics")
+def test_snapshot_diagnostic_failure_does_not_escape(callback):
+    class FailedSpan:
+        def get_span_context(self):
+            message = "span failed"
+            raise RuntimeError(message)
+
+    processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
+    if callback == "on_start":
+        processor.on_start(FailedSpan(), baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context()))
+    else:
+        processor.on_end(FailedSpan())

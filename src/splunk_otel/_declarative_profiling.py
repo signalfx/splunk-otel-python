@@ -3,7 +3,6 @@
 
 import atexit
 import json
-import logging
 import math
 from importlib.resources import files
 from urllib.parse import urljoin
@@ -22,6 +21,7 @@ from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
 
+from splunk_otel._logging import DiagnosticLogger
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS
 from splunk_otel.profile import (
     _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS,
@@ -31,7 +31,7 @@ from splunk_otel.profile import (
 from splunk_otel.propagator import _configure_callgraphs_propagator, _DEFAULT_CALLGRAPHS_SELECTION_PROBABILITY
 
 
-_logger = logging.getLogger(__name__)
+_logger = DiagnosticLogger(__name__)
 
 
 def _create_profiling_validator():

@@ -1,7 +1,6 @@
 import atexit as _atexit
 import base64
 import gzip
-import logging
 import sys
 import threading
 import time
@@ -27,6 +26,7 @@ from opentelemetry.trace import (
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
+from splunk_otel._logging import DiagnosticLogger
 from splunk_otel.env import Env
 
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
@@ -35,7 +35,7 @@ _SCOPE_NAME = "otel.profiling"
 
 _thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
-_logger = logging.getLogger(__name__)
+_logger = DiagnosticLogger(__name__)
 
 
 class ProfilingContext:
@@ -60,12 +60,10 @@ class ProfilingContext:
 
     def start(self) -> bool:
         try:
-            self._timer.start()
+            return self._timer.start()
         except Exception:
             _logger.exception("Failed to start profiling timer")
-            self.stop()
             return False
-        return True
 
     def stop(self) -> bool:
         try:
@@ -266,27 +264,34 @@ class _IntervalTimer:
         self.pause_at = None
         self.wakeup_event = threading.Event()
         self._stop_event = threading.Event()
+        self._lock = threading.Lock()
 
-    def start(self):
-        self.pause_at = None
-        self.wakeup_event.set()
-
-        if self.running:
-            return
-
-        self._stop_event.clear()
-        self.running = True
-        self.thread.start()
+    def start(self) -> bool:
+        if self._stop_event.is_set():
+            return False
+        with self._lock:
+            if self._stop_event.is_set():
+                return False
+            if not self.running:
+                self.thread.start()
+                self.running = True
+            self.pause_at = None
+            self.wakeup_event.set()
+            return not self._stop_event.is_set()
 
     def _loop(self):
-        while self.running:
+        # Thread.start() returns before start() publishes the successful launch.
+        with self._lock:
+            if not self.running:
+                return
+        while not self._stop_event.is_set():
             start_time_seconds = time.monotonic()
 
             pause_at = self.pause_at
             if pause_at is not None and start_time_seconds >= pause_at:
                 self.wakeup_event.clear()
                 # Recheck state because clear() can erase a concurrent stop or resume signal.
-                if not self.running or self.pause_at is None:
+                if self._stop_event.is_set() or self.pause_at is None:
                     continue
                 self.wakeup_event.wait()
                 continue
@@ -300,15 +305,18 @@ class _IntervalTimer:
             self._stop_event.wait(sleep_seconds)
 
     def stop(self):
-        self.running = False
-        self.pause_at = None
         self._stop_event.set()
-        self.wakeup_event.set()  # unblock _loop() if waiting, so it can return and thread can exit
+        with self._lock:
+            self.running = False
+            self.pause_at = None
+            self.wakeup_event.set()
         if self.thread.is_alive():
             self.thread.join()
 
     def pause_after(self, seconds: float):
-        self.pause_at = time.monotonic() + seconds
+        with self._lock:
+            if not self._stop_event.is_set():
+                self.pause_at = time.monotonic() + seconds
 
 
 class _StringTable:

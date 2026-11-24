@@ -1,13 +1,13 @@
 # Copyright Splunk Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
 
 from opentelemetry import trace
 from opentelemetry.instrumentation.version import __version__ as version
 from opentelemetry.sdk.environment_variables import OTEL_SERVICE_NAME
 from opentelemetry.sdk.resources import Resource
 
+from splunk_otel._logging import DiagnosticLogger
 from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS
 from splunk_otel.env import (
     Env,
@@ -24,7 +24,7 @@ from splunk_otel.profile import (
 )
 
 
-_logger = logging.getLogger(__name__)
+_logger = DiagnosticLogger(__name__)
 
 
 def configure_environment_profiling(env: Env | None = None) -> None:
