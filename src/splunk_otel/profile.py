@@ -1,6 +1,7 @@
 import atexit as _atexit
 import base64
 import gzip
+import logging
 import os
 import sys
 import threading
@@ -27,7 +28,7 @@ from opentelemetry.trace import (
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
-from splunk_otel._logging import DiagnosticLogger
+from splunk_otel._logging import log_exception
 from splunk_otel.env import Env
 
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
@@ -36,7 +37,7 @@ _SCOPE_NAME = "otel.profiling"
 
 _thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
-_logger = DiagnosticLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ProfilingContext:
@@ -65,23 +66,21 @@ class ProfilingContext:
     def start(self) -> bool:
         try:
             return self._timer.start()
-        except Exception:
-            _logger.exception("Failed to start profiling timer")
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to start profiling timer")
             return False
 
-    def stop(self) -> bool:
+    def stop(self) -> None:
         try:
             self._timer.stop()
-        except Exception:
-            _logger.exception("Failed to stop profiling timer")
-            return False
-        return True
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to stop profiling timer")
 
     def pause_after(self, seconds: float) -> None:
         try:
             self._timer.pause_after(seconds)
-        except Exception:
-            _logger.exception("Failed to pause profiling timer")
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to pause profiling timer")
 
 
 def start_profiling(env: Env | None = None) -> ProfilingContext | None:
@@ -308,8 +307,8 @@ class _IntervalTimer:
 
             try:
                 self.target()
-            except Exception:
-                _logger.exception("Failed to collect profiling sample")
+            except Exception:  # noqa: BLE001
+                log_exception(_logger, "Failed to collect profiling sample")
             if not self.is_current_process():
                 return
             elapsed_seconds = time.monotonic() - start_time_seconds

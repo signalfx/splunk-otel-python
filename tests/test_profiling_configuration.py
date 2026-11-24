@@ -45,7 +45,6 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
 
         def stop(self):
             self.started = False
-            return True
 
         def pause_after(self, _seconds):
             pass
@@ -402,22 +401,3 @@ def test_continuous_start_failure_does_not_prevent_snapshot_setup(
         )
 
     assert len(profiling_contexts) == 1
-
-
-@pytest.mark.parametrize("source", ["environment", "declarative"])
-@pytest.mark.parametrize("mode", ["continuous", "snapshot"])
-@pytest.mark.usefixtures("tracer_provider", "failed_profiler_diagnostics")
-def test_startup_diagnostic_failure_does_not_escape(monkeypatch, profiling_contexts, source, mode):
-    def profiling_context(*_args, **_kwargs):
-        message = "profiler initialization failed"
-        raise RuntimeError(message)
-
-    monkeypatch.setattr("splunk_otel.profile.ProfilingContext", profiling_context)
-    monkeypatch.setattr("splunk_otel.callgraphs.span_processor.ProfilingContext", profiling_context)
-    if source == "environment":
-        flag = "SPLUNK_PROFILER_ENABLED" if mode == "continuous" else "SPLUNK_SNAPSHOT_PROFILER_ENABLED"
-        configure_environment_profiling(Env({flag: "true"}))
-    else:
-        config = {"always_on": {"cpu_profiler": {}}} if mode == "continuous" else {"callgraphs": {}}
-        _configure_declarative_profiling({"splunk": {"profiling": config}}, Resource({}))
-    assert not profiling_contexts

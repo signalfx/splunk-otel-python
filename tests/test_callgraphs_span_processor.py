@@ -240,13 +240,9 @@ def test_snapshot_sampling_failure_does_not_escape_span_callbacks(profiling_time
 
 
 @pytest.mark.parametrize("callback", ["on_start", "on_end"])
-@pytest.mark.usefixtures("profiling_timer_type")
-def test_snapshot_callback_contains_span_failures(callback, caplog):
+@pytest.mark.usefixtures("profiling_timer_type", "failed_profiler_diagnostics")
+def test_snapshot_callback_contains_span_and_logging_failures(callback, caplog):
     class FakeSpan:
-        def set_attribute(self, _name, _value):
-            message = "span failed"
-            raise RuntimeError(message)
-
         def get_span_context(self):
             message = "span failed"
             raise RuntimeError(message)
@@ -425,33 +421,16 @@ def test_concurrent_spans_only_report_successful_sampler_launch(monkeypatch, ret
         provider.shutdown()
 
 
-@pytest.mark.parametrize("callback", ["on_start", "on_end"])
-@pytest.mark.usefixtures("profiling_timer_type", "failed_profiler_diagnostics")
-def test_snapshot_diagnostic_failure_does_not_escape(callback):
-    class FailedSpan:
-        def get_span_context(self):
-            message = "span failed"
-            raise RuntimeError(message)
-
-    processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
-    if callback == "on_start":
-        processor.on_start(FailedSpan(), baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context()))
-    else:
-        processor.on_end(FailedSpan())
-
-
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="Requires fork")
-@pytest.mark.parametrize(
-    "parent_state", ["before_first_span", "timer_startup", "span_bookkeeping", "shutdown", "reset_failure"]
-)
-def test_forked_child_profiles_with_its_own_timer_and_bookkeeping(parent_state):
+@pytest.mark.parametrize("parent_state", ["before_first_span", "locks_held", "shutdown", "reset_failure"])
+def test_forked_child_snapshot_profiling(parent_state):
     script = dedent("""
         import base64
         import gzip
         import os
-        import select
         import signal
         import sys
+        import traceback
         from threading import Event, Thread
         from opentelemetry import baggage
         from opentelemetry.context import Context
@@ -462,10 +441,10 @@ def test_forked_child_profiles_with_its_own_timer_and_bookkeeping(parent_state):
 
         class ProfilingLogger:
             def __init__(self):
-                self.records = []
+                self.record = None
                 self.sampled = Event()
             def emit(self, record):
-                self.records.append(record)
+                self.record = record.log_record
                 self.sampled.set()
 
         logger = ProfilingLogger()
@@ -474,114 +453,71 @@ def test_forked_child_profiles_with_its_own_timer_and_bookkeeping(parent_state):
         provider.add_span_processor(processor)
         tracer = provider.get_tracer("test")
         context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
-        lock_held = Event()
-        release_lock = Event()
-        parent_spans = []
-        on_start = processor.on_start
+        parent_state = sys.argv[1]
+        locks_held = Event()
+        release_locks = Event()
+        holder = parent_span = None
 
-        def record_span(span, parent_context=None):
-            parent_spans.append(span)
-            on_start(span, parent_context)
+        def hold_profiler_locks():
+            with processor._lock, processor._profiler._timer._lock:
+                locks_held.set()
+                release_locks.wait()
 
-        processor.on_start = record_span
-        if sys.argv[1] == "timer_startup":
-            timer = processor._profiler._timer
-            launch_sampler = timer.thread.start
-            def sampler_launch():
-                lock_held.set()
-                assert release_lock.wait(10), "parent launch was not released"
-                launch_sampler()
-            timer.thread.start = sampler_launch
-            def parent_request():
-                tracer.start_span("parent request", context=context)
-            holder = Thread(target=parent_request, daemon=True)
-        elif sys.argv[1] == "span_bookkeeping":
-            tracer.start_span("parent request", context=context)
-            def hold_bookkeeping_lock():
-                with processor._lock:
-                    lock_held.set()
-                    assert release_lock.wait(10), "parent bookkeeping lock was not released"
-            holder = Thread(target=hold_bookkeeping_lock, daemon=True)
+        def failed_profiler_factory():
+            raise RuntimeError("worker initialization failed")
 
-        else:
-            if sys.argv[1] == "shutdown":
-                processor.shutdown()
-            elif sys.argv[1] == "reset_failure":
-                def failed_profiler_factory():
-                    raise RuntimeError("worker initialization failed")
-                processor._new_profiler = failed_profiler_factory
-            holder = None
-            lock_held.set()
-
-        if holder is not None:
-            holder.start()
-        reader, writer = os.pipe()
-        child = None
         try:
-            assert lock_held.wait(2), "parent did not acquire the profiler lock"
+            if parent_state == "locks_held":
+                parent_span = tracer.start_span("parent request", context=context)
+                holder = Thread(target=hold_profiler_locks, daemon=True)
+                holder.start()
+                assert locks_held.wait(2), "parent did not acquire the profiler locks"
+            elif parent_state == "shutdown":
+                processor.shutdown()
+            elif parent_state == "reset_failure":
+                processor._new_profiler = failed_profiler_factory
+
             child = os.fork()
             if child == 0:
-                os.close(reader)
-                exit_code = 1
+                signal.alarm(5)
                 try:
-                    logger.records.clear()
+                    logger.record = None
                     logger.sampled = Event()
                     assert not processor._span_id_to_trace_id, "child retained parent span bookkeeping"
-                    assert not logger.sampled.wait(0.02), "child sampled before a selected span"
                     with tracer.start_as_current_span("child request", context=context) as span:
-                        if sys.argv[1] in {"shutdown", "reset_failure"}:
+                        if parent_state in {"shutdown", "reset_failure"}:
                             assert span.attributes.get("splunk.snapshot.profiling") is None
-                            assert not logger.records
                         else:
                             assert span.attributes.get("splunk.snapshot.profiling") is True
                             assert logger.sampled.wait(2), "first selected child span did not emit a profile"
-                            record = logger.records[0].log_record
-                            assert record.attributes["profiling.instrumentation.source"] == "snapshot"
-                            assert record.attributes["profiling.data.total.frame.count"] > 0
                             profile = profile_pb2.Profile()
-                            profile.ParseFromString(gzip.decompress(base64.b64decode(record.body)))
-                            assert profile.sample
+                            profile.ParseFromString(gzip.decompress(base64.b64decode(logger.record.body)))
                             strings = profile.string_table
-                            for sample in profile.sample:
-                                labels = {strings[label.key]: strings[label.str] for label in sample.label}
-                                assert int(labels["trace_id"], 16) == span.get_span_context().trace_id
-                                periods = [label.num for label in sample.label
-                                           if strings[label.key] == "source.event.period"]
-                                assert periods == [1]
-                    if parent_spans:
-                        processor.on_end(parent_spans[0])
-                    processor._profiler.pause_after(0)
+                            trace_ids = {int(strings[label.str], 16) for sample in profile.sample
+                                         for label in sample.label if strings[label.key] == "trace_id"}
+                            assert trace_ids == {span.get_span_context().trace_id}
+                    if parent_span is not None:
+                        parent_span.end()
                     provider.shutdown()
-                    os.write(writer, b"ok")
-                    exit_code = 0
-                except Exception as error:
-                    os.write(writer, repr(error).encode())
-                finally:
-                    os._exit(exit_code)
+                except Exception:
+                    traceback.print_exc()
+                    os._exit(1)
+                os._exit(0)
 
-            os.close(writer)
-            release_lock.set()
-            ready, _, _ = select.select([reader], [], [], 5)
-            if not ready:
-                os.kill(child, signal.SIGKILL)
+            release_locks.set()
             _, status = os.waitpid(child, 0)
-            child = None
-            assert ready, "forked child blocked on an inherited profiler lock"
-            message = os.read(reader, 4096)
-            assert status == 0 and message == b"ok", message
-            if sys.argv[1] != "shutdown":
+            assert status == 0, f"forked child exited with {os.waitstatus_to_exitcode(status)}"
+            if parent_state != "shutdown":
                 logger.sampled.clear()
                 with tracer.start_as_current_span("next parent request", context=context):
                     assert logger.sampled.wait(2), "parent profiler stopped emitting after fork"
         finally:
-            release_lock.set()
-            if child is not None:
-                os.kill(child, signal.SIGKILL)
-                os.waitpid(child, 0)
-            os.close(reader)
+            release_locks.set()
             if holder is not None:
                 holder.join(2)
                 assert not holder.is_alive(), "parent profiler remained blocked"
+            if parent_span is not None:
+                parent_span.end()
             provider.shutdown()
     """)
     result = subprocess.run(

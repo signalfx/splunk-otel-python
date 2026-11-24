@@ -2,14 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from contextlib import suppress
-from logging import getLogger
+from logging import Logger
 
 
-class DiagnosticLogger:
-    def __init__(self, name: str) -> None:
-        self._logger = getLogger(name)
-
-    def exception(self, message: str) -> None:
-        # A diagnostic failure must not interrupt application code.
-        with suppress(Exception):
-            self._logger.exception(message, stacklevel=2)
+def log_exception(logger: Logger, message: str) -> None:
+    # A failing log handler can interrupt span callbacks or stop the sampler.
+    with suppress(Exception):
+        logger.exception(message, stacklevel=2)

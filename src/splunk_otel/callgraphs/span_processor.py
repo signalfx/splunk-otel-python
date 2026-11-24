@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import threading
 import weakref
@@ -23,7 +24,7 @@ from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
 
-from splunk_otel._logging import DiagnosticLogger
+from splunk_otel._logging import log_exception
 from splunk_otel.profile import ProfilingContext
 from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from opentelemetry.trace import SpanContext
 
 _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS = 10
-_logger = DiagnosticLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def _should_process_context(context: Context | None) -> bool:
@@ -79,15 +80,15 @@ class CallgraphsSpanProcessor(SpanProcessor):
             self._lock = threading.Lock()
             self._span_id_to_trace_id = {}
             self._profiler = self._new_profiler()
-        except Exception:
-            _logger.exception("Failed to reset snapshot profiling after fork")
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to reset snapshot profiling after fork")
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
         try:
             if self._profiler.is_current_process():
                 self._start_snapshot_for_span(span, parent_context)
-        except Exception:
-            _logger.exception("Failed to handle snapshot span start")
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to handle snapshot span start")
 
     def _start_snapshot_for_span(self, span: Span, parent_context: Context | None = None) -> None:
         if not _should_process_context(parent_context):
@@ -116,8 +117,8 @@ class CallgraphsSpanProcessor(SpanProcessor):
         try:
             if self._profiler.is_current_process():
                 self._pause_snapshot_after_span(span)
-        except Exception:
-            _logger.exception("Failed to handle snapshot span end")
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to handle snapshot span end")
 
     def _pause_snapshot_after_span(self, span: ReadableSpan) -> None:
         span_id = cast("SpanContext", span.get_span_context()).span_id
