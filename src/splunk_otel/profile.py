@@ -1,6 +1,7 @@
 import atexit as _atexit
 import base64
 import gzip
+import logging
 import sys
 import threading
 import time
@@ -26,14 +27,17 @@ from opentelemetry.trace import (
 from opentelemetry.trace.propagation import _SPAN_KEY
 
 from splunk_otel import profile_pb2
+from splunk_otel._logging import log_exception
 from splunk_otel.env import Env
 
 _DEFAULT_PROF_CALL_STACK_INTERVAL_MILLIS = 1000
 _SCOPE_VERSION = "0.2.0"
 _SCOPE_NAME = "otel.profiling"
+_SAMPLING_ERROR_LOG_INTERVAL_SECONDS = 60
 
 _thread_states: dict[int, tuple[int, int] | None] = {}
 _context_tracking_started = False
+_logger = logging.getLogger(__name__)
 
 
 class ProfilingContext:
@@ -44,7 +48,7 @@ class ProfilingContext:
         logger: Logger,
         stacktrace_filter: Callable[[list[dict], dict], list[dict]] | None = None,
         instrumentation_source: Literal["continuous", "snapshot"] | None = "continuous",
-    ):
+    ) -> None:
         start_thread_context_tracking()
         scraper = _ProfileScraper(
             resource,
@@ -56,26 +60,46 @@ class ProfilingContext:
         )
         self._timer: _IntervalTimer = _IntervalTimer(interval_millis, scraper.tick)
 
-    def start(self):
+    def start(self) -> bool:
+        try:
+            self._start()
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to start profiling timer")
+            return False
+        return True
+
+    def _start(self) -> None:
+        # Snapshot callbacks clean up failed starts before reporting the error.
         self._timer.start()
 
-    def stop(self):
-        self._timer.stop()
+    def stop(self) -> None:
+        try:
+            self._timer.stop()
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to stop profiling timer")
 
-    def pause_after(self, seconds: float):
+    def pause_after(self, seconds: float) -> None:
+        try:
+            self._pause_after(seconds)
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to pause profiling timer")
+
+    def _pause_after(self, seconds: float) -> None:
+        # Snapshot callbacks handle this error after releasing their bookkeeping lock.
         self._timer.pause_after(seconds)
 
 
-def start_profiling(env: Env | None = None) -> ProfilingContext:
-    """Start continuous profiling using environment settings; return its context."""
+def start_profiling(env: Env | None = None) -> ProfilingContext | None:
+    """Start continuous profiling using environment settings; return None on failure."""
     from splunk_otel._environment_profiling import start_continuous_profiling_from_env
 
     return start_continuous_profiling_from_env(env)
 
 
-def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext:
+def _start_continuous_profiling(resource: Resource, interval_millis: int, logger: Logger) -> ProfilingContext | None:
     context = ProfilingContext(resource, interval_millis, logger)
-    context.start()
+    if not context.start():
+        return None
     # Providers register shutdown first; stop sampling before they flush at exit.
     _atexit.register(context.stop)
     return context
@@ -243,6 +267,9 @@ def _pb_profile_to_str(pb_profile) -> str:
 class _IntervalTimer:
     def __init__(self, interval_millis, target):
         self.interval_seconds = interval_millis / 1e3
+        if not 0 <= self.interval_seconds <= threading.TIMEOUT_MAX:
+            message = f"Profiling sampling interval must be between 0 and {threading.TIMEOUT_MAX * 1000:g} milliseconds"
+            raise ValueError(message)
         self.target = target
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.running = False
@@ -250,18 +277,29 @@ class _IntervalTimer:
         self.wakeup_event = threading.Event()
         self._stop_event = threading.Event()
 
-    def start(self):
+    def start(self) -> None:
         self.pause_at = None
         self.wakeup_event.set()
 
-        if self.running:
-            return
-
-        self._stop_event.clear()
-        self.running = True
-        self.thread.start()
+        if not self.running:
+            self._stop_event.clear()
+            self.running = True
+            try:
+                self.thread.start()
+            except Exception:
+                self.running = False
+                raise
 
     def _loop(self):
+        try:
+            self._sample_until_stopped()
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Profiling timer stopped unexpectedly")
+        finally:
+            self.running = False
+
+    def _sample_until_stopped(self) -> None:
+        last_error_log_at = None
         while self.running:
             start_time_seconds = time.monotonic()
 
@@ -274,7 +312,13 @@ class _IntervalTimer:
                 self.wakeup_event.wait()
                 continue
 
-            self.target()
+            try:
+                self.target()
+            except Exception:  # noqa: BLE001
+                now = time.monotonic()
+                if last_error_log_at is None or now - last_error_log_at >= _SAMPLING_ERROR_LOG_INTERVAL_SECONDS:
+                    last_error_log_at = now
+                    log_exception(_logger, "Failed to collect profiling sample")
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             self._stop_event.wait(sleep_seconds)

@@ -4,7 +4,7 @@ import json
 import random
 import time
 from contextlib import ExitStack
-from threading import Event, Thread
+from threading import TIMEOUT_MAX, Event, Thread
 from collections import OrderedDict
 from os.path import abspath, dirname
 
@@ -26,6 +26,7 @@ from opentelemetry.trace import (
 )
 from splunk_otel import profile_pb2
 from splunk_otel.profile import (
+    ProfilingContext,
     _get_line,
     _IntervalTimer,
     _pb_profile_to_str,
@@ -404,3 +405,81 @@ class _FakeLogger(Logger):
 
     def emit(self, record) -> None:
         self.log_records.append(record)
+
+
+@pytest.mark.parametrize(
+    ("operation", "args", "expected_result"), [("start", (), False), ("stop", (), None), ("pause_after", (60,), None)]
+)
+def test_profiling_context_contains_timer_failures(monkeypatch, operation, args, expected_result, caplog):
+    def _fake_timer_operation(_timer, *_args):
+        message = "timer failed"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(_IntervalTimer, operation, _fake_timer_operation)
+    context = ProfilingContext(Resource({}), 1000, _FakeLogger())
+
+    assert getattr(context, operation)(*args) is expected_result
+    assert "timer failed" in caplog.text
+
+
+@pytest.mark.usefixtures("failed_profiler_diagnostics")
+def test_sampling_continues_when_error_logging_fails(caplog):
+    sampled = Event()
+    attempts = []
+
+    def _fake_profile_sample():
+        attempts.append(True)
+        if len(attempts) == 1:
+            message = "sample failed"
+            raise RuntimeError(message)
+        sampled.set()
+
+    timer = _IntervalTimer(1, _fake_profile_sample)
+    timer.start()
+    try:
+        assert sampled.wait(timeout=2)
+        assert "Failed to collect profiling sample" in caplog.text
+    finally:
+        timer.stop()
+
+
+@pytest.mark.parametrize("failure_pattern", ["persistent", "intermittent"])
+def test_sampling_errors_are_rate_limited(monkeypatch, caplog, failure_pattern):
+    from types import SimpleNamespace
+
+    sample_times = iter([100.0] * 25 + [159.99] + [160.0] * 25 + [220.0] * 2)
+    now = next(sample_times)
+    attempts = []
+
+    def profile_sample():
+        attempts.append(now)
+        if failure_pattern == "persistent" or len(attempts) % 2:
+            message = "profiling exporter failed"
+            raise RuntimeError(message)
+
+    timer = _IntervalTimer(10, profile_sample)
+
+    def sampling_wait(_seconds):
+        nonlocal now
+        now = next(sample_times, None)
+        if now is None:
+            timer.running = False
+
+    monkeypatch.setattr("splunk_otel.profile.time", SimpleNamespace(monotonic=lambda: now))
+    monkeypatch.setattr(timer._stop_event, "wait", sampling_wait)  # noqa: SLF001
+    try:
+        timer.start()
+        timer.thread.join(2)
+        assert not timer.thread.is_alive()
+        assert len(attempts) == 53
+        errors = [record for record in caplog.records if record.message == "Failed to collect profiling sample"]
+        assert len(errors) == 3
+        assert all(record.exc_info for record in errors)
+    finally:
+        timer.stop()
+
+
+@pytest.mark.parametrize("interval", [-1, float("nan"), float("inf"), (TIMEOUT_MAX + 1) * 1000])
+def test_unsupported_sampling_interval_is_rejected_before_launch(interval):
+    with pytest.raises(ValueError, match="sampling interval"):
+        ProfilingContext(Resource({}), interval, _FakeLogger())

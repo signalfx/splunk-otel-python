@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import threading
 from typing import TYPE_CHECKING, cast
 
@@ -20,6 +21,7 @@ from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import ReadableSpan, Span, SpanProcessor
 
+from splunk_otel._logging import log_exception
 from splunk_otel.profile import ProfilingContext
 from splunk_otel.propagator import _SPLUNK_TRACE_SNAPSHOT_VOLUME
 
@@ -27,6 +29,7 @@ if TYPE_CHECKING:
     from opentelemetry.trace import SpanContext
 
 _DEFAULT_CALLGRAPHS_SAMPLING_INTERVAL_MILLIS = 10
+_logger = logging.getLogger(__name__)
 
 
 def _should_process_context(context: Context | None) -> bool:
@@ -55,6 +58,12 @@ class CallgraphsSpanProcessor(SpanProcessor):
         )
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
+        try:
+            self._start_snapshot_for_span(span, parent_context)
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to handle snapshot span start")
+
+    def _start_snapshot_for_span(self, span: Span, parent_context: Context | None = None) -> None:
         if not _should_process_context(parent_context):
             return
 
@@ -64,8 +73,6 @@ class CallgraphsSpanProcessor(SpanProcessor):
             return
 
         if ctx_baggage == "highest":
-            span.set_attribute("splunk.snapshot.profiling", True)
-
             span_ctx = span.get_span_context()
 
             if span_ctx is None:
@@ -73,20 +80,25 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             with self._lock:
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            self._profiler.start()
+            try:
+                self._profiler._start()  # noqa: SLF001
+                span.set_attribute("splunk.snapshot.profiling", True)
+            except Exception:
+                self._remove_span(span_ctx.span_id)
+                raise
 
     def on_end(self, span: ReadableSpan) -> None:
-        span_id = cast("SpanContext", span.get_span_context()).span_id
-        trace_id = self._span_id_to_trace_id.get(span_id)
+        try:
+            span_id = cast("SpanContext", span.get_span_context()).span_id
+            self._remove_span(span_id)
+        except Exception:  # noqa: BLE001
+            log_exception(_logger, "Failed to handle snapshot span end")
 
-        if trace_id is None:
-            return
-
+    def _remove_span(self, span_id: int) -> None:
         with self._lock:
-            self._span_id_to_trace_id.pop(span_id, None)
-
-            if len(self._span_id_to_trace_id) == 0:
-                self._profiler.pause_after(60.0)
+            trace_id = self._span_id_to_trace_id.pop(span_id, None)
+            if trace_id is not None and not self._span_id_to_trace_id:
+                self._profiler._pause_after(60.0)  # noqa: SLF001
 
     def shutdown(self) -> None:
         self._profiler.stop()
