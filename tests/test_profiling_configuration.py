@@ -37,8 +37,11 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
             contexts.append(self)
 
         def start(self):
-            self.started = True
+            self._start()
             return True
+
+        def _start(self):
+            self.started = True
 
         def stop(self):
             self.started = False

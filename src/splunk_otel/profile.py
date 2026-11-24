@@ -62,10 +62,15 @@ class ProfilingContext:
 
     def start(self) -> bool:
         try:
-            return self._timer.start()
+            self._start()
         except Exception:  # noqa: BLE001
             log_exception(_logger, "Failed to start profiling timer")
             return False
+        return True
+
+    def _start(self) -> None:
+        # Snapshot callbacks clean up failed starts before reporting the error.
+        self._timer.start()
 
     def stop(self) -> None:
         try:
@@ -272,7 +277,7 @@ class _IntervalTimer:
         self.wakeup_event = threading.Event()
         self._stop_event = threading.Event()
 
-    def start(self) -> bool:
+    def start(self) -> None:
         self.pause_at = None
         self.wakeup_event.set()
 
@@ -284,8 +289,6 @@ class _IntervalTimer:
             except Exception:
                 self.running = False
                 raise
-        # A Thread created before fork can report is_alive() as false in its worker.
-        return self.running and self.thread.ident is not None
 
     def _loop(self):
         try:

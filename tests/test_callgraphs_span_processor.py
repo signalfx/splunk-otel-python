@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import gzip
+import logging
 import os
 from pathlib import Path
 import subprocess
 import sys
 from textwrap import dedent
-from threading import Event
+from threading import Event, Thread
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,6 +31,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.trace import SpanContext
 
+from splunk_otel import profile_pb2
 from splunk_otel.callgraphs import CallgraphsSpanProcessor
 from splunk_otel.callgraphs.span_processor import _should_process_context
 
@@ -72,7 +76,7 @@ class TestCallgraphsSpanProcessor:
         processor.on_start(span, Context())
 
         span.set_attribute.assert_not_called()
-        mock_profiling_context.return_value.start.assert_not_called()
+        mock_profiling_context.return_value._start.assert_not_called()  # noqa: SLF001
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_does_nothing_when_baggage_is_off(self, mock_profiling_context):
@@ -83,7 +87,7 @@ class TestCallgraphsSpanProcessor:
         processor.on_start(span, ctx)
 
         span.set_attribute.assert_not_called()
-        mock_profiling_context.return_value.start.assert_not_called()
+        mock_profiling_context.return_value._start.assert_not_called()  # noqa: SLF001
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_does_nothing_when_parent_is_local(self, mock_profiling_context):
@@ -99,7 +103,7 @@ class TestCallgraphsSpanProcessor:
         processor.on_start(span, ctx)
 
         span.set_attribute.assert_not_called()
-        mock_profiling_context.return_value.start.assert_not_called()
+        mock_profiling_context.return_value._start.assert_not_called()  # noqa: SLF001
 
     @patch("splunk_otel.callgraphs.span_processor.ProfilingContext")
     def test_on_start_activates_profiling_when_baggage_is_highest(self, mock_profiling_context):
@@ -114,7 +118,7 @@ class TestCallgraphsSpanProcessor:
         processor.on_start(span, ctx)
 
         span.set_attribute.assert_called_once_with("splunk.snapshot.profiling", True)
-        mock_profiling_context.return_value.start.assert_called_once()
+        mock_profiling_context.return_value._start.assert_called_once()  # noqa: SLF001
         assert 456 in processor._span_id_to_trace_id  # noqa SLF001
         assert processor._span_id_to_trace_id[456] == 123  # noqa SLF001
 
@@ -224,14 +228,14 @@ def test_snapshot_sampling_failure_does_not_escape_span_callbacks(profiling_time
         span = tracer.start_span("first request", context=context)
         span.end()
         assert span.attributes.get("splunk.snapshot.profiling") == (None if failure == "start" else True)
-        assert timer.pause_count == (1 if failure == "pause" else 0)
+        assert timer.pause_count == 1
 
         timer.fail_start = False
         timer.fail_pause = False
         span = tracer.start_span("next request", context=context)
         span.end()
         assert span.attributes["splunk.snapshot.profiling"] is True
-        assert timer.pause_count == (2 if failure == "pause" else 1)
+        assert timer.pause_count == 2
     finally:
         timer.fail_start = False
         timer.fail_pause = False
@@ -418,3 +422,115 @@ def test_snapshot_configured_before_fork_profiles_first_worker_span():
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_concurrent_snapshot_request_is_sampled_after_delayed_launch(monkeypatch):
+    class ProfilingLogger:
+        def __init__(self):
+            self.records = []
+            self.sampled = Event()
+
+        def emit(self, record):
+            self.records.append(record.log_record)
+            self.sampled.set()
+
+    logger = ProfilingLogger()
+    processor = CallgraphsSpanProcessor(Resource({}), logger)
+    timer = processor._profiler._timer  # noqa: SLF001
+    launch_sampler = timer.thread.start
+    launch_started = Event()
+    release_launch = Event()
+    release_first_request = Event()
+    first_request_active = Event()
+    provider = TracerProvider(shutdown_on_exit=False)
+    provider.add_span_processor(processor)
+    tracer = provider.get_tracer("test")
+    selected = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+
+    def delayed_sampler_launch():
+        launch_started.set()
+        assert release_launch.wait(5)
+        launch_sampler()
+
+    def first_request():
+        with tracer.start_as_current_span("first request", context=selected):
+            first_request_active.set()
+            release_first_request.wait(5)
+
+    monkeypatch.setattr(timer.thread, "start", delayed_sampler_launch)
+    request = Thread(target=first_request, daemon=True)
+    request.start()
+    try:
+        assert launch_started.wait(2)
+        with tracer.start_as_current_span("concurrent request", context=selected) as span:
+            release_launch.set()
+            assert first_request_active.wait(2)
+            assert logger.sampled.wait(2)
+            profile = profile_pb2.Profile()
+            profile.ParseFromString(gzip.decompress(base64.b64decode(logger.records[0].body)))
+            strings = profile.string_table
+            trace_ids = {
+                int(strings[label.str], 16)
+                for sample in profile.sample
+                for label in sample.label
+                if strings[label.key] == "trace_id"
+            }
+            assert span.get_span_context().trace_id in trace_ids
+    finally:
+        release_launch.set()
+        release_first_request.set()
+        request.join(2)
+        provider.shutdown()
+    assert not request.is_alive()
+
+
+@pytest.mark.parametrize("handler_fails", [False, True])
+def test_failed_snapshot_start_cleans_up_before_diagnostic(monkeypatch, handler_fails):
+    processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
+    timer = processor._profiler._timer  # noqa: SLF001
+    launch_sampler = timer.thread.start
+    attempts = []
+    provider = TracerProvider(shutdown_on_exit=False)
+    provider.add_span_processor(processor)
+    tracer = provider.get_tracer("test")
+    selected = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+
+    def fail_first_sampler_launch():
+        attempts.append(True)
+        if len(attempts) == 1:
+            message = "sampler launch failed"
+            raise RuntimeError(message)
+        launch_sampler()
+
+    class TracingLogHandler(logging.Handler):
+        def __init__(self):
+            super().__init__()
+            self.handled = False
+            self.tracked_before_diagnostic = None
+
+        def emit(self, record):
+            if not self.handled:
+                self.handled = True
+                self.tracked_before_diagnostic = len(processor._span_id_to_trace_id)  # noqa: SLF001
+                with tracer.start_as_current_span("log handler", context=selected):
+                    pass
+                if handler_fails:
+                    message = "diagnostic handler failed"
+                    raise FileNotFoundError(message)
+
+    handler = TracingLogHandler()
+    logger = logging.getLogger("splunk_otel")
+    logger.addHandler(handler)
+    monkeypatch.setattr(timer.thread, "start", fail_first_sampler_launch)
+    try:
+        with tracer.start_as_current_span("failed launch", context=selected) as span:
+            assert span.attributes.get("splunk.snapshot.profiling") is None
+        assert handler.handled
+        assert handler.tracked_before_diagnostic == 0
+        assert not processor._span_id_to_trace_id  # noqa: SLF001
+        assert timer.thread.is_alive()
+        assert timer.pause_at is not None
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
+        provider.shutdown()

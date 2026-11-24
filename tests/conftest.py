@@ -22,7 +22,6 @@ def profiling_timer_type(monkeypatch):
             if self.fail_start:
                 message = "timer start failed"
                 raise RuntimeError(message)
-            return True
 
         def stop(self):
             pass

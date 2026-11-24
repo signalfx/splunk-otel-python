@@ -80,29 +80,24 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             with self._lock:
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-            if not self._profiler.start():
-                with self._lock:
-                    self._span_id_to_trace_id.pop(span_ctx.span_id, None)
-                return
-            span.set_attribute("splunk.snapshot.profiling", True)
+            try:
+                self._profiler._start()  # noqa: SLF001
+                span.set_attribute("splunk.snapshot.profiling", True)
+            except Exception:
+                self._remove_span(span_ctx.span_id)
+                raise
 
     def on_end(self, span: ReadableSpan) -> None:
         try:
-            self._pause_snapshot_after_span(span)
+            span_id = cast("SpanContext", span.get_span_context()).span_id
+            self._remove_span(span_id)
         except Exception:  # noqa: BLE001
             log_exception(_logger, "Failed to handle snapshot span end")
 
-    def _pause_snapshot_after_span(self, span: ReadableSpan) -> None:
-        span_id = cast("SpanContext", span.get_span_context()).span_id
-        trace_id = self._span_id_to_trace_id.get(span_id)
-
-        if trace_id is None:
-            return
-
+    def _remove_span(self, span_id: int) -> None:
         with self._lock:
-            self._span_id_to_trace_id.pop(span_id, None)
-
-            if len(self._span_id_to_trace_id) == 0:
+            trace_id = self._span_id_to_trace_id.pop(span_id, None)
+            if trace_id is not None and not self._span_id_to_trace_id:
                 self._profiler._pause_after(60.0)  # noqa: SLF001
 
     def shutdown(self) -> None:
