@@ -443,18 +443,6 @@ def test_sampling_continues_when_error_logging_fails(caplog):
         timer.stop()
 
 
-def test_stopped_timer_rejects_start_without_launching():
-    timer = _IntervalTimer(1, lambda: None)
-    timer.stop()
-
-    try:
-        assert timer.start() is False
-        assert not timer.running
-        assert not timer.thread.is_alive()
-    finally:
-        timer.stop()
-
-
 @pytest.mark.parametrize("failure_pattern", ["persistent", "intermittent"])
 def test_sampling_errors_are_rate_limited(monkeypatch, caplog, failure_pattern):
     from types import SimpleNamespace
@@ -475,7 +463,7 @@ def test_sampling_errors_are_rate_limited(monkeypatch, caplog, failure_pattern):
         nonlocal now
         now = next(sample_times, None)
         if now is None:
-            timer._stop_event.set()  # noqa: SLF001
+            timer.running = False
 
     monkeypatch.setattr("splunk_otel.profile.time", SimpleNamespace(monotonic=lambda: now))
     monkeypatch.setattr(timer._stop_event, "wait", sampling_wait)  # noqa: SLF001

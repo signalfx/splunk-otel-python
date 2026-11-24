@@ -24,9 +24,6 @@ def profiling_timer_type(monkeypatch):
                 raise RuntimeError(message)
             return True
 
-        def is_current_process(self):
-            return True
-
         def stop(self):
             pass
 

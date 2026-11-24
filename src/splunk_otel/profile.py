@@ -2,7 +2,6 @@ import atexit as _atexit
 import base64
 import gzip
 import logging
-import os
 import sys
 import threading
 import time
@@ -60,9 +59,6 @@ class ProfilingContext:
             instrumentation_source=instrumentation_source,
         )
         self._timer: _IntervalTimer = _IntervalTimer(interval_millis, scraper.tick)
-
-    def is_current_process(self) -> bool:
-        return self._timer.is_current_process()
 
     def start(self) -> bool:
         try:
@@ -265,7 +261,6 @@ def _pb_profile_to_str(pb_profile) -> str:
 
 class _IntervalTimer:
     def __init__(self, interval_millis, target):
-        self._pid = os.getpid()
         self.interval_seconds = interval_millis / 1e3
         if not 0 <= self.interval_seconds <= threading.TIMEOUT_MAX:
             message = f"Profiling sampling interval must be between 0 and {threading.TIMEOUT_MAX * 1000:g} milliseconds"
@@ -276,51 +271,40 @@ class _IntervalTimer:
         self.pause_at = None
         self.wakeup_event = threading.Event()
         self._stop_event = threading.Event()
-        self._lock = threading.Lock()
-
-    def is_current_process(self) -> bool:
-        return self._pid == os.getpid()
 
     def start(self) -> bool:
-        if not self.is_current_process() or self._stop_event.is_set():
-            return False
-        with self._lock:
-            if self._stop_event.is_set():
-                return False
-            if not self.running:
+        self.pause_at = None
+        self.wakeup_event.set()
+
+        if not self.running:
+            self._stop_event.clear()
+            self.running = True
+            try:
                 self.thread.start()
-                self.running = True
-            self.pause_at = None
-            self.wakeup_event.set()
-            return not self._stop_event.is_set()
+            except Exception:
+                self.running = False
+                raise
+        # A Thread created before fork can report is_alive() as false in its worker.
+        return self.running and self.thread.ident is not None
 
     def _loop(self):
-        if not self.is_current_process():
-            return
-        # Thread.start() returns before start() publishes the successful launch.
-        with self._lock:
-            if not self.running:
-                return
         try:
             self._sample_until_stopped()
         except Exception:  # noqa: BLE001
             log_exception(_logger, "Profiling timer stopped unexpectedly")
         finally:
-            if self.is_current_process():
-                self._stop_event.set()
-                with self._lock:
-                    self.running = False
+            self.running = False
 
     def _sample_until_stopped(self) -> None:
         last_error_log_at = None
-        while self.is_current_process() and not self._stop_event.is_set():
+        while self.running:
             start_time_seconds = time.monotonic()
 
             pause_at = self.pause_at
             if pause_at is not None and start_time_seconds >= pause_at:
                 self.wakeup_event.clear()
                 # Recheck state because clear() can erase a concurrent stop or resume signal.
-                if self._stop_event.is_set() or self.pause_at is None:
+                if not self.running or self.pause_at is None:
                     continue
                 self.wakeup_event.wait()
                 continue
@@ -332,29 +316,20 @@ class _IntervalTimer:
                 if last_error_log_at is None or now - last_error_log_at >= _SAMPLING_ERROR_LOG_INTERVAL_SECONDS:
                     last_error_log_at = now
                     log_exception(_logger, "Failed to collect profiling sample")
-            if not self.is_current_process():
-                return
             elapsed_seconds = time.monotonic() - start_time_seconds
             sleep_seconds = max(0, self.interval_seconds - elapsed_seconds)
             self._stop_event.wait(sleep_seconds)
 
     def stop(self):
-        if not self.is_current_process():
-            return
+        self.running = False
+        self.pause_at = None
         self._stop_event.set()
-        with self._lock:
-            self.running = False
-            self.pause_at = None
-            self.wakeup_event.set()
+        self.wakeup_event.set()  # unblock _loop() if waiting, so it can return and thread can exit
         if self.thread.is_alive():
             self.thread.join()
 
     def pause_after(self, seconds: float):
-        if not self.is_current_process():
-            return
-        with self._lock:
-            if not self._stop_event.is_set():
-                self.pause_at = time.monotonic() + seconds
+        self.pause_at = time.monotonic() + seconds
 
 
 class _StringTable:

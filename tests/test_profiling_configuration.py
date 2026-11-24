@@ -40,9 +40,6 @@ def profiling_contexts(monkeypatch, logger_provider_configs):
             self.started = True
             return True
 
-        def is_current_process(self):
-            return True
-
         def stop(self):
             self.started = False
 
