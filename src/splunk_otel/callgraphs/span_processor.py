@@ -79,10 +79,12 @@ class CallgraphsSpanProcessor(SpanProcessor):
 
             with self._lock:
                 self._span_id_to_trace_id[span_ctx.span_id] = span_ctx.trace_id
-                if not self._profiler.start():
+            # Startup failure cleanup can join the sampler, which also uses this lock.
+            if not self._profiler.start():
+                with self._lock:
                     self._span_id_to_trace_id.pop(span_ctx.span_id, None)
-                    return
-                span.set_attribute("splunk.snapshot.profiling", True)
+                return
+            span.set_attribute("splunk.snapshot.profiling", True)
 
     def on_end(self, span: ReadableSpan) -> None:
         try:

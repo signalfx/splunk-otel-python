@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from pathlib import Path
+import subprocess
+import sys
+from textwrap import dedent
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -253,3 +258,89 @@ def test_snapshot_callback_contains_span_failures(callback, caplog):
         processor.on_end(FakeSpan())
 
     assert "span failed" in caplog.text
+
+
+def test_snapshot_start_during_shutdown_does_not_block():
+    # Isolate the threads so a deadlock fails without blocking the test process.
+    script = dedent("""
+        from threading import Event, Thread, current_thread
+        from opentelemetry import baggage
+        from opentelemetry._logs import NoOpLoggerProvider
+        from opentelemetry.context import Context
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from splunk_otel import profile
+        from splunk_otel.profile import _IntervalTimer
+        from splunk_otel.callgraphs import CallgraphsSpanProcessor
+
+        sample_started = Event()
+        release_sample = Event()
+        shutdown_waiting = Event()
+        request_progress = Event()
+        timers = []
+        request_spans = []
+
+        def profiling_timer(interval_millis, target):
+            def paused_profile_sample():
+                sample_started.set()
+                assert release_sample.wait(5), "sample was not released"
+                target()
+            timer = _IntervalTimer(interval_millis, paused_profile_sample)
+            timers.append(timer)
+            return timer
+
+        profile._IntervalTimer = profiling_timer
+        provider = TracerProvider(shutdown_on_exit=False)
+        processor = CallgraphsSpanProcessor(Resource({}), NoOpLoggerProvider().get_logger("test"))
+        provider.add_span_processor(processor)
+        tracer = provider.get_tracer("test")
+        context = baggage.set_baggage("splunk.trace.snapshot.volume", "highest", Context())
+        first_span = tracer.start_span("first request", context=context)
+        (timer,) = timers
+        sampler_join = timer.thread.join
+        shutdown_thread = Thread(target=provider.shutdown, daemon=True)
+
+        def join_sampler(timeout=None):
+            if current_thread() is shutdown_thread:
+                shutdown_waiting.set()
+            else:
+                request_progress.set()
+            sampler_join(timeout)
+
+        timer.thread.join = join_sampler
+
+        def start_request():
+            try:
+                with tracer.start_as_current_span("request during shutdown", context=context) as span:
+                    request_spans.append(span)
+            finally:
+                request_progress.set()
+
+        request_thread = Thread(target=start_request, daemon=True)
+        try:
+            assert sample_started.wait(2), "sampler did not start"
+            shutdown_thread.start()
+            assert shutdown_waiting.wait(2), "shutdown did not wait for the sample"
+            request_thread.start()
+            assert request_progress.wait(2), "request did not finish or reach sampler cleanup"
+            release_sample.set()
+            request_thread.join(2)
+            shutdown_thread.join(2)
+            assert not request_thread.is_alive(), "snapshot startup blocked the request"
+            assert not shutdown_thread.is_alive(), "snapshot shutdown blocked"
+            assert not timer.thread.is_alive(), "sampler did not stop"
+            (span,) = request_spans
+            assert span.attributes.get("splunk.snapshot.profiling") is None
+            first_span.end()
+        finally:
+            release_sample.set()
+    """)
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")},
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
