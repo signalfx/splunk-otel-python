@@ -23,10 +23,9 @@ from opentelemetry.sdk.environment_variables import OTEL_CONFIG_FILE
 from opentelemetry.sdk.resources import Resource
 
 from splunk_otel.__about__ import __version__ as version
-from splunk_otel.callgraphs import _configure_callgraphs_if_enabled
+from splunk_otel._environment_profiling import configure_environment_profiling
 from splunk_otel.distro import _DEFAULT_SERVICE_NAME, _DISTRO_NAME
 from splunk_otel.env import SPLUNK_TRACE_RESPONSE_HEADER_ENABLED, Env
-from splunk_otel.profile import _start_profiling_if_enabled
 from splunk_otel.propagator import ServerTimingResponsePropagator
 from splunk_otel.runtime import (
     _SERVER_TIMING_DEFAULT_ENABLED,
@@ -67,8 +66,7 @@ class SplunkConfigurator(_OTelSDKConfigurator):
         # Environment settings do not control profiling or PostgreSQL correlation in file mode.
         if not config_file:
             configure_postgresql_trace_context_propagation(env)
-            _start_profiling_if_enabled()
-            _configure_callgraphs_if_enabled()
+            configure_environment_profiling(env)
 
 
 def _configure_declarative_sdk(config_file: str, **kwargs) -> OpenTelemetryConfiguration | None:

@@ -209,8 +209,9 @@ def test_declarative_server_timing_reads_splunk_http_configuration():
 
 
 @pytest.mark.parametrize("use_config_file", [False, True])
-def test_configurator_activates_postgresql_only_without_config_file(monkeypatch, use_config_file):
+def test_configurator_activates_environment_features_only_without_config_file(monkeypatch, use_config_file):
     enable_calls = []
+    profiling_calls = []
     monkeypatch.setenv("SPLUNK_DB_TRACE_CONTEXT_PROPAGATION_ENABLED", "true")
     if use_config_file:
         monkeypatch.setenv("OTEL_CONFIG_FILE", "config.yaml")
@@ -225,8 +226,9 @@ def test_configurator_activates_postgresql_only_without_config_file(monkeypatch,
         lambda *_a, **_k: OpenTelemetryConfiguration(file_format="1.0"),
     )
     monkeypatch.setattr("splunk_otel.configurator.configure_logging_instrumentation", lambda _env: None)
-    monkeypatch.setattr("splunk_otel.configurator._start_profiling_if_enabled", lambda: None)
-    monkeypatch.setattr("splunk_otel.configurator._configure_callgraphs_if_enabled", lambda: None)
+    monkeypatch.setattr(
+        "splunk_otel.configurator.configure_environment_profiling", lambda _env: profiling_calls.append(True)
+    )
     monkeypatch.setattr(
         "splunk_otel.runtime.enable_postgresql_trace_context_propagation",
         lambda: enable_calls.append(True),
@@ -235,3 +237,4 @@ def test_configurator_activates_postgresql_only_without_config_file(monkeypatch,
     SplunkConfigurator().configure()
 
     assert enable_calls == ([] if use_config_file else [True])
+    assert profiling_calls == ([] if use_config_file else [True])

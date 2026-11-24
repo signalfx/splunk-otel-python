@@ -20,7 +20,8 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import Span
 from opentelemetry.trace import SpanContext
 
-from splunk_otel.callgraphs.span_processor import CallgraphsSpanProcessor, _should_process_context
+from splunk_otel.callgraphs import CallgraphsSpanProcessor
+from splunk_otel.callgraphs.span_processor import _should_process_context
 
 
 def _processor():
