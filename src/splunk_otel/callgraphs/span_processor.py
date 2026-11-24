@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import threading
+import weakref
+from functools import partial
 from typing import TYPE_CHECKING, cast
 
 from opentelemetry import baggage, trace
@@ -48,13 +51,36 @@ class CallgraphsSpanProcessor(SpanProcessor):
     ):
         self._span_id_to_trace_id: dict[int, int] = {}
         self._lock = threading.Lock()
-        self._profiler = ProfilingContext(
+        self._shutdown = False
+        self._new_profiler = partial(
+            ProfilingContext,
             resource,
             sampling_interval,
             logger,
             self._filter_stacktraces,
             instrumentation_source="snapshot",
         )
+        self._profiler = self._new_profiler()
+        if hasattr(os, "register_at_fork"):
+            after_fork_ref = weakref.WeakMethod(self._after_fork)
+
+            def reset_snapshot_after_fork():
+                after_fork = after_fork_ref()
+                if after_fork is not None:
+                    after_fork()
+
+            os.register_at_fork(after_in_child=reset_snapshot_after_fork)
+
+    def _after_fork(self) -> None:
+        if self._shutdown:
+            return
+        try:
+            # Parent threads can hold either lock when fork() copies the processor.
+            self._lock = threading.Lock()
+            self._span_id_to_trace_id = {}
+            self._profiler = self._new_profiler()
+        except Exception:
+            _logger.exception("Failed to reset snapshot profiling after fork")
 
     def on_start(self, span: Span, parent_context: Context | None = None) -> None:
         try:
@@ -107,6 +133,7 @@ class CallgraphsSpanProcessor(SpanProcessor):
                 self._profiler.pause_after(60.0)
 
     def shutdown(self) -> None:
+        self._shutdown = True
         self._profiler.stop()
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
