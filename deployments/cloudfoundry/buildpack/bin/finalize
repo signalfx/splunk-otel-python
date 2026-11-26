@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "The Splunk Python buildpack must run before the Python buildpack." >&2
+exit 1
